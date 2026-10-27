@@ -29,25 +29,26 @@ Executed via: `python -m pytest backend/tests/ -v`
 
 ---
 
-## 2. End-to-End Acceptance Test (Phase 18)
+## 2. End-to-End Acceptance Test (Hackathon Sections 8 & 19 Compulsory Jury Pathway)
 
 Executed via: `python backend/tests/e2e_acceptance.py`
+Target Scenario: 46-year-old synthetic patient from G. Madugula (Ramu Somulu, `AD-ASR-10492`) with 22-year tobacco-chewing & reverse smoking (`chutta`) history.
 
-| Journey Phase | Step Description | Verified Output |
-| :--- | :--- | :--- |
-| **Phase 1** | Community Health Worker Authentication | Token issued for Sarala Devi (ASHA / CHW) |
-| **Phase 2** | Patient Registry Search | Located patient Lakshmi Devi (`AD-10021`), masked phone `+91 9****3456` |
-| **Phase 3** | Visual Skin Screening & AI Triage | Generated `SCR-2026-XXXX`, logged AI observations, queued SMS |
-| **Phase 4** | PHC Medical Officer Review | Dr. Ramesh Babu recorded `consultation_booked` review |
-| **Phase 5** | Consultation Appointment Scheduling | Booked for 11:00 AM; automatically calculated 10:30 AM arrival time |
-| **Phase 6** | Physical Arrival & OTP Check-in | Enforced 60s cooldown; rejected invalid code `000000`; validated 6-digit code |
-| **Phase 7** | Live Doctor Queue Placement | Status moved to `waiting_for_doctor`; waiting minutes counter active |
-| **Phase 8** | Doctor Case Acceptance | Dr. Priya accepted case; generated WebRTC room ID & STUN token |
-| **Phase 9** | Telemedicine Consultation & Referral | Recorded findings, prescription notes, created secondary hospital referral |
-| **Phase 10** | District Administrator Audit Verification | Confirmed immutable audit trail entries logged in database |
-| **Phase 11** | Medical AI Safety Guardrails | Confirmed refusal to diagnose cancer; emergency symptom trigger verified |
+| Phase | Jury Step Description | Technical Assertion | Verified Outcome |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | ASHA / Health Worker Login | Authenticate Sarala Devi (ASHA, G. Madugula PHC) | JWT issued, role claim `chw` validated |
+| **Phase 2** | Synthetic Patient Intake | Retrieve Ramu Somulu (`AD-ASR-10492`) | Habitation `Vanabhasingi`, GP `G. Madugula`, habits recorded |
+| **Phase 3** | Oral Photography & Quality | Submit simulated photograph to OpenCV checker | Blur score & luminance calculated; quality graded |
+| **Phase 4** | Oral Screening Submission | Left Buccal Mucosa, Leukoplakia, OSMF opening 32mm | Screening `SCR-2026-xxxxx` created; nonclinical AI triage advisory attached |
+| **Phase 5** | MO Review & AI Override | Dr. Ramesh Babu reviews case and signs clinical decision | Signed note recorded; doctor AI agreement/override captured |
+| **Phase 6** | Appointment & OTP Check-in | Book specialist telemedicine slot & verify physical arrival | 30m early arrival calculated; Salted SHA-256 OTP verified |
+| **Phase 7** | Specialist Video Consultation | Dr. Priya Sundaram accepts queue case | WebRTC room activated (`ad-telemed-apt-xxxxx`); consultation completed |
+| **Phase 8** | Module F: Hospital Referral | Generate bilingual printable referral slip | `REF-ASR-xxxxx` issued for Head & Neck Surgical Oncology |
+| **Phase 9** | Module G: Biopsy & Pathology | Order incisional biopsy & review histopathology | `BIO-2026-xxxx` state machine advanced; dysplastic leukoplakia confirmed |
+| **Phase 10** | Module I: Patient Navigation | Coordinate 108 Feeder Ambulance from Vanabhasingi | `NAV-2026-xxxx` task created; feeder ambulance pickup confirmed |
+| **Phase 11** | Module J & Security Boundary | District Administrator inspects ITDA mandal aggregates | Aggregate counts verified; CHW blocked from biopsy modifications (403 Forbidden) |
 
-**E2E Acceptance Result:** ALL 15 PHASES PASSED WITH 100% SUCCESS.
+**E2E Acceptance Result:** ALL 11 COMPULSORY PHASES PASSED WITH 100% SUCCESS.
 
 ---
 
@@ -55,9 +56,10 @@ Executed via: `python backend/tests/e2e_acceptance.py`
 
 Executed via: `npm run build` in `frontend/`
 - TypeScript verification: `tsc -b` -> 0 errors.
-- Bundler: Vite 8.3 -> 1953 modules transformed.
+- Bundler: Vite 8.3 -> 1956 modules transformed.
 - Bundle generation:
   - `dist/index.html` (1.12 kB)
   - `dist/assets/index.css` (10.34 kB)
-  - `dist/assets/index.js` (372.89 kB)
-- Exit code: 0 in 904ms.
+  - `dist/assets/index.js` (427.74 kB)
+- Exit code: 0 in 479ms.
+

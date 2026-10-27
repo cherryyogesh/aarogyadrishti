@@ -57,9 +57,9 @@ async def upload_image(
     img = cv2.imread(dest_path)
     height, width = (img.shape[0], img.shape[1]) if img is not None else (0, 0)
 
-    # 4. Save DB Records (associated with temporary screening_id=0 until screening created)
+    # 4. Save DB Records (associated with temporary screening_id=None until screening created)
     image_record = ScreeningImage(
-        screening_id=0,  # Will be updated when screening is committed
+        screening_id=None,  # Will be updated when screening is committed
         original_filename=file.filename,
         stored_path=dest_path,
         file_size_bytes=file_size,

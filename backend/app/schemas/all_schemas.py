@@ -12,6 +12,7 @@ class Token(BaseModel):
     role: str
     phc_id: Optional[int] = None
     phc_name: Optional[str] = None
+    mandal: Optional[str] = None
 
 class LoginRequest(BaseModel):
     username_or_email: str
@@ -27,31 +28,6 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     is_active: bool
 
-    class Config:
-        from_attributes = True
-
-class UserCreate(BaseModel):
-    email: EmailStr
-    username: str
-    password: str
-    full_name: str
-    role: str
-    phc_id: Optional[int] = None
-    phone: Optional[str] = None
-
-# ----------------- PHC Schemas -----------------
-class PHCResponse(BaseModel):
-    id: int
-    code: str
-    name: str
-    district: str
-    state: str
-    pin_code: Optional[str] = None
-    contact_number: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
 # ----------------- Patient Schemas -----------------
 class PatientCreate(BaseModel):
     full_name: str
@@ -59,11 +35,25 @@ class PatientCreate(BaseModel):
     gender: str
     phone: str
     preferred_language: str = "te"
+    habitation: Optional[str] = "Madugula Colony"
+    gram_panchayat: Optional[str] = "G. Madugula"
+    mandal: str = "G. Madugula"
+    district: str = "Alluri Sitharama Raju"
     address: Optional[str] = None
-    village_town: Optional[str] = None
     phc_id: int
+
+    # Tobacco & Habit Exposure History
+    chewing_tobacco: bool = False
+    smoking: bool = False
+    gutkha: bool = False
+    areca_nut: bool = False
+    reverse_smoking: bool = False
+    alcohol: bool = False
+    habits_duration_years: int = 0
+    habits_frequency_per_day: Optional[str] = "None"
+
     consent_granted: bool = True
-    consent_notes: Optional[str] = None
+    consent_notes: Optional[str] = "Digital informed consent confirmed for oral screening and telemedicine"
 
 class PatientResponse(BaseModel):
     id: int
@@ -73,23 +63,17 @@ class PatientResponse(BaseModel):
     gender: str
     phone_masked: str
     preferred_language: str
-    village_town: Optional[str] = None
+    habitation: Optional[str] = None
+    gram_panchayat: Optional[str] = None
+    mandal: str
+    district: str
+    chewing_tobacco: bool
+    smoking: bool
+    reverse_smoking: bool
+    habits_duration_years: Optional[int] = 0
     phc_id: int
     phc_name: Optional[str] = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class ConsentResponse(BaseModel):
-    id: int
-    consent_type: str
-    granted: bool
-    notes: Optional[str] = None
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True
 
 # ----------------- Image & Quality Schemas -----------------
 class ImageQualityResult(BaseModel):
@@ -99,7 +83,7 @@ class ImageQualityResult(BaseModel):
     is_overexposed: bool
     luminance_score: float
     resolution_adequate: bool
-    quality_state: str  # excellent, acceptable, poor, retake_recommended
+    quality_state: str
     guidance_message: str
 
 class ImageUploadResponse(BaseModel):
@@ -115,10 +99,16 @@ class ImageUploadResponse(BaseModel):
 class ScreeningCreate(BaseModel):
     patient_id: int
     phc_id: int
-    category: str  # mouth, skin, wounds, eye, ear, nose, other
+    category: str = "mouth"
+    oral_site: str = "buccal_mucosa"       # buccal_mucosa, tongue, palate, floor_of_mouth, gingiva, lip, retromolar
+    lesion_type: str = "leukoplakia"      # leukoplakia, erythroplakia, erythroleukoplakia, osmf, persistent_ulcer, growth_mass
     symptoms: str
-    duration_days: int = 1
-    severity: str = "mild"
+    duration_days: int = 30
+    mouth_opening_mm: Optional[float] = 38.0
+    pain_score: int = 0
+    bleeding: bool = False
+    burning_sensation: bool = True
+    severity: str = "moderate"
     image_id: Optional[int] = None
 
 class ScreeningImageResponse(BaseModel):
@@ -131,19 +121,27 @@ class ScreeningImageResponse(BaseModel):
     enhanced_url: Optional[str] = None
     quality_state: Optional[str] = None
     guidance_message: Optional[str] = None
+    body_site: Optional[str] = None
 
 class AIAnalysisResponse(BaseModel):
     id: int
-    model_name: str
-    model_version: str
+    analysis_id: str = "DEMO-AI-009"
+    model_name: str = "IISc TANUH Research Concept Adapter"
+    model_version: str = "mock-v1"
+    research_label: str = "suspicious_example"
+    image_quality: str = "acceptable"
     visual_observations: str
     triage_urgency: str
+    requires_clinician_review: bool = True
+    clinical_use: bool = False
+    warning: str = "NOT FOR CLINICAL USE — RESEARCH DEMO ONLY"
     confidence_disclaimer: str
     recommendations: str
     is_real_inference: bool
 
 class ClinicalReviewCreate(BaseModel):
-    review_decision: str  # consultation_booked, repeat_photo, safe_observation, referral_made
+    review_decision: str  # consultation_booked, repeat_photo, safe_observation, referral_made, biopsy_advised
+    doctor_agrees_with_ai: bool = True
     clinical_notes: str
     action_plan: Optional[str] = None
 
@@ -151,8 +149,10 @@ class ClinicalReviewResponse(BaseModel):
     id: int
     reviewer_name: Optional[str] = None
     review_decision: str
+    doctor_agrees_with_ai: bool
     clinical_notes: str
     action_plan: Optional[str] = None
+    signed_at: datetime
     reviewed_at: datetime
 
 class ScreeningResponse(BaseModel):
@@ -164,11 +164,17 @@ class ScreeningResponse(BaseModel):
     patient_phone_masked: str
     patient_age: int
     patient_gender: str
+    mandal: str
     phc_id: int
     phc_name: str
-    category: str
+    oral_site: str
+    lesion_type: str
     symptoms: str
     duration_days: int
+    mouth_opening_mm: Optional[float] = None
+    pain_score: int
+    bleeding: bool
+    burning_sensation: bool
     severity: str
     status: str
     created_at: datetime
@@ -176,17 +182,14 @@ class ScreeningResponse(BaseModel):
     ai_analysis: Optional[AIAnalysisResponse] = None
     clinical_reviews: List[ClinicalReviewResponse] = []
 
-    class Config:
-        from_attributes = True
-
 # ----------------- Appointment & OTP Schemas -----------------
 class AppointmentCreate(BaseModel):
     patient_id: int
     phc_id: int
     doctor_id: Optional[int] = None
     screening_id: Optional[int] = None
-    scheduled_date: str  # YYYY-MM-DD
-    scheduled_time: str  # HH:MM
+    scheduled_date: str
+    scheduled_time: str
     appointment_type: str = "telemedicine"
 
 class AppointmentReschedule(BaseModel):
@@ -204,6 +207,7 @@ class AppointmentResponse(BaseModel):
     patient_id_display: str
     patient_name: str
     patient_phone_masked: str
+    mandal: Optional[str] = None
     phc_id: int
     phc_name: str
     doctor_id: Optional[int] = None
@@ -217,9 +221,6 @@ class AppointmentResponse(BaseModel):
     checkin_time: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class OTPRequestPayload(BaseModel):
     patient_id_display: str
     appointment_id: Optional[int] = None
@@ -232,7 +233,7 @@ class OTPRequestResponse(BaseModel):
     masked_phone: str
     resend_cooldown_seconds: int
     expires_in_minutes: int
-    dev_otp_preview: Optional[str] = None  # Populated only in synthetic dev mode for automated testing
+    dev_otp_preview: Optional[str] = None
 
 class OTPVerifyPayload(BaseModel):
     appointment_id: int
@@ -254,11 +255,14 @@ class DoctorQueueItem(BaseModel):
     patient_name: str
     patient_age: int
     patient_gender: str
+    mandal: Optional[str] = "G. Madugula"
     phc_name: str
     scheduled_time: str
     checkin_time: datetime
     waiting_minutes: int
-    screening_category: Optional[str] = None
+    oral_site: Optional[str] = None
+    lesion_type: Optional[str] = None
+    screening_category: Optional[str] = "mouth"
     screening_symptoms: Optional[str] = None
     status: str
 
@@ -276,10 +280,105 @@ class ConsultationCompletePayload(BaseModel):
     clinical_findings: str
     prescription_notes: Optional[str] = None
     follow_up_instructions: Optional[str] = None
+    biopsy_indicated: bool = False
     referral_needed: bool = False
     referral_specialty: Optional[str] = None
     target_hospital: Optional[str] = None
     referral_urgency: Optional[str] = "routine"
+
+# ----------------- MODULE G: BIOPSY & INVESTIGATION SCHEMAS -----------------
+class InvestigationCreate(BaseModel):
+    patient_id: int
+    screening_id: Optional[int] = None
+    appointment_id: Optional[int] = None
+    kind: str = "incisional_biopsy"  # incisional_biopsy, punch_biopsy, fnac, ct_scan
+    biopsy_site: str = "Left Buccal Mucosa"
+    state: str = "advised"          # advised, scheduled, sample_collected, report_pending, report_received, clinician_reviewed
+    specimen_date: Optional[str] = None
+    pathology_finding: Optional[str] = None
+    diagnosis_category: str = "precancer_leukoplakia" # benign, precancer_leukoplakia, osmf, oscc_malignancy
+    histopathology_summary: Optional[str] = None
+    report_file_url: Optional[str] = None
+
+class InvestigationUpdate(BaseModel):
+    state: str
+    specimen_date: Optional[str] = None
+    pathology_finding: Optional[str] = None
+    diagnosis_category: Optional[str] = None
+    histopathology_summary: Optional[str] = None
+    report_file_url: Optional[str] = None
+
+class InvestigationResponse(BaseModel):
+    id: int
+    investigation_ref: str
+    patient_id: int
+    patient_id_display: str
+    patient_name: str
+    kind: str
+    biopsy_site: str
+    state: str
+    diagnosis_category: str
+    pathology_finding: Optional[str] = None
+    histopathology_summary: Optional[str] = None
+    report_file_url: Optional[str] = None
+    doctor_name: Optional[str] = None
+    created_at: datetime
+
+# ----------------- MODULE I: PATIENT NAVIGATION SCHEMAS -----------------
+class NavigationTaskCreate(BaseModel):
+    patient_id: int
+    task_type: str = "biopsy_transport_escort"
+    due_date: Optional[str] = None
+    notes: Optional[str] = None
+
+class NavigationTaskUpdate(BaseModel):
+    status: str
+    contact_attempts_count: Optional[int] = None
+    transport_support_arranged: Optional[bool] = None
+    feeder_ambulance_notified: Optional[bool] = None
+    missed_visit_reason: Optional[str] = None
+    notes: Optional[str] = None
+
+class NavigationTaskResponse(BaseModel):
+    id: int
+    task_ref: str
+    patient_id: int
+    patient_id_display: str
+    patient_name: str
+    habitation: Optional[str] = None
+    mandal: str
+    patient_phone_masked: str
+    task_type: str
+    status: str
+    due_date: Optional[str] = None
+    contact_attempts_count: int
+    transport_support_arranged: bool
+    feeder_ambulance_notified: bool
+    missed_visit_reason: Optional[str] = None
+    notes: Optional[str] = None
+    navigator_name: Optional[str] = None
+    created_at: datetime
+
+# ----------------- REFERRAL SLIP SCHEMA -----------------
+class ReferralSlipResponse(BaseModel):
+    id: int
+    referral_slip_number: str
+    patient_id_display: str
+    patient_name: str
+    age: int
+    gender: str
+    habitation: Optional[str] = None
+    mandal: str
+    district: str
+    originating_phc: str
+    target_hospital: str
+    specialty_needed: str
+    urgency: str
+    reason_for_referral: str
+    clinical_notes: Optional[str] = None
+    scheduled_appointment_date: Optional[str] = None
+    attendance_confirmed: bool
+    created_at: datetime
 
 # ----------------- Chatbot Schemas -----------------
 class ChatMessagePayload(BaseModel):
@@ -300,11 +399,16 @@ class ChatMessageResponse(BaseModel):
     disclaimer: str
     created_at: datetime
 
-# ----------------- Reporting & Analytics Schemas -----------------
+# ----------------- District Reporting & Analytics -----------------
 class DistrictAnalyticsResponse(BaseModel):
     total_screenings: int
     screenings_by_category: dict
+    screenings_by_mandal: dict
+    precancers_detected: int
+    cancers_confirmed: int
     cases_awaiting_review: int
+    biopsies_pending: int
+    biopsies_completed: int
     total_appointments_booked: int
     verified_arrivals_count: int
     average_wait_duration_minutes: float

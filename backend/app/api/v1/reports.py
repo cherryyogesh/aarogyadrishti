@@ -5,7 +5,7 @@ from sqlalchemy import func
 from app.core.database import get_db
 from app.models.entities import (
     Screening, Appointment, AppointmentStatus, NotificationLog, Referral,
-    User, UserRole
+    Patient, Investigation, InvestigationState, User, UserRole
 )
 from app.schemas.all_schemas import DistrictAnalyticsResponse
 from app.integrations.ai.hf_client import hf_client
@@ -24,7 +24,50 @@ def get_district_analytics(
     category_counts = {}
     rows = db.query(Screening.category, func.count(Screening.id)).group_by(Screening.category).all()
     for cat, count in rows:
-        category_counts[cat.value] = count
+        key = cat.value if hasattr(cat, 'value') else str(cat)
+        category_counts[key] = count
+
+    # Screenings by mandal (ITDA Paderu Agency)
+    mandal_counts = {
+        "G. Madugula": 0,
+        "Paderu": 0,
+        "Araku Valley": 0,
+        "Chintapalli": 0,
+        "Dumbriguda": 0,
+        "Ananthagiri": 0
+    }
+    mandal_rows = db.query(Patient.mandal, func.count(Screening.id))\
+        .join(Screening, Screening.patient_id == Patient.id)\
+        .group_by(Patient.mandal).all()
+    for mandal, count in mandal_rows:
+        if mandal:
+            mandal_counts[mandal] = count
+
+    # Precancer and Malignancy tracking
+    precancers = db.query(Investigation).filter(
+        Investigation.diagnosis_category.in_(["precancer_leukoplakia", "osmf"])
+    ).count()
+
+    cancers = db.query(Investigation).filter(
+        Investigation.diagnosis_category == "oscc_malignancy"
+    ).count()
+
+    # Biopsies pending vs completed
+    biopsies_pending = db.query(Investigation).filter(
+        Investigation.state.in_([
+            InvestigationState.ADVISED,
+            InvestigationState.SCHEDULED,
+            InvestigationState.SAMPLE_COLLECTED,
+            InvestigationState.REPORT_PENDING
+        ])
+    ).count()
+
+    biopsies_completed = db.query(Investigation).filter(
+        Investigation.state.in_([
+            InvestigationState.REPORT_RECEIVED,
+            InvestigationState.CLINICIAN_REVIEWED
+        ])
+    ).count()
 
     # Cases awaiting review
     awaiting_review = db.query(Screening).filter(
@@ -76,7 +119,12 @@ def get_district_analytics(
     return DistrictAnalyticsResponse(
         total_screenings=total_screenings,
         screenings_by_category=category_counts,
+        screenings_by_mandal=mandal_counts,
+        precancers_detected=precancers,
+        cancers_confirmed=cancers,
         cases_awaiting_review=awaiting_review,
+        biopsies_pending=biopsies_pending,
+        biopsies_completed=biopsies_completed,
         total_appointments_booked=total_appointments,
         verified_arrivals_count=verified_arrivals,
         average_wait_duration_minutes=avg_wait,

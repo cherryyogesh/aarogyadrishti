@@ -29,6 +29,18 @@ export interface Patient {
   phone_masked: string;
   preferred_language: string;
   village_town?: string | null;
+  habitation?: string | null;
+  gram_panchayat?: string | null;
+  mandal?: string;
+  district?: string;
+  chewing_tobacco?: boolean;
+  smoking?: boolean;
+  reverse_smoking?: boolean;
+  gutkha?: boolean;
+  areca_nut?: boolean;
+  alcohol?: boolean;
+  habits_duration_years?: number;
+  habits_frequency_per_day?: string;
   phc_id: number;
   phc_name?: string | null;
   created_at: string;
@@ -104,9 +116,16 @@ export interface Screening {
   patient_phone_masked: string;
   patient_age: number;
   patient_gender: string;
+  mandal?: string;
   phc_id: number;
   phc_name: string;
   category: 'mouth' | 'skin' | 'wounds' | 'eye' | 'ear' | 'nose' | 'other';
+  oral_site?: string;
+  lesion_type?: string;
+  mouth_opening_mm?: number | null;
+  pain_score?: number;
+  bleeding?: boolean;
+  burning_sensation?: boolean;
   symptoms: string;
   duration_days: number;
   severity: string;
@@ -115,6 +134,68 @@ export interface Screening {
   images: ScreeningImage[];
   ai_analysis?: AIAnalysis | null;
   clinical_reviews: ClinicalReview[];
+}
+
+// Module G: Biopsy & Pathology
+export interface Investigation {
+  id: number;
+  investigation_ref: string;
+  patient_id: number;
+  patient_id_display: string;
+  patient_name: string;
+  kind: string;
+  biopsy_site: string;
+  state: 'advised' | 'scheduled' | 'sample_collected' | 'report_pending' | 'report_received' | 'clinician_reviewed';
+  diagnosis_category: string;
+  pathology_finding?: string | null;
+  histopathology_summary?: string | null;
+  report_file_url?: string | null;
+  doctor_name?: string | null;
+  created_at: string;
+}
+
+// Module I: Tribal Patient Navigation
+export interface NavigationTask {
+  id: number;
+  task_ref: string;
+  patient_id: number;
+  patient_id_display: string;
+  patient_name: string;
+  habitation?: string | null;
+  mandal: string;
+  patient_phone_masked: string;
+  task_type: string;
+  status: 'pending' | 'contacted' | 'transport_arranged' | 'attended' | 'missed_escalated' | 'completed';
+  due_date?: string | null;
+  contact_attempts_count: number;
+  transport_support_arranged: boolean;
+  feeder_ambulance_notified: boolean;
+  missed_visit_reason?: string | null;
+  notes?: string | null;
+  navigator_name?: string | null;
+  created_at: string;
+}
+
+// Module F: Hospital Referral Slip
+export interface ReferralSlip {
+  id: number;
+  referral_slip_number: string;
+  patient_id_display: string;
+  patient_name: string;
+  age: number;
+  gender: string;
+  habitation?: string | null;
+  mandal: string;
+  district: string;
+  originating_phc: string;
+  target_hospital: string;
+  specialty_needed: string;
+  urgency: string;
+  reason_for_referral: string;
+  clinical_notes?: string | null;
+  scheduled_appointment_date?: string | null;
+  attendance_confirmed: boolean;
+  created_at: string;
 }
 
 export type AppointmentStatus =
@@ -158,10 +239,13 @@ export interface DoctorQueueItem {
   patient_name: string;
   patient_age: number;
   patient_gender: string;
+  mandal?: string;
   phc_name: string;
   scheduled_time: string;
   checkin_time: string;
   waiting_minutes: number;
+  oral_site?: string | null;
+  lesion_type?: string | null;
   screening_category?: string | null;
   screening_symptoms?: string | null;
   status: string;
@@ -194,7 +278,12 @@ export interface ChatMessage {
 export interface DistrictAnalytics {
   total_screenings: number;
   screenings_by_category: Record<string, number>;
+  screenings_by_mandal: Record<string, number>;
+  precancers_detected: number;
+  cancers_confirmed: number;
   cases_awaiting_review: number;
+  biopsies_pending: number;
+  biopsies_completed: number;
   total_appointments_booked: number;
   verified_arrivals_count: number;
   average_wait_duration_minutes: number;

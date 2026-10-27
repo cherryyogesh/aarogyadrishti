@@ -60,14 +60,18 @@ def complete_consultation(
 
     # If referral requested, create formal Referral record
     if payload.referral_needed and payload.referral_specialty:
+        import random
+        ref_num = f"REF-ASR-{random.randint(10000, 99999)}"
         referral = Referral(
+            referral_slip_number=ref_num,
             patient_id=apt.patient_id,
             originating_phc_id=apt.phc_id,
             specialty_needed=payload.referral_specialty,
-            urgency=payload.referral_urgency or "routine",
-            target_hospital=payload.target_hospital or "District Government General Hospital",
-            status="pending",
-            notes=payload.clinical_findings,
+            urgency=payload.referral_urgency or "priority",
+            target_hospital=payload.target_hospital or "District Hospital Paderu",
+            status="confirmed",
+            reason_for_referral=payload.clinical_findings or "Referred for specialist evaluation",
+            clinical_notes=payload.clinical_findings,
             created_by_id=current_user.id
         )
         db.add(referral)

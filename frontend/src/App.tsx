@@ -15,11 +15,14 @@ import { ChatbotView } from './features/chatbot/ChatbotView';
 import { DistrictReportsView } from './features/reports/DistrictReportsView';
 import { AuditLogView } from './features/audit/AuditLogView';
 import { ConfigStatusView } from './features/config/ConfigStatusView';
+import { InvestigationsView } from './features/investigations/InvestigationsView';
+import { NavigationView } from './features/navigation/NavigationView';
+import { ReferralsView } from './features/referrals/ReferralsView';
 
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
   MessageSquare, BarChart3, Shield, Settings, LogOut, Menu,
-  X, Globe, Server, UserCheck
+  X, Globe, Server, UserCheck, FlaskConical, Compass, FileCheck
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -162,6 +165,30 @@ export const App: React.FC = () => {
           )}
 
           <button
+            className={`menu-item ${activeRoute === 'investigations' ? 'active' : ''}`}
+            onClick={() => navigateTo('investigations')}
+          >
+            <FlaskConical size={18} />
+            {t.nav_investigations}
+          </button>
+
+          <button
+            className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
+            onClick={() => navigateTo('referrals')}
+          >
+            <FileCheck size={18} />
+            {t.nav_referrals}
+          </button>
+
+          <button
+            className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
+            onClick={() => navigateTo('navigation')}
+          >
+            <Compass size={18} />
+            {t.nav_navigation}
+          </button>
+
+          <button
             className={`menu-item ${activeRoute === 'appointments' ? 'active' : ''}`}
             onClick={() => navigateTo('appointments')}
           >
@@ -261,6 +288,9 @@ export const App: React.FC = () => {
                activeRoute === 'patients' ? t.nav_patients :
                activeRoute === 'screening' ? t.nav_screening :
                activeRoute === 'phc_cases' ? t.nav_phc_cases :
+               activeRoute === 'investigations' ? t.nav_investigations :
+               activeRoute === 'referrals' ? t.nav_referrals :
+               activeRoute === 'navigation' ? t.nav_navigation :
                activeRoute === 'appointments' ? t.nav_appointments :
                activeRoute === 'otp' ? t.nav_otp_checkin :
                activeRoute === 'queue' ? t.nav_doctor_queue :
@@ -385,6 +415,24 @@ export const App: React.FC = () => {
             <ConfigStatusView
               currentLang={currentLang}
               user={currentUser}
+            />
+          )}
+
+          {activeRoute === 'investigations' && (
+            <InvestigationsView
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeRoute === 'referrals' && (
+            <ReferralsView
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeRoute === 'navigation' && (
+            <NavigationView
+              currentUser={currentUser}
             />
           )}
         </main>

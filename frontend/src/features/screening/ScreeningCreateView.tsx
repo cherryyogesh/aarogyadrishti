@@ -27,10 +27,16 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
   const t = translations[currentLang] || translations.en;
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | ''>('');
-  const [category, setCategory] = useState('skin');
-  const [symptoms, setSymptoms] = useState('');
-  const [durationDays, setDurationDays] = useState(3);
-  const [severity, setSeverity] = useState('mild');
+  const [category, setCategory] = useState('mouth');
+  const [oralSite, setOralSite] = useState('buccal_mucosa');
+  const [lesionType, setLesionType] = useState('leukoplakia');
+  const [mouthOpeningMm, setMouthOpeningMm] = useState<number>(32);
+  const [burningSensation, setBurningSensation] = useState<boolean>(true);
+  const [bleeding, setBleeding] = useState<boolean>(false);
+  const [painScore, setPainScore] = useState<number>(4);
+  const [symptoms, setSymptoms] = useState('Persistent non-scrapable white patch on left inner cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks.');
+  const [durationDays, setDurationDays] = useState(21);
+  const [severity, setSeverity] = useState('moderate');
 
   // Image Upload & Quality State
   const [uploading, setUploading] = useState(false);
@@ -96,6 +102,12 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
         patient_id: Number(selectedPatientId),
         phc_id: user.phc_id || 1,
         category,
+        oral_site: category === 'mouth' ? oralSite : undefined,
+        lesion_type: category === 'mouth' ? lesionType : undefined,
+        mouth_opening_mm: category === 'mouth' ? Number(mouthOpeningMm) : undefined,
+        pain_score: Number(painScore),
+        bleeding: Boolean(bleeding),
+        burning_sensation: Boolean(burningSensation),
         symptoms,
         duration_days: Number(durationDays),
         severity,
@@ -258,6 +270,131 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             })}
           </div>
         </div>
+
+        {/* Step 2.5: Oral Cavity & Precancer Screening Details (Active when Mouth selected) */}
+        {category === 'mouth' && (
+          <div className="card" style={{
+            marginBottom: '1.5rem',
+            background: 'linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%)',
+            border: '2px solid #0d9488'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '1.4rem' }}>🔬</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f766e' }}>
+                  నోటి క్యాన్సర్ ప్రాథమిక పరీక్ష (Oral Cavity & OPMD Examination)
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#134e4a' }}>
+                  Guided clinical oral screening based on IISc-TANUH and NP-NCD protocols.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              {/* Anatomical Oral Site */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, color: '#0f766e' }}>
+                  Oral Anatomical Site (శరీర స్థానం) *
+                </label>
+                <select
+                  className="form-control"
+                  value={oralSite}
+                  onChange={(e) => setOralSite(e.target.value)}
+                  style={{ borderColor: '#14b8a6' }}
+                >
+                  <option value="buccal_mucosa">Left / Right Buccal Mucosa (బుగ్గ లోపలి భాగం)</option>
+                  <option value="tongue">Lateral / Dorsal Tongue (నాలుక అంచులు / పైభాగం)</option>
+                  <option value="floor_of_mouth">Floor of Mouth (నాలుక క్రింది భాగం)</option>
+                  <option value="palate">Hard / Soft Palate (అంగిలి)</option>
+                  <option value="gingiva">Gums / Alveolar Ridge (చిగుళ్ళు)</option>
+                  <option value="lip">Labial Mucosa / Lips (పెదవులు)</option>
+                  <option value="retromolar_trigone">Retromolar Trigone (దవడ వెనుక భాగం)</option>
+                </select>
+              </div>
+
+              {/* Lesion Type */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700, color: '#0f766e' }}>
+                  Clinical Lesion Appearance (లక్షణ వర్గం) *
+                </label>
+                <select
+                  className="form-control"
+                  value={lesionType}
+                  onChange={(e) => setLesionType(e.target.value)}
+                  style={{ borderColor: '#14b8a6' }}
+                >
+                  <option value="leukoplakia">Leukoplakia (తెల్లని మచ్చ - White Plaque)</option>
+                  <option value="erythroplakia">Erythroplakia (ఎర్రటి మచ్చ - High Malignant Risk)</option>
+                  <option value="erythroleukoplakia">Mixed Erythroleukoplakia (ఎరుపు & తెలుపు)</option>
+                  <option value="osmf">Oral Submucous Fibrosis - OSMF (నోటి బిగువు)</option>
+                  <option value="persistent_ulcer">Non-healing Ulcer &gt;2 weeks (మానని పుండు)</option>
+                  <option value="growth_mass">Vegetative Mass / Growth (గడ్డ / పులిపిరి)</option>
+                  <option value="lichen_planus">Oral Lichen Planus (నెట్‌వర్క్ చారలు)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Mouth Opening (OSMF Tracker) */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #ccfbf1', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ fontWeight: 700, color: '#0f766e', margin: 0 }}>
+                  Inter-incisal Mouth Opening (నోరు తెరవగల దూరం): <strong>{mouthOpeningMm} mm</strong>
+                </label>
+                <span style={{
+                  fontSize: '0.75rem',
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  background: mouthOpeningMm < 35 ? '#fee2e2' : '#dcfce7',
+                  color: mouthOpeningMm < 35 ? '#b91c1c' : '#166534'
+                }}>
+                  {mouthOpeningMm < 35 ? '⚠️ Restricted (<35 mm) • OSMF Suspect' : '✓ Normal (>35 mm)'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="15"
+                max="55"
+                step="1"
+                value={mouthOpeningMm}
+                onChange={(e) => setMouthOpeningMm(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#0d9488' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
+                <span>15 mm (Severe Trismus)</span>
+                <span>35 mm (Cutoff)</span>
+                <span>55 mm (Full Normal)</span>
+              </div>
+            </div>
+
+            {/* Burning sensation & Pain score */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccfbf1' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={burningSensation}
+                    onChange={(e) => setBurningSensation(e.target.checked)}
+                    style={{ accentColor: '#0d9488' }}
+                  />
+                  <span>కారం తిన్నప్పుడు మంట (Burning Sensation)</span>
+                </label>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccfbf1' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={bleeding}
+                    onChange={(e) => setBleeding(e.target.checked)}
+                    style={{ accentColor: '#0d9488' }}
+                  />
+                  <span>రక్తస్రావం (Bleeding on Touch)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step 3: Guided Image Capture & Live Quality Assessment */}
         <div className="card" style={{ marginBottom: '1.5rem' }}>

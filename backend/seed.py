@@ -12,41 +12,55 @@ from app.models.entities import (
     User, PHC, Patient, ConsentRecord, Screening, ScreeningImage,
     ImageProcessingResult, AIAnalysis, ClinicalReview, Appointment,
     AppointmentEvent, OTPVerification, NotificationLog, Consultation,
-    UserRole, ScreeningCategory, ScreeningStatus, AppointmentStatus
+    Investigation, NavigationTask, Referral,
+    UserRole, ScreeningStatus, AppointmentStatus,
+    OralSite, LesionType, InvestigationState, NavigationStatus
 )
 
-def seed_database():
+def seed_database(reset: bool = False):
     print("Initializing database tables...")
+    if reset:
+        print("Reset flag provided. Dropping existing tables and rebuilding...")
+        Base.metadata.drop_all(bind=engine)
+    
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     try:
         # Check if already seeded
-        if db.query(User).count() > 0:
-            print("Database already contains data. Skipping re-seed.")
+        if not reset and db.query(User).count() > 0:
+            print("Database already contains data. Skipping re-seed. (Use --reset to refresh)")
             return
 
-        print("Seeding PHCs...")
-        phc1 = PHC(
-            code="PHC-KDK-01",
-            name="Kandukur Community Health Centre",
-            district="Prakasam",
+        print("Seeding ITDA Paderu PHCs and Area Hospitals...")
+        phc_g_madugula = PHC(
+            code="PHC-GMD-01",
+            name="G. Madugula Primary Health Centre",
+            district="Alluri Sitharama Raju",
             state="Andhra Pradesh",
-            pin_code="523105",
-            contact_number="+91 85982 22100"
+            pin_code="531027",
+            contact_number="+91 89352 23101"
         )
-        phc2 = PHC(
-            code="PHC-PDL-02",
-            name="Podili Primary Health Centre",
-            district="Prakasam",
+        phc_paderu = PHC(
+            code="CHC-PDR-02",
+            name="Paderu Community Health Centre / Area Hospital",
+            district="Alluri Sitharama Raju",
             state="Andhra Pradesh",
-            pin_code="523240",
-            contact_number="+91 85992 44300"
+            pin_code="531077",
+            contact_number="+91 89352 24200"
         )
-        db.add_all([phc1, phc2])
+        phc_araku = PHC(
+            code="AH-ARK-03",
+            name="Araku Valley Area Hospital",
+            district="Alluri Sitharama Raju",
+            state="Andhra Pradesh",
+            pin_code="531149",
+            contact_number="+91 89362 25300"
+        )
+        db.add_all([phc_g_madugula, phc_paderu, phc_araku])
         db.flush()
 
-        print("Seeding Users across all 5 roles...")
+        print("Seeding Users across all roles...")
         users = [
             User(
                 email="chw@aarogya.gov.in",
@@ -54,7 +68,7 @@ def seed_database():
                 hashed_password=get_password_hash("ChwPass@2026"),
                 full_name="Sarala Devi (ASHA / CHW)",
                 role=UserRole.CHW,
-                phc_id=phc1.id,
+                phc_id=phc_g_madugula.id,
                 phone="+91 98480 11001"
             ),
             User(
@@ -63,32 +77,32 @@ def seed_database():
                 hashed_password=get_password_hash("MoPass@2026"),
                 full_name="Dr. Ramesh Babu (Medical Officer)",
                 role=UserRole.PHC_STAFF,
-                phc_id=phc1.id,
+                phc_id=phc_g_madugula.id,
                 phone="+91 98480 11002"
             ),
             User(
                 email="doctor@aarogya.gov.in",
                 username="dr_priya",
                 hashed_password=get_password_hash("DocPass@2026"),
-                full_name="Dr. Priya Sundaram (Dermatology Specialist)",
+                full_name="Dr. Priya Sundaram (Head & Neck Specialist)",
                 role=UserRole.DOCTOR,
-                phc_id=phc1.id,
+                phc_id=phc_paderu.id,
                 phone="+91 98480 11003"
             ),
             User(
                 email="navigator@aarogya.gov.in",
                 username="nav_vijay",
                 hashed_password=get_password_hash("NavPass@2026"),
-                full_name="Vijay Krishna (Patient Navigator)",
+                full_name="Vijay Krishna (Tribal Patient Navigator)",
                 role=UserRole.NAVIGATOR,
-                phc_id=phc1.id,
+                phc_id=phc_paderu.id,
                 phone="+91 98480 11004"
             ),
             User(
                 email="admin@aarogya.gov.in",
                 username="admin_district",
                 hashed_password=get_password_hash("AdminPass@2026"),
-                full_name="District Administrator (DMHO)",
+                full_name="District Project Officer (ITDA Paderu)",
                 role=UserRole.ADMIN,
                 phc_id=None,
                 phone="+91 98480 11005"
@@ -97,197 +111,275 @@ def seed_database():
         db.add_all(users)
         db.flush()
 
-        print("Seeding Patients & Consent records...")
-        patient1 = Patient(
-            patient_id_display="AD-10021",
-            full_name="Lakshmi Devi",
-            age=48,
+        print("Seeding Compulsory Hackathon Demonstration Case (46-year-old from G. Madugula)...")
+        # Patient 1: The compulsory demonstration patient
+        patient_ramu = Patient(
+            patient_id_display="AD-ASR-10492",
+            full_name="Ramu Somulu",
+            age=46,
+            gender="Male",
+            phone="+91 94912 34567",
+            preferred_language="te",
+            address="Door No. 3-45, Kothaveedhi, G. Madugula",
+            habitation="Vanabhasingi",
+            gram_panchayat="G. Madugula",
+            mandal="G. Madugula",
+            district="Alluri Sitharama Raju",
+            chewing_tobacco=True,
+            smoking=True,
+            reverse_smoking=True,
+            gutkha=True,
+            areca_nut=True,
+            alcohol=False,
+            habits_duration_years=22,
+            habits_frequency_per_day="6-8 times/day",
+            phc_id=phc_g_madugula.id,
+            registered_by_user_id=users[0].id
+        )
+
+        # Patient 2: 52-year-old female from Araku Valley
+        patient_kondamma = Patient(
+            patient_id_display="AD-ASR-10493",
+            full_name="Kondamma Pangi",
+            age=52,
             gender="Female",
-            phone="+91 98481 23456",
+            phone="+91 94912 34568",
             preferred_language="te",
-            address="Door No 4-12, Main Bazaar",
-            village_town="Kandukur",
-            phc_id=phc1.id,
+            address="House 12, Chaaparai Road, Araku Valley",
+            habitation="Madagada",
+            gram_panchayat="Araku",
+            mandal="Araku Valley",
+            district="Alluri Sitharama Raju",
+            chewing_tobacco=True,
+            smoking=False,
+            reverse_smoking=True,
+            gutkha=False,
+            areca_nut=False,
+            alcohol=False,
+            habits_duration_years=18,
+            habits_frequency_per_day="4-5 times/day",
+            phc_id=phc_araku.id,
             registered_by_user_id=users[0].id
         )
-        patient2 = Patient(
-            patient_id_display="AD-10022",
-            full_name="Venkat Rao",
-            age=62,
+
+        # Patient 3: 38-year-old male from Paderu
+        patient_subba = Patient(
+            patient_id_display="AD-ASR-10494",
+            full_name="Subba Rao Killu",
+            age=38,
             gender="Male",
-            phone="+91 98482 34567",
+            phone="+91 94912 34569",
             preferred_language="te",
-            address="Plot 15, Near Water Tank",
-            village_town="Podili",
-            phc_id=phc1.id,
+            address="Near Weekly Shandy, Paderu",
+            habitation="Talari Singi",
+            gram_panchayat="Paderu",
+            mandal="Paderu",
+            district="Alluri Sitharama Raju",
+            chewing_tobacco=True,
+            smoking=False,
+            reverse_smoking=False,
+            gutkha=True,
+            areca_nut=True,
+            alcohol=False,
+            habits_duration_years=12,
+            habits_frequency_per_day="5-6 gutkha sachets/day",
+            phc_id=phc_paderu.id,
             registered_by_user_id=users[0].id
         )
-        patient3 = Patient(
-            patient_id_display="AD-10023",
-            full_name="Rajesh Kumar",
-            age=35,
-            gender="Male",
-            phone="+91 98483 45678",
-            preferred_language="hi",
-            address="Street 2, Industrial Colony",
-            village_town="Kandukur",
-            phc_id=phc1.id,
-            registered_by_user_id=users[0].id
-        )
-        db.add_all([patient1, patient2, patient3])
+        db.add_all([patient_ramu, patient_kondamma, patient_subba])
         db.flush()
 
-        # Add consent records
+        # Informed Consent
         consent1 = ConsentRecord(
-            patient_id=patient1.id,
-            consent_type="visible_screening_telemedicine",
+            patient_id=patient_ramu.id,
+            consent_type="oral_screening_and_teleconsultation",
             granted=True,
             recorded_by_user_id=users[0].id,
-            notes="Signed paper form and verified via oral consent in Telugu."
+            notes="Telugu informed consent explained and accepted for photographic oral screening, AI assistive triage, teleconsultation, and biopsy pathway."
         )
         consent2 = ConsentRecord(
-            patient_id=patient2.id,
-            consent_type="visible_screening_telemedicine",
+            patient_id=patient_kondamma.id,
+            consent_type="oral_screening_and_teleconsultation",
             granted=True,
             recorded_by_user_id=users[0].id,
-            notes="Informed consent recorded with family member present."
+            notes="Informed consent verified in Telugu with village elder present."
         )
         db.add_all([consent1, consent2])
         db.flush()
 
-        print("Seeding Screenings & AI Analysis records...")
-        scr1 = Screening(
-            reference_id="SCR-2026-10492",
-            patient_id=patient1.id,
-            phc_id=phc1.id,
-            category=ScreeningCategory.SKIN,
-            symptoms="Red itchy rash on forearm for 5 days. Mild burning sensation in sunlight.",
-            duration_days=5,
+        print("Seeding Screening & Structured AI Triage Output...")
+        screening_ramu = Screening(
+            reference_id="SCR-ASR-2026-001",
+            patient_id=patient_ramu.id,
+            phc_id=phc_g_madugula.id,
+            category="mouth",
+            oral_site=OralSite.BUCCAL_MUCOSA,
+            lesion_type=LesionType.LEUKOPLAKIA,
+            mouth_opening_mm=32.0,
+            burning_sensation=True,
+            bleeding=False,
+            duration_days=21,
+            pain_score=4,
+            symptoms="Persistent white patch on inner left cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks. Mouth opening slightly restricted (32 mm).",
             severity="moderate",
             status=ScreeningStatus.CONSULTATION_RECOMMENDED,
             created_by_user_id=users[0].id
         )
-        scr2 = Screening(
-            reference_id="SCR-2026-10493",
-            patient_id=patient2.id,
-            phc_id=phc1.id,
-            category=ScreeningCategory.MOUTH,
-            symptoms="White patch inside left cheek (buccal mucosa). Smoker for 20 years. No acute pain.",
-            duration_days=21,
-            severity="moderate",
-            status=ScreeningStatus.UNDER_PHC_REVIEW,
-            created_by_user_id=users[0].id
-        )
-        db.add_all([scr1, scr2])
+        db.add(screening_ramu)
         db.flush()
 
-        # AI analysis for scr1
-        ai1 = AIAnalysis(
-            screening_id=scr1.id,
-            model_name="Clinical Safety & Triage Engine",
-            model_version="2026.1",
-            visual_observations="Observed erythematous maculopapular rash on volar forearm.",
-            triage_urgency="routine",
-            confidence_disclaimer="Non-diagnostic preliminary triage guidance.",
-            recommendations="Avoid scratching. Keep dry. Scheduled for tele-dermatology consultation.",
-            is_real_inference=False
+        # Image record for Ramu
+        img1 = ScreeningImage(
+            screening_id=screening_ramu.id,
+            original_filename="oral_left_buccal_ramu.jpg",
+            stored_path="uploads/demo_oral_buccal_ramu.jpg",
+            file_size_bytes=342000,
+            width=1280,
+            height=720,
+            mime_type="image/jpeg",
+            body_site="buccal_mucosa"
         )
-        # AI analysis for scr2
-        ai2 = AIAnalysis(
-            screening_id=scr2.id,
-            model_name="Clinical Safety & Triage Engine",
-            model_version="2026.1",
-            visual_observations="Observed visible leukoplakia-like pale mucosal area on buccal surface.",
+        db.add(img1)
+        db.flush()
+
+        res1 = ImageProcessingResult(
+            image_id=img1.id,
+            blur_score=142.8,
+            is_blurry=False,
+            luminance_score=135.2,
+            is_dark=False,
+            is_overexposed=False,
+            resolution_adequate=True,
+            quality_state="acceptable",
+            guidance_message="Image quality verified: sharp focus, adequate oral lighting."
+        )
+        db.add(res1)
+        db.flush()
+
+        # Structured nonclinical AI Triage
+        ai_triage = AIAnalysis(
+            screening_id=screening_ramu.id,
+            model_name="IISc-TANUH Inspired Oral Screening Mock Adapter",
+            model_version="mock-v1-aarohan2026",
+            visual_observations="Well-demarcated homogenous white plaque over left buccal mucosa; no frank ulceration detected. Compatible with oral leukoplakia in chronic tobacco/chutta user.",
             triage_urgency="priority",
-            confidence_disclaimer="Non-diagnostic triage guidance. Oral lesion requires biopsy/specialist exam.",
-            recommendations="Priority specialist dental/oral examination recommended. Discontinue tobacco use immediately.",
+            confidence_disclaimer="SIMULATION ONLY — NOT FOR CLINICAL USE. Does not diagnose or stage cancer.",
+            recommendations="Urgent specialist clinical review, biopsy recommendation, and tobacco cessation counseling.",
             is_real_inference=False
         )
-        db.add_all([ai1, ai2])
+        db.add(ai_triage)
 
-        # Clinical review for scr1
-        rev1 = ClinicalReview(
-            screening_id=scr1.id,
-            reviewer_id=users[1].id,
+        # Medical Officer Clinical Review
+        mo_review = ClinicalReview(
+            screening_id=screening_ramu.id,
+            doctor_id=users[1].id,
             review_decision="consultation_booked",
-            clinical_notes="Erythema present. Telemedicine consultation with dermatologist arranged.",
-            action_plan="Booked tele-consultation with Dr. Priya."
+            doctor_agrees_with_ai=True,
+            clinical_notes="Examined oral cavity. Confirmed 2.5 x 1.5 cm non-scrapable white patch on left buccal mucosa. Reverse chutta smoking history 22 yrs. High risk of OPMD. Ordered punch/incisional biopsy and arranged specialist teleconsultation with Dr. Priya.",
+            action_plan="1. Incisional biopsy ordered. 2. Specialist tele-consultation booked. 3. Feeder ambulance navigator alerted."
         )
-        db.add(rev1)
+        db.add(mo_review)
         db.flush()
 
-        print("Seeding Appointments & OTP Check-in state...")
-        # Today's date
+        print("Seeding Telemedicine Appointment & OTP Check-in...")
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        # Appointment 1: Checked in and waiting in doctor queue!
-        apt1 = Appointment(
+        apt_ramu = Appointment(
             reference_id="APT-2026-40112",
-            patient_id=patient1.id,
-            phc_id=phc1.id,
+            patient_id=patient_ramu.id,
+            phc_id=phc_g_madugula.id,
             doctor_id=users[2].id,
-            screening_id=scr1.id,
+            screening_id=screening_ramu.id,
             scheduled_date=today_str,
-            scheduled_time="11:00",
-            expected_arrival_time="10:30",
+            scheduled_time="11:30",
+            expected_arrival_time="11:00",
             appointment_type="telemedicine",
             status=AppointmentStatus.WAITING_FOR_DOCTOR,
-            checkin_time=datetime.now(timezone.utc) - timedelta(minutes=14)
+            checkin_time=datetime.now(timezone.utc) - timedelta(minutes=15)
         )
-        # Appointment 2: Scheduled for later today
-        apt2 = Appointment(
-            reference_id="APT-2026-40113",
-            patient_id=patient2.id,
-            phc_id=phc1.id,
-            doctor_id=users[2].id,
-            screening_id=scr2.id,
-            scheduled_date=today_str,
-            scheduled_time="12:30",
-            expected_arrival_time="12:00",
-            appointment_type="telemedicine",
-            status=AppointmentStatus.SCHEDULED
-        )
-        db.add_all([apt1, apt2])
+        db.add(apt_ramu)
         db.flush()
 
-        # OTP record for apt1 (Verified)
-        salt1 = "seedsalt1"
-        otp1 = OTPVerification(
-            appointment_id=apt1.id,
-            patient_id=patient1.id,
-            hashed_otp=hash_otp("123456", salt1),
-            salt=salt1,
+        # Verified OTP record
+        salt = "seedsaltramu"
+        otp_ramu = OTPVerification(
+            appointment_id=apt_ramu.id,
+            patient_id=patient_ramu.id,
+            hashed_otp=hash_otp("123456", salt),
+            salt=salt,
             attempts=1,
             max_attempts=3,
-            expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
             resend_available_at=datetime.now(timezone.utc),
             verified=True,
-            verified_at=datetime.now(timezone.utc) - timedelta(minutes=14)
+            verified_at=datetime.now(timezone.utc) - timedelta(minutes=15)
         )
-        db.add(otp1)
+        db.add(otp_ramu)
 
-        # Appointment Events
-        ev1 = AppointmentEvent(
-            appointment_id=apt1.id,
-            previous_status="scheduled",
-            new_status="waiting_for_doctor",
-            changed_by_user_id=users[1].id,
-            reason="Patient arrived and verified via OTP."
+        print("Seeding Module G: Biopsy & Pathology Simulation...")
+        biopsy_ramu = Investigation(
+            investigation_ref="BIO-2026-0042",
+            patient_id=patient_ramu.id,
+            screening_id=screening_ramu.id,
+            appointment_id=apt_ramu.id,
+            kind="incisional_biopsy",
+            biopsy_site="Left Buccal Mucosa",
+            state=InvestigationState.REPORT_RECEIVED,
+            ordered_by_doctor_id=users[1].id,
+            specimen_date=datetime.now(timezone.utc) - timedelta(days=2),
+            diagnosis_category="precancer_leukoplakia",
+            pathology_finding="Hyperkeratosis with moderate epithelial dysplasia (Oral Leukoplakia)",
+            histopathology_summary="Microscopic exam of left buccal mucosal punch biopsy: Stratified squamous epithelium displaying pronounced hyperorthokeratosis, acanthosis, bulbous rete ridges, and moderate cellular atypia in lower half of epithelium. Intact basement membrane. Chronic inflammatory infiltrate in lamina propria. Negative for invasive squamous cell carcinoma (OSCC).",
+            report_file_url="https://aarogya-storage.itda-paderu.gov.in/reports/BIO-2026-0042.pdf"
         )
-        db.add(ev1)
+        db.add(biopsy_ramu)
 
-        # Notification Logs
-        n1 = NotificationLog(
-            recipient_phone=patient1.phone,
+        print("Seeding Module F: Hospital Referral & Printable Slip...")
+        ref_ramu = Referral(
+            referral_slip_number="REF-ASR-58210",
+            patient_id=patient_ramu.id,
+            originating_phc_id=phc_g_madugula.id,
+            specialty_needed="Head & Neck Surgical Oncology",
+            urgency="priority",
+            target_hospital="District Hospital Paderu / KGH Visakhapatnam",
+            reason_for_referral="Pathology-confirmed dysplastic oral leukoplakia (moderate dysplasia) of left buccal mucosa in 46-year-old chronic reverse smoker. Requires specialist surgical oncology evaluation and wide mucosal excision.",
+            clinical_notes="Patient is mobile. Vital signs stable. 108 Feeder ambulance coordinated due to remote habitation.",
+            status="confirmed",
+            scheduled_appointment_date=(datetime.now(timezone.utc) + timedelta(days=2)).strftime("%Y-%m-%d"),
+            attendance_confirmed=False,
+            created_by_id=users[1].id
+        )
+        db.add(ref_ramu)
+
+        print("Seeding Module I: Patient Navigation & Feeder Ambulance...")
+        nav_task = NavigationTask(
+            task_ref="NAV-2026-0101",
+            patient_id=patient_ramu.id,
+            assigned_navigator_id=users[3].id,
+            task_type="biopsy_transport_escort",
+            status=NavigationStatus.TRANSPORT_ARRANGED,
+            due_date=(datetime.now(timezone.utc) + timedelta(days=2)).strftime("%Y-%m-%d"),
+            contact_attempts_count=2,
+            last_contact_date=datetime.now(timezone.utc) - timedelta(hours=3),
+            transport_support_arranged=True,
+            feeder_ambulance_notified=True,
+            missed_visit_reason=None,
+            notes="Contacted patient via ASHA Sarala. Arranged ITDA Tribal Feeder Ambulance 108 pickup at Vanabhasingi junction on Thursday morning."
+        )
+        db.add(nav_task)
+
+        # Notification Log
+        n_log = NotificationLog(
+            recipient_phone=patient_ramu.phone,
             message_type="appointment_scheduled",
-            content=f"Aarogya Drishti: Your appointment is scheduled for {today_str} at 11:00 at {phc1.name}.",
+            content=f"Aarogya Drishti: Namaskaram Ramu garu, your teleconsultation is scheduled for today at 11:30 AM at G. Madugula PHC.",
             provider="synthetic",
             delivery_status="delivered"
         )
-        db.add(n1)
+        db.add(n_log)
 
         db.commit()
-        print("Database successfully seeded with realistic synthetic healthcare data!")
+        print("Database successfully seeded with complete ITDA Paderu synthetic oral cancer screening dataset!")
 
     except Exception as e:
         db.rollback()
@@ -297,4 +389,5 @@ def seed_database():
         db.close()
 
 if __name__ == "__main__":
-    seed_database()
+    reset_arg = "--reset" in sys.argv
+    seed_database(reset=reset_arg)

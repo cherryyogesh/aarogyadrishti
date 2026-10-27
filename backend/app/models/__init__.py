@@ -1,8 +1,11 @@
 from app.models.entities import (
     UserRole,
-    ScreeningCategory,
+    OralSite,
+    LesionType,
     ScreeningStatus,
     AppointmentStatus,
+    InvestigationState,
+    NavigationStatus,
     User,
     PHC,
     Patient,
@@ -19,14 +22,19 @@ from app.models.entities import (
     Consultation,
     ChatMessage,
     Referral,
+    Investigation,
+    NavigationTask,
     AuditEvent,
 )
 
 __all__ = [
     "UserRole",
-    "ScreeningCategory",
+    "OralSite",
+    "LesionType",
     "ScreeningStatus",
     "AppointmentStatus",
+    "InvestigationState",
+    "NavigationStatus",
     "User",
     "PHC",
     "Patient",
@@ -43,5 +51,7 @@ __all__ = [
     "Consultation",
     "ChatMessage",
     "Referral",
+    "Investigation",
+    "NavigationTask",
     "AuditEvent",
 ]

@@ -17,7 +17,7 @@ from app.models.entities import (
     User, PHC, Patient, ConsentRecord, Screening, ScreeningImage,
     ImageProcessingResult, AIAnalysis, ClinicalReview, Appointment,
     AppointmentEvent, OTPVerification, NotificationLog, Consultation,
-    UserRole, ScreeningCategory, ScreeningStatus, AppointmentStatus
+    UserRole, ScreeningStatus, AppointmentStatus
 )
 from datetime import datetime, timedelta, timezone
 

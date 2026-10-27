@@ -18,6 +18,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
   const [cases, setCases] = useState<Screening[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCase, setSelectedCase] = useState<Screening | null>(null);
+  const [doctorAgreesWithAi, setDoctorAgreesWithAi] = useState<boolean>(true);
 
   // Review Form
   const [reviewDecision, setReviewDecision] = useState('consultation_booked');
@@ -241,20 +242,171 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
               )}
             </div>
 
-            {/* AI Preliminary Guidance */}
-            {selectedCase.ai_analysis && (
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#0F766E', fontSize: '0.88rem' }}>
-                  <Sparkles size={16} /> AI Preliminary Triage Observation (Non-Diagnostic)
+            {/* Oral Cavity Finding Overview */}
+            {selectedCase.category === 'mouth' && (
+              <div style={{
+                background: '#f0fdfa',
+                border: '1px solid #99f6e4',
+                borderRadius: '8px',
+                padding: '0.85rem',
+                marginBottom: '1rem',
+                fontSize: '0.85rem'
+              }}>
+                <div style={{ fontWeight: 700, color: '#0f766e', marginBottom: '0.35rem' }}>
+                  👄 Oral Cavity Clinical Findings:
                 </div>
-                <div style={{ fontSize: '0.84rem', color: '#334155', marginTop: '0.3rem' }}>
-                  {selectedCase.ai_analysis.recommendations}
-                </div>
-                <div style={{ fontSize: '0.74rem', color: '#94A3B8', marginTop: '0.3rem' }}>
-                  {selectedCase.ai_analysis.confidence_disclaimer}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div><strong>Anatomical Site:</strong> {selectedCase.oral_site || 'Left Buccal Mucosa'}</div>
+                  <div><strong>Lesion Type:</strong> {selectedCase.lesion_type || 'Leukoplakia'}</div>
+                  <div>
+                    <strong>Mouth Opening:</strong> {selectedCase.mouth_opening_mm ? `${selectedCase.mouth_opening_mm} mm` : '32 mm'}
+                    {selectedCase.mouth_opening_mm && selectedCase.mouth_opening_mm < 35 && (
+                      <span style={{ color: '#b91c1c', fontWeight: 600 }}> (Restricted • OSMF Risk)</span>
+                    )}
+                  </div>
+                  <div>
+                    <strong>Burning Sensation:</strong> {selectedCase.burning_sensation ? 'Yes (కారం తిన్నప్పుడు మంట)' : 'No'}
+                  </div>
                 </div>
               </div>
             )}
+
+            {/* AI Preliminary Guidance with Strict Nonclinical Disclaimer */}
+            {selectedCase.ai_analysis && (
+              <div style={{
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#b45309', fontSize: '0.88rem' }}>
+                    <Sparkles size={16} /> AI Nonclinical Demonstration Advisory (IISc-TANUH Concept)
+                  </div>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    background: '#ef4444',
+                    color: '#fff',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                    fontWeight: 700
+                  }}>
+                    NOT FOR CLINICAL USE
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.84rem', color: '#78350f', marginTop: '0.4rem' }}>
+                  <strong>Advisory:</strong> {selectedCase.ai_analysis.recommendations}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#92400e', marginTop: '0.3rem', fontStyle: 'italic' }}>
+                  "{selectedCase.ai_analysis.confidence_disclaimer}"
+                </div>
+
+                {/* Medical Officer AI Agreement Toggle */}
+                <div style={{
+                  marginTop: '0.75rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px dashed #fcd34d',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1.5rem',
+                  fontSize: '0.85rem'
+                }}>
+                  <span style={{ fontWeight: 600, color: '#78350f' }}>Medical Officer Assessment:</span>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="aiAgreement"
+                      checked={doctorAgreesWithAi}
+                      onChange={() => setDoctorAgreesWithAi(true)}
+                    />
+                    <span>✓ Agree with AI Risk Flag</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="aiAgreement"
+                      checked={!doctorAgreesWithAi}
+                      onChange={() => setDoctorAgreesWithAi(false)}
+                    />
+                    <span style={{ color: '#b91c1c', fontWeight: 600 }}>❌ Disagree / Override AI</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions: Biopsy & Referral Slips */}
+            <div style={{
+              display: 'flex',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+              marginBottom: '1.25rem',
+              padding: '0.75rem',
+              background: '#f8fafc',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.createInvestigation({
+                      patient_id: selectedCase.patient_id,
+                      screening_id: selectedCase.id,
+                      kind: 'incisional_biopsy',
+                      biopsy_site: selectedCase.oral_site || 'Left Buccal Mucosa',
+                      state: 'advised',
+                      diagnosis_category: 'precancer_leukoplakia'
+                    });
+                    alert(`✓ Module G: Incisional Biopsy ordered for ${selectedCase.patient_name}!`);
+                  } catch (e: any) {
+                    alert('Biopsy order error: ' + e.message);
+                  }
+                }}
+                style={{
+                  background: '#0284c7',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                🧪 Order Biopsy (Module G)
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.createReferral({
+                      patient_id: selectedCase.patient_id,
+                      specialty_needed: 'Head & Neck Surgical Oncology',
+                      target_hospital: 'District Hospital Paderu / KGH Visakhapatnam',
+                      urgency: 'priority',
+                      reason_for_referral: `Suspected Oral Potentially Malignant Disorder (${selectedCase.lesion_type || 'Leukoplakia'}) on ${selectedCase.oral_site || 'Left Buccal Mucosa'}.`
+                    });
+                    alert(`✓ Module F: Hospital Referral Slip generated for ${selectedCase.patient_name}!`);
+                  } catch (e: any) {
+                    alert('Referral error: ' + e.message);
+                  }
+                }}
+                style={{
+                  background: '#4338ca',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                🏥 Generate Referral Slip (Module F)
+              </button>
+            </div>
 
             {/* Clinician Review Form */}
             <form onSubmit={handleSaveReview}>
@@ -266,9 +418,10 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                   onChange={(e) => setReviewDecision(e.target.value)}
                 >
                   <option value="consultation_booked">Doctor Consultation Recommended</option>
+                  <option value="biopsy_advised">Incisional/Punch Biopsy Advised (Module G)</option>
                   <option value="repeat_photo">Request Repeat Photograph (Image Unclear)</option>
                   <option value="safe_observation">Safe for Local Observation (Self-care Guidance)</option>
-                  <option value="referral_made">Direct Referral to District Hospital</option>
+                  <option value="referral_made">Direct Referral to District Hospital (Module F)</option>
                 </select>
               </div>
 

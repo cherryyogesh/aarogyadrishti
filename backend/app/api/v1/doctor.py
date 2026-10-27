@@ -56,11 +56,14 @@ def get_doctor_waiting_queue(
             patient_name=p.full_name,
             patient_age=p.age,
             patient_gender=p.gender,
+            mandal=getattr(p, 'mandal', 'G. Madugula') or 'G. Madugula',
             phc_name=apt.phc.name if apt.phc else "",
             scheduled_time=apt.scheduled_time,
             checkin_time=apt.checkin_time or now,
             waiting_minutes=waiting_mins,
-            screening_category=scr.category.value if scr else "general",
+            oral_site=scr.oral_site.value if scr and hasattr(scr, 'oral_site') and scr.oral_site else None,
+            lesion_type=scr.lesion_type.value if scr and hasattr(scr, 'lesion_type') and scr.lesion_type else None,
+            screening_category=getattr(scr, 'category', 'mouth') if scr else "mouth",
             screening_symptoms=scr.symptoms if scr else None,
             status=apt.status.value
         ))
@@ -131,7 +134,7 @@ def accept_patient_case(
         screening_info = {
             "id": s.id,
             "reference_id": s.reference_id,
-            "category": s.category.value,
+            "category": s.category.value if hasattr(s.category, "value") else str(s.category),
             "symptoms": s.symptoms,
             "duration_days": s.duration_days,
             "severity": s.severity,

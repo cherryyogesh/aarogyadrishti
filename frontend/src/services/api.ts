@@ -1,7 +1,7 @@
 import {
   User, Patient, Screening, Appointment, DoctorQueueItem,
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
-  ConfigStatus, ImageUploadResponse
+  ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -119,7 +119,13 @@ class ApiService {
   async createScreening(payload: {
     patient_id: number;
     phc_id: number;
-    category: string;
+    category?: string;
+    oral_site?: string;
+    lesion_type?: string;
+    mouth_opening_mm?: number | null;
+    pain_score?: number;
+    bleeding?: boolean;
+    burning_sensation?: boolean;
     symptoms: string;
     duration_days: number;
     severity: string;
@@ -280,6 +286,112 @@ class ApiService {
 
   async getConfigStatus(): Promise<ConfigStatus> {
     return this.request<ConfigStatus>('/config/status');
+  }
+
+  // --- Module G: Biopsy & Pathology Investigations ---
+  async listInvestigations(params?: { patient_id?: number; state?: string }): Promise<Investigation[]> {
+    let url = '/investigations?';
+    if (params?.patient_id) url += `patient_id=${params.patient_id}&`;
+    if (params?.state) url += `state=${params.state}&`;
+    return this.request<Investigation[]>(url);
+  }
+
+  async createInvestigation(payload: {
+    patient_id: number;
+    screening_id?: number;
+    appointment_id?: number;
+    kind?: string;
+    biopsy_site?: string;
+    state?: string;
+    pathology_finding?: string;
+    diagnosis_category?: string;
+    histopathology_summary?: string;
+  }): Promise<Investigation> {
+    return this.request<Investigation>('/investigations', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateInvestigation(id: number, payload: {
+    state: string;
+    pathology_finding?: string;
+    diagnosis_category?: string;
+    histopathology_summary?: string;
+  }): Promise<Investigation> {
+    return this.request<Investigation>(`/investigations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // --- Module I: Tribal Patient Navigation ---
+  async listNavigationTasks(params?: { status?: string; mandal?: string }): Promise<NavigationTask[]> {
+    let url = '/navigation?';
+    if (params?.status) url += `status_filter=${params.status}&`;
+    if (params?.mandal) url += `mandal_filter=${params.mandal}&`;
+    return this.request<NavigationTask[]>(url);
+  }
+
+  async createNavigationTask(payload: {
+    patient_id: number;
+    task_type?: string;
+    due_date?: string;
+    notes?: string;
+  }): Promise<NavigationTask> {
+    return this.request<NavigationTask>('/navigation', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateNavigationTask(id: number, payload: {
+    status: string;
+    contact_attempts_count?: number;
+    transport_support_arranged?: boolean;
+    feeder_ambulance_notified?: boolean;
+    missed_visit_reason?: string;
+    notes?: string;
+  }): Promise<NavigationTask> {
+    return this.request<NavigationTask>(`/navigation/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // --- Module F: Hospital Referrals & Slips ---
+  async listReferrals(patient_id?: number): Promise<ReferralSlip[]> {
+    const url = patient_id ? `/referrals?patient_id=${patient_id}` : '/referrals';
+    return this.request<ReferralSlip[]>(url);
+  }
+
+  async createReferral(params: {
+    patient_id: number;
+    specialty_needed?: string;
+    target_hospital?: string;
+    urgency?: string;
+    reason_for_referral?: string;
+    clinical_notes?: string;
+    scheduled_appointment_date?: string;
+  }): Promise<ReferralSlip> {
+    const query = new URLSearchParams({
+      patient_id: String(params.patient_id),
+      specialty_needed: params.specialty_needed || 'Head & Neck Surgical Oncology',
+      target_hospital: params.target_hospital || 'District Hospital Paderu / KGH Visakhapatnam',
+      urgency: params.urgency || 'priority',
+      reason_for_referral: params.reason_for_referral || 'Suspected Oral Potentially Malignant Disorder (Leukoplakia / OSMF) requiring biopsy',
+      clinical_notes: params.clinical_notes || '',
+      scheduled_appointment_date: params.scheduled_appointment_date || '',
+    });
+    return this.request<ReferralSlip>(`/referrals?${query.toString()}`, {
+      method: 'POST',
+    });
+  }
+
+  async confirmReferralAttendance(id: number, attendance_confirmed = true): Promise<ReferralSlip> {
+    return this.request<ReferralSlip>(`/referrals/${id}/attendance?attendance_confirmed=${attendance_confirmed}`, {
+      method: 'PATCH',
+    });
   }
 }
 

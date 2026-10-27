@@ -90,7 +90,7 @@ def get_phc_cases(
             patient_gender=p.gender,
             phc_id=s.phc_id,
             phc_name=s.phc.name if s.phc else "",
-            category=s.category.value,
+            category=s.category.value if hasattr(s.category, "value") else str(s.category),
             symptoms=s.symptoms,
             duration_days=s.duration_days,
             severity=s.severity,
@@ -115,7 +115,8 @@ def record_case_review(
 
     review = ClinicalReview(
         screening_id=screening.id,
-        reviewer_id=current_user.id,
+        doctor_id=current_user.id,
+        doctor_agrees_with_ai=payload.doctor_agrees_with_ai,
         review_decision=payload.review_decision,
         clinical_notes=payload.clinical_notes,
         action_plan=payload.action_plan
@@ -123,7 +124,7 @@ def record_case_review(
     db.add(review)
 
     # Update screening status based on clinical decision
-    if payload.review_decision == "consultation_booked":
+    if payload.review_decision in ["consultation_booked", "referral_made", "biopsy_advised"]:
         screening.status = ScreeningStatus.CONSULTATION_RECOMMENDED
     elif payload.review_decision == "repeat_photo":
         screening.status = ScreeningStatus.REPEAT_PHOTO_REQUESTED
@@ -146,7 +147,9 @@ def record_case_review(
         id=review.id,
         reviewer_name=current_user.full_name,
         review_decision=review.review_decision,
+        doctor_agrees_with_ai=review.doctor_agrees_with_ai,
         clinical_notes=review.clinical_notes,
         action_plan=review.action_plan,
+        signed_at=review.signed_at or review.reviewed_at,
         reviewed_at=review.reviewed_at
     )
