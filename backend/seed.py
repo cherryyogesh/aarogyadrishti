@@ -32,10 +32,11 @@ def seed_database(reset: bool = False):
             print("Database already contains data. Skipping re-seed. (Use --reset to refresh)")
             return
 
-        print("Seeding ITDA Paderu PHCs and Area Hospitals...")
+        print("Seeding ITDA Paderu PHCs and Area Hospitals across all 6 mandals...")
         phc_g_madugula = PHC(
             code="PHC-GMD-01",
             name="G. Madugula Primary Health Centre",
+            mandal="G. Madugula",
             district="Alluri Sitharama Raju",
             state="Andhra Pradesh",
             pin_code="531027",
@@ -44,6 +45,7 @@ def seed_database(reset: bool = False):
         phc_paderu = PHC(
             code="CHC-PDR-02",
             name="Paderu Community Health Centre / Area Hospital",
+            mandal="Paderu",
             district="Alluri Sitharama Raju",
             state="Andhra Pradesh",
             pin_code="531077",
@@ -52,60 +54,180 @@ def seed_database(reset: bool = False):
         phc_araku = PHC(
             code="AH-ARK-03",
             name="Araku Valley Area Hospital",
+            mandal="Araku Valley",
             district="Alluri Sitharama Raju",
             state="Andhra Pradesh",
             pin_code="531149",
             contact_number="+91 89362 25300"
         )
-        db.add_all([phc_g_madugula, phc_paderu, phc_araku])
+        phc_chintapalli = PHC(
+            code="PHC-CNT-04",
+            name="Chintapalli Community Health Centre",
+            mandal="Chintapalli",
+            district="Alluri Sitharama Raju",
+            state="Andhra Pradesh",
+            pin_code="531111",
+            contact_number="+91 89372 26100"
+        )
+        phc_dumbriguda = PHC(
+            code="PHC-DMB-05",
+            name="Dumbriguda Primary Health Centre",
+            mandal="Dumbriguda",
+            district="Alluri Sitharama Raju",
+            state="Andhra Pradesh",
+            pin_code="531151",
+            contact_number="+91 89362 27200"
+        )
+        phc_ananthagiri = PHC(
+            code="PHC-ANT-06",
+            name="Ananthagiri Primary Health Centre",
+            mandal="Ananthagiri",
+            district="Alluri Sitharama Raju",
+            state="Andhra Pradesh",
+            pin_code="535145",
+            contact_number="+91 89362 28400"
+        )
+        db.add_all([phc_g_madugula, phc_paderu, phc_araku, phc_chintapalli, phc_dumbriguda, phc_ananthagiri])
         db.flush()
 
-        print("Seeding Users across all roles...")
+        print("Seeding Healthcare Workforce across ITDA Agency Mandals...")
         users = [
+            # Primary Demo Accounts
             User(
                 email="chw@aarogya.gov.in",
                 username="chw_field",
                 hashed_password=get_password_hash("ChwPass@2026"),
-                full_name="ASHA / Village Health Worker (CHW)",
+                full_name="Sarala Devi (ASHA / CHW)",
                 role=UserRole.CHW,
                 phc_id=phc_g_madugula.id,
-                phone="+91 98480 11001"
+                phone="+91 98480 11001",
+                mandal="G. Madugula",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
             ),
             User(
                 email="mo@aarogya.gov.in",
                 username="phc_staff_mo",
                 hashed_password=get_password_hash("PhcPass@2026"),
-                full_name="PHC Staff / Medical Officer (MO)",
+                full_name="Dr. K. Ramesh Babu (PHC Medical Officer)",
                 role=UserRole.PHC_STAFF,
                 phc_id=phc_g_madugula.id,
-                phone="+91 98480 11002"
+                phone="+91 98480 11002",
+                mandal="G. Madugula",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
             ),
             User(
                 email="doctor@aarogya.gov.in",
                 username="doctor_specialist",
                 hashed_password=get_password_hash("DocPass@2026"),
-                full_name="Specialist Doctor (Oral Oncologist)",
+                full_name="Dr. Priya Sundaram (Oral Oncologist)",
                 role=UserRole.DOCTOR,
                 phc_id=phc_paderu.id,
-                phone="+91 98480 11003"
+                phone="+91 98480 11003",
+                mandal="Paderu",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
             ),
             User(
                 email="navigator@aarogya.gov.in",
                 username="patient_navigator",
                 hashed_password=get_password_hash("NavPass@2026"),
-                full_name="Patient Navigator (Tribal Care Escort)",
+                full_name="Vijay Krishna (Patient Navigator)",
                 role=UserRole.NAVIGATOR,
                 phc_id=phc_paderu.id,
-                phone="+91 98480 11004"
+                phone="+91 98480 11004",
+                mandal="Paderu",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
             ),
             User(
                 email="admin@aarogya.gov.in",
                 username="dmho_admin",
                 hashed_password=get_password_hash("AdminPass@2026"),
-                full_name="DMHO (District Medical & Health Officer)",
+                full_name="Dr. T. Venkata Rao (DMHO)",
                 role=UserRole.ADMIN,
-                phc_id=None,
-                phone="+91 98480 11005"
+                phc_id=phc_paderu.id,
+                phone="+91 98480 11005",
+                mandal="Paderu",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+
+            # Additional Mandal ASHA Workers for DMHO Monitoring
+            User(
+                email="asha.parvathi@aarogya.gov.in",
+                username="asha_parvathi",
+                hashed_password=get_password_hash("ChwPass@2026"),
+                full_name="K. Parvathi (ASHA Worker)",
+                role=UserRole.CHW,
+                phc_id=phc_araku.id,
+                phone="+91 98480 22001",
+                mandal="Araku Valley",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+            User(
+                email="asha.lakshmi@aarogya.gov.in",
+                username="asha_lakshmi",
+                hashed_password=get_password_hash("ChwPass@2026"),
+                full_name="M. Lakshmi (ASHA Worker)",
+                role=UserRole.CHW,
+                phc_id=phc_chintapalli.id,
+                phone="+91 98480 22002",
+                mandal="Chintapalli",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+            User(
+                email="asha.chittamma@aarogya.gov.in",
+                username="asha_chittamma",
+                hashed_password=get_password_hash("ChwPass@2026"),
+                full_name="S. Chittamma (ASHA Worker)",
+                role=UserRole.CHW,
+                phc_id=phc_dumbriguda.id,
+                phone="+91 98480 22003",
+                mandal="Dumbriguda",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+            User(
+                email="asha.mary@aarogya.gov.in",
+                username="asha_mary",
+                hashed_password=get_password_hash("ChwPass@2026"),
+                full_name="P. Mary Rani (ASHA Worker)",
+                role=UserRole.CHW,
+                phc_id=phc_ananthagiri.id,
+                phone="+91 98480 22004",
+                mandal="Ananthagiri",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+
+            # Additional Doctors & Officers
+            User(
+                email="doc.prasad@aarogya.gov.in",
+                username="doc_prasad",
+                hashed_password=get_password_hash("DocPass@2026"),
+                full_name="Dr. V. Prasad (Maxillofacial Surgeon)",
+                role=UserRole.DOCTOR,
+                phc_id=phc_araku.id,
+                phone="+91 98480 33001",
+                mandal="Araku Valley",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
+            ),
+            User(
+                email="mo.swathi@aarogya.gov.in",
+                username="mo_swathi",
+                hashed_password=get_password_hash("PhcPass@2026"),
+                full_name="Dr. N. Swathi (PHC Medical Officer)",
+                role=UserRole.PHC_STAFF,
+                phc_id=phc_chintapalli.id,
+                phone="+91 98480 33002",
+                mandal="Chintapalli",
+                district="Alluri Sitharama Raju",
+                state="Andhra Pradesh"
             ),
         ]
         db.add_all(users)

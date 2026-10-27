@@ -5,7 +5,7 @@ from sqlalchemy import func
 from app.core.database import get_db
 from app.models.entities import (
     Screening, Appointment, AppointmentStatus, NotificationLog, Referral,
-    Patient, Investigation, InvestigationState, User, UserRole
+    Patient, Investigation, InvestigationState, User, UserRole, PHC
 )
 from app.schemas.all_schemas import DistrictAnalyticsResponse
 from app.integrations.ai.hf_client import hf_client
@@ -116,6 +116,32 @@ def get_district_analytics(
 
     ai_status = "Hugging Face Inference Active" if hf_client.is_configured() else "Clinical Safety Engine Active (HF Unconfigured)"
 
+    # Workforce & Health Infrastructure Metrics (DMHO District Monitoring)
+    total_asha_workers = db.query(User).filter(User.role == UserRole.CHW).count()
+    total_phcs = db.query(PHC).count()
+    total_doctors = db.query(User).filter(User.role.in_([UserRole.DOCTOR, UserRole.PHC_STAFF])).count()
+    total_navigators = db.query(User).filter(User.role == UserRole.NAVIGATOR).count()
+    total_staff = db.query(User).count()
+
+    mandals_list = ["G. Madugula", "Paderu", "Araku Valley", "Chintapalli", "Dumbriguda", "Ananthagiri"]
+    workforce_by_mandal = {}
+    for m in mandals_list:
+        phc_count = db.query(PHC).filter(PHC.mandal.ilike(f"%{m}%")).count()
+        asha_count = db.query(User).filter(
+            User.role == UserRole.CHW,
+            (User.mandal.ilike(f"%{m}%")) | (User.phc.has(PHC.mandal.ilike(f"%{m}%")))
+        ).count()
+        doc_count = db.query(User).filter(
+            User.role.in_([UserRole.DOCTOR, UserRole.PHC_STAFF]),
+            (User.mandal.ilike(f"%{m}%")) | (User.phc.has(PHC.mandal.ilike(f"%{m}%")))
+        ).count()
+        workforce_by_mandal[m] = {
+            "phcs": phc_count,
+            "asha_workers": asha_count,
+            "doctors": doc_count,
+            "screenings": mandal_counts.get(m, 0)
+        }
+
     return DistrictAnalyticsResponse(
         total_screenings=total_screenings,
         screenings_by_category=category_counts,
@@ -130,5 +156,11 @@ def get_district_analytics(
         average_wait_duration_minutes=avg_wait,
         referrals_count=referrals_count,
         sms_delivery_rate_percent=sms_rate,
-        ai_service_status=ai_status
+        ai_service_status=ai_status,
+        total_asha_workers=total_asha_workers,
+        total_phcs=total_phcs,
+        total_doctors=total_doctors,
+        total_navigators=total_navigators,
+        total_staff=total_staff,
+        workforce_by_mandal=workforce_by_mandal
     )

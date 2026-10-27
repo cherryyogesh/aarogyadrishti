@@ -159,7 +159,30 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     prompt_ulcer_tips: 'నోటి పూత (Mouth Ulcers) తగ్గడానికి చిట్కాలు ఏమిటి?',
     prompt_tobacco_quit: 'చుట్ట / గుట్కా అలవాటు మానేయడం ఎలా?',
     prompt_burning_mouth: 'కారం తిన్నప్పుడు నోరు మంటగా ఉంటే ఏం చేయాలి?',
-    prompt_when_doctor: 'ఎప్పుడు డాక్టర్‌ను తప్పనిసరిగా సంప్రదించాలి?'
+    prompt_when_doctor: 'ఎప్పుడు డాక్టర్‌ను తప్పనిసరిగా సంప్రదించాలి?',
+
+    tab_employee_signin: 'ఉద్యోగుల లాగిన్ (Sign In)',
+    tab_employee_register: 'నూతన సిబ్బంది నమోదు (Register)',
+    field_full_name: 'ఉద్యోగి పూర్తి పేరు (Full Name)',
+    field_mobile_number: 'మొబైల్ నంబరు (Mobile Number)',
+    field_role: 'అధికారిక హోదా (Official Role)',
+    field_phc_name: 'పీహెచ్‌సీ కేంద్రం (PHC Centre)',
+    field_mandal: 'మండలం (Mandal)',
+    field_district: 'జిల్లా (District)',
+    field_state: 'రాష్ట్రం (State)',
+    field_password: 'లాగిన్ పాస్‌వర్డ్ (Password)',
+    btn_register_submit: 'ఉద్యోగి నమోదు పూర్తి చేయండి & లాగిన్ అవ్వండి',
+    dmho_total_asha: 'మొత్తం ఆశా కార్యకర్తలు (Total ASHA / CHW)',
+    dmho_total_phcs: 'మొత్తం PHC కేంద్రాలు (Total PHC Centres)',
+    dmho_total_doctors: 'అందుబాటులో ఉన్న వైద్యులు (Available Doctors)',
+    dmho_total_navigators: 'పేషెంట్ నేవిగేటర్లు (Navigators)',
+    dmho_total_staff: 'మొత్తం ఆరోగ్య సిబ్బంది (Total Workforce)',
+    dmho_staff_roster: 'జిల్లా ఆరోగ్య సిబ్బంది డైరెక్టరీ & రోస్టర్ (Staff Roster)',
+    filter_all: 'అందరూ (All)',
+    filter_asha: 'ఆశా కార్యకర్తలు (ASHA)',
+    filter_phc: 'పీహెచ్‌సీ సిబ్బంది (PHC Staff)',
+    filter_doctors: 'వైద్యులు (Doctors)',
+    filter_navigators: 'నేవిగేటర్లు (Navigators)'
   },
 
   en: {
@@ -311,7 +334,30 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     prompt_ulcer_tips: 'Tips to soothe and heal mouth ulcers at home?',
     prompt_tobacco_quit: 'How to stop chewing gutkha and reverse smoking?',
     prompt_burning_mouth: 'Why does my mouth burn when eating spicy food?',
-    prompt_when_doctor: 'When should I visit the PHC doctor immediately?'
+    prompt_when_doctor: 'When should I visit the PHC doctor immediately?',
+
+    tab_employee_signin: 'Employee Sign In',
+    tab_employee_register: 'New Staff Registration',
+    field_full_name: 'Employee Full Name',
+    field_mobile_number: 'Registered Mobile Number',
+    field_role: 'Official Healthcare Role',
+    field_phc_name: 'Primary Health Centre (PHC)',
+    field_mandal: 'Mandal',
+    field_district: 'District',
+    field_state: 'State',
+    field_password: 'Create Password',
+    btn_register_submit: 'Register Employee & Sign In',
+    dmho_total_asha: 'Total ASHA / CHW Workers',
+    dmho_total_phcs: 'Total PHC Centres',
+    dmho_total_doctors: 'Available Doctors & MOs',
+    dmho_total_navigators: 'Patient Navigators',
+    dmho_total_staff: 'Total Healthcare Workforce',
+    dmho_staff_roster: 'District Staff Directory & Workforce Roster',
+    filter_all: 'All Staff',
+    filter_asha: 'ASHA Workers',
+    filter_phc: 'PHC Staff',
+    filter_doctors: 'Doctors',
+    filter_navigators: 'Navigators'
   },
 
   hi: {

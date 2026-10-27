@@ -85,6 +85,9 @@ class User(Base):
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.CHW)
     phc_id = Column(Integer, ForeignKey("phcs.id", ondelete="SET NULL"), nullable=True)
     phone = Column(String(20), nullable=True)
+    mandal = Column(String(100), nullable=True, default="G. Madugula")
+    district = Column(String(100), nullable=True, default="Alluri Sitharama Raju")
+    state = Column(String(100), nullable=True, default="Andhra Pradesh")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

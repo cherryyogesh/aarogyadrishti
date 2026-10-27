@@ -11,7 +11,36 @@ export interface User {
   phc_id?: number | null;
   phc_name?: string | null;
   phone?: string | null;
+  mandal?: string | null;
+  district?: string | null;
+  state?: string | null;
   is_active: boolean;
+  created_at?: string;
+}
+
+export interface StaffMember {
+  id: number;
+  full_name: string;
+  role: UserRole;
+  phone?: string | null;
+  phc_id?: number | null;
+  phc_name?: string | null;
+  mandal?: string | null;
+  district?: string | null;
+  state?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface EmployeeRegisterPayload {
+  full_name: string;
+  role: UserRole;
+  phone: string;
+  phc_name?: string;
+  mandal: string;
+  district: string;
+  state: string;
+  password: string;
 }
 
 export interface AuthState {
@@ -290,6 +319,17 @@ export interface DistrictAnalytics {
   referrals_count: number;
   sms_delivery_rate_percent: number;
   ai_service_status: string;
+  total_asha_workers?: number;
+  total_phcs?: number;
+  total_doctors?: number;
+  total_navigators?: number;
+  total_staff?: number;
+  workforce_by_mandal?: Record<string, {
+    phcs: number;
+    asha_workers: number;
+    doctors: number;
+    screenings: number;
+  }>;
 }
 
 export interface AuditEvent {

@@ -74,10 +74,10 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
             </span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-            {roleTitle}
+            {isTe ? `నమస్కారం, ${user.full_name}` : `Welcome, ${user.full_name}`}
           </h2>
           <p style={{ fontSize: '0.88rem', color: '#CBD5E1', marginTop: '0.25rem' }}>
-            {t.app_subtitle} • {isTe ? 'ప్రభుత్వ ఆరోగ్య సేవా పోర్టల్' : 'Government Healthcare Service Portal'}
+            {roleTitle} • {user.phc_name || `${user.mandal || 'G. Madugula'} PHC`} • {user.district || 'Alluri Sitharama Raju District'}
           </p>
         </div>
 
@@ -202,6 +202,49 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
         </div>
       </div>
+
+      {/* DMHO Workforce Quick Navigation Banner */}
+      {user.role === 'admin' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+          color: '#FFFFFF',
+          borderRadius: '14px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <div>
+            <div style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: '#5EEAD4', fontWeight: 700, letterSpacing: '0.04em' }}>
+              {isTe ? 'DMHO జిల్లా ఆరోగ్య పర్యవేక్షణ' : 'DMHO Health Workforce Administration'}
+            </div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '0.2rem' }}>
+              {isTe ? 'అల్లూరి సీతారామరాజు జిల్లా ఆరోగ్య సిబ్బంది & పీహెచ్‌సీ కేంద్రాలు' : 'ASR District Staff Directory & PHC Facilities Coverage'}
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '0.2rem' }}>
+              {isTe ? 'పాడేరు ITDA పరిధిలోని ఆశా వర్కర్లు, వైద్యులు మరియు పీహెచ్‌సీలను పర్యవేక్షించండి.' : 'Monitor total ASHA workers, available doctors, and PHC centres across agency mandals.'}
+            </div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => onNavigate('reports')}
+            style={{
+              background: '#0D9488',
+              border: 'none',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              fontWeight: 700,
+              fontSize: '0.88rem'
+            }}
+          >
+            {isTe ? 'సిబ్బంది డైరెక్టరీ & నివేదికలు చూడండి' : 'View Staff Directory & Reports'} →
+          </button>
+        </div>
+      )}
 
       {/* Live Doctor Waiting Queue Banner if patients are waiting */}
       {waitingQueue.length > 0 && (

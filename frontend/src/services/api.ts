@@ -1,7 +1,8 @@
 import {
   User, Patient, Screening, Appointment, DoctorQueueItem,
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
-  ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip
+  ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
+  StaffMember, EmployeeRegisterPayload
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -66,6 +67,23 @@ class ApiService {
     });
     this.setToken(res.access_token);
     return res;
+  }
+
+  async registerEmployee(payload: EmployeeRegisterPayload): Promise<User> {
+    const res = await this.request<{ access_token: string; role: string; full_name: string; username: string }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    this.setToken(res.access_token);
+    return this.getMe();
+  }
+
+  async getStaffRoster(role?: string, mandal?: string): Promise<StaffMember[]> {
+    const params = new URLSearchParams();
+    if (role) params.append('role', role);
+    if (mandal) params.append('mandal', mandal);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<StaffMember[]>(`/auth/staff-roster${query}`);
   }
 
   async getMe(): Promise<User> {

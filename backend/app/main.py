@@ -8,8 +8,19 @@ from app.api.v1 import (
     investigations, navigation, referrals
 )
 
+from sqlalchemy import text
+
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
+
+# Safe schema migration for newly added User columns
+with engine.connect() as _conn:
+    for _col, _type in [("mandal", "VARCHAR(100)"), ("district", "VARCHAR(100)"), ("state", "VARCHAR(100)")]:
+        try:
+            _conn.execute(text(f"ALTER TABLE users ADD COLUMN {_col} {_type}"))
+            _conn.commit()
+        except Exception:
+            pass
 
 app = FastAPI(
     title=settings.APP_NAME,

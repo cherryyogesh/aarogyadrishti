@@ -407,8 +407,8 @@ export const App: React.FC = () => {
                isNavigator ? <Compass size={16} /> : <FileText size={16} />}
             </div>
             <div className="user-info-text">
-              <h4>{getRoleDisplayName(currentUser)}</h4>
-              <p>{currentUser.phc_name || (isAdmin ? 'ITDA Paderu HQ' : 'Alluri Sitharama Raju District')}</p>
+              <h4>{currentUser.full_name}</h4>
+              <p>{getRoleDisplayName(currentUser)} • {currentUser.phc_name || currentUser.mandal || 'ITDA Paderu'}</p>
             </div>
             <button
               onClick={handleLogout}
@@ -477,9 +477,9 @@ export const App: React.FC = () => {
                  isAdmin ? <Shield size={13} /> : <FileText size={13} />}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span className="user-name-small">{getRoleDisplayName(currentUser)}</span>
+                <span className="user-name-small" style={{ fontWeight: 700, color: '#0F172A' }}>{currentUser.full_name}</span>
                 <span style={{ fontSize: '0.65rem', color: '#64748B' }}>
-                  {currentUser.phc_name || 'ITDA Paderu'}
+                  {getRoleDisplayName(currentUser)} • {currentUser.phc_name || currentUser.mandal || 'ITDA Paderu'}
                 </span>
               </div>
               <button

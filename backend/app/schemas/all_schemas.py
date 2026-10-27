@@ -13,10 +13,25 @@ class Token(BaseModel):
     phc_id: Optional[int] = None
     phc_name: Optional[str] = None
     mandal: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    phone: Optional[str] = None
 
 class LoginRequest(BaseModel):
     username_or_email: str
     password: str
+
+class EmployeeRegisterRequest(BaseModel):
+    full_name: str
+    role: str = "chw" # chw, phc_staff, doctor, navigator, admin
+    phone: str
+    phc_name: Optional[str] = "G. Madugula Primary Health Centre"
+    mandal: str = "G. Madugula"
+    district: str = "Alluri Sitharama Raju"
+    state: str = "Andhra Pradesh"
+    password: str
+    email: Optional[str] = None
+    username: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -25,8 +40,26 @@ class UserResponse(BaseModel):
     full_name: str
     role: str
     phc_id: Optional[int] = None
+    phc_name: Optional[str] = None
     phone: Optional[str] = None
+    mandal: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
     is_active: bool
+    created_at: Optional[datetime] = None
+
+class StaffMemberResponse(BaseModel):
+    id: int
+    full_name: str
+    role: str
+    phone: Optional[str] = None
+    phc_id: Optional[int] = None
+    phc_name: Optional[str] = None
+    mandal: Optional[str] = None
+    district: Optional[str] = None
+    state: Optional[str] = None
+    is_active: bool
+    created_at: datetime
 
 # ----------------- Patient Schemas -----------------
 class PatientCreate(BaseModel):
@@ -415,6 +448,12 @@ class DistrictAnalyticsResponse(BaseModel):
     referrals_count: int
     sms_delivery_rate_percent: float
     ai_service_status: str
+    total_asha_workers: int = 0
+    total_phcs: int = 0
+    total_doctors: int = 0
+    total_navigators: int = 0
+    total_staff: int = 0
+    workforce_by_mandal: dict = {}
 
 class AuditEventResponse(BaseModel):
     id: int
