@@ -128,32 +128,36 @@ class SMSAdapter:
 sms_adapter = SMSAdapter()
 
 # Standardized Approved Message Formats
-def format_screening_sms(ref_id: str) -> str:
+def format_screening_sms(ref_id: str, patient_name: str = "రోగి") -> str:
     return (
-        f"Aarogya Drishti: Your health screening has been recorded. Reference: {ref_id}. "
-        f"The PHC team will review it and notify you about next steps. This message is not a diagnosis."
+        f"Aarogya Drishti: నమస్కారం {patient_name}, మీ నోటి స్క్రీనింగ్ & ఫొటోలు నమోదు చేయబడ్డాయి. "
+        f"Ref ID: {ref_id}. PHC వైద్యాధికారి సమీక్షిస్తున్నారు. / "
+        f"Your oral screening & photos (Ref: {ref_id}) have been securely recorded. PHC Medical Officer is reviewing."
     )
 
-def format_appointment_sms(date_str: str, time_str: str, phc_name: str) -> str:
+def format_appointment_sms(date_str: str, time_str: str, phc_name: str, arrival_time: str = "") -> str:
+    early_notice = f" ({arrival_time} సమయానికి)" if arrival_time else ""
     return (
-        f"Aarogya Drishti: Your appointment is scheduled for {date_str} at {time_str} at {phc_name}. "
-        f"Please arrive 30 minutes early and bring your patient ID. If you cannot attend, contact your PHC."
+        f"Aarogya Drishti: నమస్కారం, మీ అపాయింట్‌మెంట్ {date_str} న {time_str} గంటలకు {phc_name} వద్ద నిర్ణయించబడింది. "
+        f"దయచేసి 30 నిమిషాల ముందుగా{early_notice} చేరుకోండి. / "
+        f"Your appointment is confirmed on {date_str} at {time_str} at {phc_name}. Please arrive 30 mins early ({arrival_time or 'early check-in'})."
     )
 
 def format_otp_sms(otp_code: str) -> str:
     return (
-        f"Aarogya Drishti: Your check-in verification code is {otp_code}. "
-        f"Valid for 5 minutes. Do not share this code with anyone."
+        f"Aarogya Drishti: మీ PHC క్లినిక్ హాజరు ధృవీకరణ OTP: {otp_code}. "
+        f"ఇది 5 నిమిషాలు మాత్రమే చెల్లుబాటు అవుతుంది. / "
+        f"Your in-clinic arrival verification OTP is {otp_code}. Valid for 5 minutes."
     )
 
 def format_reschedule_sms(date_str: str, time_str: str, phc_name: str, reason: str) -> str:
     return (
-        f"Aarogya Drishti: Your appointment at {phc_name} has been rescheduled to {date_str} at {time_str}. "
-        f"Reason: {reason}. Please arrive 30 minutes early."
+        f"Aarogya Drishti: మీ అపాయింట్‌మెంట్ {date_str} న {time_str} గంటలకు మార్చబడింది ({phc_name}). "
+        f"కారణం: {reason}. దయచేసి 30 నిమిషాల ముందుగా చేరుకోండి."
     )
 
 def format_cancellation_sms(phc_name: str, reason: str) -> str:
     return (
-        f"Aarogya Drishti: Your scheduled appointment at {phc_name} has been cancelled. "
-        f"Reason: {reason}. Contact your PHC if you need to rebook."
+        f"Aarogya Drishti: {phc_name} వద్ద మీ అపాయింట్‌మెంట్ రద్దు చేయబడింది. "
+        f"కారణం: {reason}. తదుపరి సహాయం కోసం PHCని సంప్రదించండి."
     )

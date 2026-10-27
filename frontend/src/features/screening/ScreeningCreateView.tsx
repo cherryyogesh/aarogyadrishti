@@ -171,8 +171,28 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             </div>
           )}
 
-          <div style={{ marginTop: '1rem', background: '#E0F2FE', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', color: '#0369A1' }}>
-            ✓ Automated confirmation SMS queued to patient registered mobile number. Case added to PHC medical review queue.
+          <div style={{
+            marginTop: '1.25rem',
+            background: 'linear-gradient(135deg, #065F46 0%, #047857 100%)',
+            border: '2px solid #10B981',
+            borderRadius: '10px',
+            padding: '1rem',
+            color: '#FFFFFF',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontWeight: 800, fontSize: '0.95rem' }}>
+              <span>📱</span>
+              <span>
+                {currentLang === 'te'
+                  ? 'రోగి రిజిస్టర్డ్ మొబైల్‌కు నిర్ధారణ SMS విజయవంతంగా పంపబడింది!'
+                  : 'Confirmation SMS dispatched to patient registered mobile number!'}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.82rem', marginTop: '0.35rem', color: '#D1FAE5', lineHeight: 1.5 }}>
+              {currentLang === 'te'
+                ? `నమస్కారం, మీ నోటి స్క్రీనింగ్ & ఫొటోలు నమోదు చేయబడ్డాయి (Ref: ${successResult.reference_id}). PHC వైద్యాధికారి సమీక్షించి తదుపరి సమాచారం తెలియజేస్తారు.`
+                : `Dear patient, your oral screening and photographs (Ref: ${successResult.reference_id}) have been securely recorded. PHC Medical Officer is reviewing.`}
+            </div>
           </div>
         </div>
 
@@ -185,7 +205,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             setSymptoms('');
           }}
         >
-          Create Another Screening
+          {currentLang === 'te' ? 'మరొక స్క్రీనింగ్ నమోదు చేయండి' : 'Create Another Screening'}
         </button>
       </div>
     );

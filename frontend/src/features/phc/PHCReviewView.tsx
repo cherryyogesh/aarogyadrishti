@@ -411,44 +411,60 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
             {/* Clinician Review Form */}
             <form onSubmit={handleSaveReview}>
               <div className="form-group">
-                <label className="form-label">Review Outcome Decision *</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {currentLang === 'te' ? 'క్లినికల్ సమీక్ష నిర్ణయం (Review Outcome) *' : 'Review Outcome Decision *'}
+                </label>
                 <select
                   className="form-control"
                   value={reviewDecision}
                   onChange={(e) => setReviewDecision(e.target.value)}
                 >
-                  <option value="consultation_booked">Doctor Consultation Recommended</option>
-                  <option value="biopsy_advised">Incisional/Punch Biopsy Advised (Module G)</option>
-                  <option value="repeat_photo">Request Repeat Photograph (Image Unclear)</option>
-                  <option value="safe_observation">Safe for Local Observation (Self-care Guidance)</option>
-                  <option value="referral_made">Direct Referral to District Hospital (Module F)</option>
+                  <option value="consultation_booked">
+                    {currentLang === 'te' ? 'స్పెషలిస్ట్ కన్సల్టేషన్ సిఫార్సు (Doctor Consultation Recommended)' : 'Doctor Consultation Recommended'}
+                  </option>
+                  <option value="biopsy_advised">
+                    {currentLang === 'te' ? 'ఇన్సిషనల్ బయాప్సీ సిఫార్సు (Biopsy Advised - Module G)' : 'Incisional/Punch Biopsy Advised (Module G)'}
+                  </option>
+                  <option value="repeat_photo">
+                    {currentLang === 'te' ? 'మళ్లీ స్పష్టమైన ఫొటో పంపమని కోరండి (Repeat Photo Requested)' : 'Request Repeat Photograph (Image Unclear)'}
+                  </option>
+                  <option value="safe_observation">
+                    {currentLang === 'te' ? 'స్థానిక పరిశీలన & స్వీయ జాగ్రత్తలు (Safe for Local Observation)' : 'Safe for Local Observation (Self-care Guidance)'}
+                  </option>
+                  <option value="referral_made">
+                    {currentLang === 'te' ? 'జిల్లా ఆసుపత్రికి అధికారిక రిఫరల్ (Direct Referral - Module F)' : 'Direct Referral to District Hospital (Module F)'}
+                  </option>
                 </select>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Clinical Review Observations *</label>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {currentLang === 'te' ? 'వైద్యుల క్లినికల్ పరిశీలనలు (Clinical Notes) *' : 'Clinical Review Observations *'}
+                </label>
                 <textarea
                   className="form-control"
                   rows={3}
                   required
-                  placeholder="Record your clinical assessment, lesion features, and patient advice..."
+                  placeholder={currentLang === 'te' ? 'మచ్చ లక్షణాలు, తీవ్రత, మరియు రోగికి సూచనలను నమోదు చేయండి...' : 'Record your clinical assessment, lesion features, and patient advice...'}
                   value={clinicalNotes}
                   onChange={(e) => setClinicalNotes(e.target.value)}
                 />
               </div>
 
               <div className="form-group">
-                <label className="form-label">Action Plan</label>
+                <label className="form-label">
+                  {currentLang === 'te' ? 'తదుపరి కార్యాచరణ ప్రణాళిక (Action Plan)' : 'Action Plan'}
+                </label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="e.g. Schedule tele-consultation with dermatologist, send reminder SMS"
+                  placeholder={currentLang === 'te' ? 'ఉదా: టెలికన్సల్టేషన్ షెడ్యూల్ చేయడం, SMS రిమైండర్ పంపడం' : 'e.g. Schedule tele-consultation with oncologist, send reminder SMS'}
                   value={actionPlan}
                   onChange={(e) => setActionPlan(e.target.value)}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 {onNavigateToBooking && reviewDecision === 'consultation_booked' ? (
                   <button
                     type="button"
@@ -458,7 +474,8 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                       setSelectedCase(null);
                     }}
                   >
-                    <Calendar size={16} /> Book Appointment Directly <ArrowRight size={16} />
+                    <Calendar size={16} />
+                    {currentLang === 'te' ? 'నేరుగా అపాయింట్‌మెంట్ బుక్ చేయండి' : 'Book Appointment Directly'} <ArrowRight size={16} />
                   </button>
                 ) : <div />}
 
@@ -468,14 +485,16 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                     className="btn btn-secondary"
                     onClick={() => setSelectedCase(null)}
                   >
-                    Cancel
+                    {currentLang === 'te' ? 'రద్దు' : 'Cancel'}
                   </button>
                   <button
                     type="submit"
                     className="btn btn-primary"
                     disabled={submitting}
                   >
-                    {submitting ? 'Saving Review...' : 'Record Review Outcome'}
+                    {submitting
+                      ? (currentLang === 'te' ? 'నమోదు అవుతోంది...' : 'Saving Review...')
+                      : (currentLang === 'te' ? 'సమీక్షను ధృవీకరించండి' : 'Record Review Outcome')}
                   </button>
                 </div>
               </div>

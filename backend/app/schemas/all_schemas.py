@@ -164,17 +164,17 @@ class ScreeningResponse(BaseModel):
     patient_phone_masked: str
     patient_age: int
     patient_gender: str
-    mandal: str
+    mandal: str = "Paderu"
     phc_id: int
     phc_name: str
-    oral_site: str
-    lesion_type: str
+    oral_site: str = "buccal_mucosa"
+    lesion_type: str = "leukoplakia"
     symptoms: str
     duration_days: int
     mouth_opening_mm: Optional[float] = None
-    pain_score: int
-    bleeding: bool
-    burning_sensation: bool
+    pain_score: int = 0
+    bleeding: bool = False
+    burning_sensation: bool = False
     severity: str
     status: str
     created_at: datetime

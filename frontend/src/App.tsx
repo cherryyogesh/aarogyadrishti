@@ -14,15 +14,15 @@ import { ConsultationWorkspace } from './features/consultation/ConsultationWorks
 import { ChatbotView } from './features/chatbot/ChatbotView';
 import { DistrictReportsView } from './features/reports/DistrictReportsView';
 import { AuditLogView } from './features/audit/AuditLogView';
-import { ConfigStatusView } from './features/config/ConfigStatusView';
 import { InvestigationsView } from './features/investigations/InvestigationsView';
 import { NavigationView } from './features/navigation/NavigationView';
 import { ReferralsView } from './features/referrals/ReferralsView';
+import { AarogyaLogo } from './components/AarogyaLogo';
 
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
-  MessageSquare, BarChart3, Shield, Settings, LogOut, Menu,
-  X, Globe, Server, UserCheck, FlaskConical, Compass, FileCheck
+  MessageSquare, BarChart3, Shield, LogOut, Menu,
+  X, Globe, UserCheck, FlaskConical, Compass, FileCheck
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -47,6 +47,12 @@ export const App: React.FC = () => {
         try {
           const user = await api.getMe();
           setCurrentUser(user);
+          // Set role-appropriate default landing tab
+          if (user.role === 'doctor') setActiveRoute('queue');
+          else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
+          else if (user.role === 'admin') setActiveRoute('reports');
+          else if (user.role === 'navigator') setActiveRoute('navigation');
+          else setActiveRoute('screening');
         } catch (e) {
           api.setToken(null);
           setCurrentUser(null);
@@ -64,12 +70,18 @@ export const App: React.FC = () => {
     setActiveConsultation(null);
   };
 
+  const getRoleDisplayName = (user: User) => {
+    return t[`role_${user.role}`] || user.role.toUpperCase();
+  };
+
   if (authChecking) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A192F', color: '#5EEAD4' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem' }}>ఆరోగ్య దృష్టి</div>
-          <div style={{ fontSize: '0.88rem', color: '#94A3B8' }}>Loading secure platform...</div>
+          <AarogyaLogo size="large" lightText={true} />
+          <div style={{ fontSize: '0.88rem', color: '#94A3B8', marginTop: '1rem' }}>
+            {currentLang === 'te' ? 'భద్రతా నెట్‌వర్క్ లోడ్ అవుతోంది...' : 'Loading secure tribal healthcare platform...'}
+          </div>
         </div>
       </div>
     );
@@ -79,9 +91,14 @@ export const App: React.FC = () => {
     return (
       <LoginView
         currentLang={currentLang}
+        onLanguageChange={setCurrentLang}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
-          setActiveRoute('dashboard');
+          if (user.role === 'doctor') setActiveRoute('queue');
+          else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
+          else if (user.role === 'admin') setActiveRoute('reports');
+          else if (user.role === 'navigator') setActiveRoute('navigation');
+          else setActiveRoute('screening');
         }}
       />
     );
@@ -109,16 +126,19 @@ export const App: React.FC = () => {
     setMobileMenuOpen(false);
   };
 
+  // Role-based visibility helpers
+  const isCHW = currentUser.role === 'chw';
+  const isPHC = currentUser.role === 'phc_staff';
+  const isDoctor = currentUser.role === 'doctor';
+  const isNavigator = currentUser.role === 'navigator';
+  const isAdmin = currentUser.role === 'admin';
+
   return (
     <div className="app-container">
-      {/* Sidebar Navigation (Desktop & Mobile Drawer) */}
+      {/* Sidebar Navigation */}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="logo-badge">ఆ</div>
-          <div className="sidebar-brand">
-            <h1>{t.app_title}</h1>
-            <p>{t.app_subtitle}</p>
-          </div>
+        <div className="sidebar-header" style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <AarogyaLogo size="medium" lightText={true} showSubtitle={true} />
           {mobileMenuOpen && (
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -129,7 +149,36 @@ export const App: React.FC = () => {
           )}
         </div>
 
+        {/* Role Badge Indicator */}
+        <div style={{
+          margin: '0.85rem 1rem 0.5rem',
+          padding: '0.5rem 0.75rem',
+          background: 'rgba(13, 148, 136, 0.12)',
+          border: '1px solid rgba(13, 148, 136, 0.25)',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#10B981',
+            boxShadow: '0 0 8px #10B981'
+          }} />
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#5EEAD4', fontWeight: 700, letterSpacing: '0.04em' }}>
+              {currentLang === 'te' ? 'అధికారిక హోదా' : 'Active Role Designation'}
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#F8FAFC', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              {getRoleDisplayName(currentUser)}
+            </div>
+          </div>
+        </div>
+
         <nav className="sidebar-menu">
+          {/* Dashboard — Visible to all roles */}
           <button
             className={`menu-item ${activeRoute === 'dashboard' ? 'active' : ''}`}
             onClick={() => navigateTo('dashboard')}
@@ -138,82 +187,205 @@ export const App: React.FC = () => {
             {t.nav_dashboard}
           </button>
 
-          <button
-            className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
-            onClick={() => navigateTo('patients')}
-          >
-            <Users size={18} />
-            {t.nav_patients}
-          </button>
-
-          <button
-            className={`menu-item ${activeRoute === 'screening' ? 'active' : ''}`}
-            onClick={() => navigateTo('screening')}
-          >
-            <FileText size={18} />
-            {t.nav_screening}
-          </button>
-
-          {(currentUser.role === 'phc_staff' || currentUser.role === 'doctor' || currentUser.role === 'admin') && (
-            <button
-              className={`menu-item ${activeRoute === 'phc_cases' ? 'active' : ''}`}
-              onClick={() => navigateTo('phc_cases')}
-            >
-              <UserCheck size={18} />
-              {t.nav_phc_cases}
-            </button>
+          {/* 1. ASHA / CHW SPECIFIC MENU */}
+          {isCHW && (
+            <>
+              <button
+                className={`menu-item ${activeRoute === 'screening' ? 'active' : ''}`}
+                onClick={() => navigateTo('screening')}
+              >
+                <FileText size={18} />
+                {t.nav_screening}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
+                onClick={() => navigateTo('patients')}
+              >
+                <Users size={18} />
+                {t.nav_patients}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
+                onClick={() => navigateTo('navigation')}
+              >
+                <Compass size={18} />
+                {t.nav_navigation}
+              </button>
+            </>
           )}
 
-          <button
-            className={`menu-item ${activeRoute === 'investigations' ? 'active' : ''}`}
-            onClick={() => navigateTo('investigations')}
-          >
-            <FlaskConical size={18} />
-            {t.nav_investigations}
-          </button>
-
-          <button
-            className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
-            onClick={() => navigateTo('referrals')}
-          >
-            <FileCheck size={18} />
-            {t.nav_referrals}
-          </button>
-
-          <button
-            className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
-            onClick={() => navigateTo('navigation')}
-          >
-            <Compass size={18} />
-            {t.nav_navigation}
-          </button>
-
-          <button
-            className={`menu-item ${activeRoute === 'appointments' ? 'active' : ''}`}
-            onClick={() => navigateTo('appointments')}
-          >
-            <Calendar size={18} />
-            {t.nav_appointments}
-          </button>
-
-          <button
-            className={`menu-item ${activeRoute === 'otp' ? 'active' : ''}`}
-            onClick={() => navigateTo('otp')}
-          >
-            <KeyRound size={18} />
-            {t.nav_otp_checkin}
-          </button>
-
-          {(currentUser.role === 'doctor' || currentUser.role === 'phc_staff' || currentUser.role === 'admin') && (
-            <button
-              className={`menu-item ${activeRoute === 'queue' ? 'active' : ''}`}
-              onClick={() => navigateTo('queue')}
-            >
-              <Stethoscope size={18} />
-              {t.nav_doctor_queue}
-            </button>
+          {/* 2. PHC STAFF / MEDICAL OFFICER SPECIFIC MENU */}
+          {isPHC && (
+            <>
+              <button
+                className={`menu-item ${activeRoute === 'phc_cases' ? 'active' : ''}`}
+                onClick={() => navigateTo('phc_cases')}
+              >
+                <UserCheck size={18} />
+                {t.nav_phc_cases}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'appointments' ? 'active' : ''}`}
+                onClick={() => navigateTo('appointments')}
+              >
+                <Calendar size={18} />
+                {t.nav_appointments}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'otp' ? 'active' : ''}`}
+                onClick={() => navigateTo('otp')}
+              >
+                <KeyRound size={18} />
+                {t.nav_otp_checkin}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
+                onClick={() => navigateTo('referrals')}
+              >
+                <FileCheck size={18} />
+                {t.nav_referrals}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'investigations' ? 'active' : ''}`}
+                onClick={() => navigateTo('investigations')}
+              >
+                <FlaskConical size={18} />
+                {t.nav_investigations}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
+                onClick={() => navigateTo('patients')}
+              >
+                <Users size={18} />
+                {t.nav_patients}
+              </button>
+            </>
           )}
 
+          {/* 3. SPECIALIST DOCTOR SPECIFIC MENU */}
+          {isDoctor && (
+            <>
+              <button
+                className={`menu-item ${activeRoute === 'queue' ? 'active' : ''}`}
+                onClick={() => navigateTo('queue')}
+              >
+                <Stethoscope size={18} />
+                {t.nav_doctor_queue}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'phc_cases' ? 'active' : ''}`}
+                onClick={() => navigateTo('phc_cases')}
+              >
+                <UserCheck size={18} />
+                {t.nav_phc_cases}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'investigations' ? 'active' : ''}`}
+                onClick={() => navigateTo('investigations')}
+              >
+                <FlaskConical size={18} />
+                {t.nav_investigations}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
+                onClick={() => navigateTo('referrals')}
+              >
+                <FileCheck size={18} />
+                {t.nav_referrals}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
+                onClick={() => navigateTo('patients')}
+              >
+                <Users size={18} />
+                {t.nav_patients}
+              </button>
+            </>
+          )}
+
+          {/* 4. PATIENT NAVIGATOR SPECIFIC MENU */}
+          {isNavigator && (
+            <>
+              <button
+                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
+                onClick={() => navigateTo('navigation')}
+              >
+                <Compass size={18} />
+                {t.nav_navigation}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'appointments' ? 'active' : ''}`}
+                onClick={() => navigateTo('appointments')}
+              >
+                <Calendar size={18} />
+                {t.nav_appointments}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
+                onClick={() => navigateTo('referrals')}
+              >
+                <FileCheck size={18} />
+                {t.nav_referrals}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
+                onClick={() => navigateTo('patients')}
+              >
+                <Users size={18} />
+                {t.nav_patients}
+              </button>
+            </>
+          )}
+
+          {/* 5. DMHO (DISTRICT ADMIN) SPECIFIC MENU */}
+          {isAdmin && (
+            <>
+              <button
+                className={`menu-item ${activeRoute === 'reports' ? 'active' : ''}`}
+                onClick={() => navigateTo('reports')}
+              >
+                <BarChart3 size={18} />
+                {t.nav_reports}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'audit' ? 'active' : ''}`}
+                onClick={() => navigateTo('audit')}
+              >
+                <Shield size={18} />
+                {t.nav_audit}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'investigations' ? 'active' : ''}`}
+                onClick={() => navigateTo('investigations')}
+              >
+                <FlaskConical size={18} />
+                {t.nav_investigations}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
+                onClick={() => navigateTo('referrals')}
+              >
+                <FileCheck size={18} />
+                {t.nav_referrals}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
+                onClick={() => navigateTo('navigation')}
+              >
+                <Compass size={18} />
+                {t.nav_navigation}
+              </button>
+              <button
+                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
+                onClick={() => navigateTo('patients')}
+              >
+                <Users size={18} />
+                {t.nav_patients}
+              </button>
+            </>
+          )}
+
+          {/* Aarogya Mitra AI Assistant — Available to all healthcare cadres */}
           <button
             className={`menu-item ${activeRoute === 'chatbot' ? 'active' : ''}`}
             onClick={() => navigateTo('chatbot')}
@@ -221,44 +393,22 @@ export const App: React.FC = () => {
             <MessageSquare size={18} />
             {t.nav_chatbot}
           </button>
-
-          {(currentUser.role === 'admin' || currentUser.role === 'doctor' || currentUser.role === 'phc_staff') && (
-            <button
-              className={`menu-item ${activeRoute === 'reports' ? 'active' : ''}`}
-              onClick={() => navigateTo('reports')}
-            >
-              <BarChart3 size={18} />
-              {t.nav_reports}
-            </button>
-          )}
-
-          {currentUser.role === 'admin' && (
-            <button
-              className={`menu-item ${activeRoute === 'audit' ? 'active' : ''}`}
-              onClick={() => navigateTo('audit')}
-            >
-              <Shield size={18} />
-              {t.nav_audit}
-            </button>
-          )}
-
-          <button
-            className={`menu-item ${activeRoute === 'config' ? 'active' : ''}`}
-            onClick={() => navigateTo('config')}
-          >
-            <Server size={18} />
-            {t.nav_config}
-          </button>
         </nav>
 
+        {/* Sidebar Footer with Role Designation (No Individual Names) */}
         <div className="sidebar-footer">
           <div className="user-profile-badge">
-            <div className="user-avatar">
-              {currentUser.full_name.charAt(0)}
+            <div className="user-avatar" style={{
+              background: isDoctor ? '#7E22CE' : isPHC ? '#15803D' : isAdmin ? '#BE123C' : '#0D9488'
+            }}>
+              {isDoctor ? <Stethoscope size={16} /> :
+               isPHC ? <UserCheck size={16} /> :
+               isAdmin ? <Shield size={16} /> :
+               isNavigator ? <Compass size={16} /> : <FileText size={16} />}
             </div>
             <div className="user-info-text">
-              <h4>{currentUser.full_name}</h4>
-              <p>{t[`role_${currentUser.role}`] || currentUser.role}</p>
+              <h4>{getRoleDisplayName(currentUser)}</h4>
+              <p>{currentUser.phc_name || (isAdmin ? 'ITDA Paderu HQ' : 'Alluri Sitharama Raju District')}</p>
             </div>
             <button
               onClick={handleLogout}
@@ -296,19 +446,18 @@ export const App: React.FC = () => {
                activeRoute === 'queue' ? t.nav_doctor_queue :
                activeRoute === 'chatbot' ? t.nav_chatbot :
                activeRoute === 'reports' ? t.nav_reports :
-               activeRoute === 'audit' ? t.nav_audit :
-               activeRoute === 'config' ? t.nav_config : t.app_title}
+               activeRoute === 'audit' ? t.nav_audit : t.app_title}
             </h2>
           </div>
 
           <div className="header-right">
-            {/* 6-Language Selector */}
+            {/* Language Selector */}
             <div className="lang-select-pill">
               <Globe size={15} color="var(--teal-primary)" />
               <select
                 value={currentLang}
                 onChange={(e) => setCurrentLang(e.target.value as LanguageCode)}
-                aria-label="Select System Language"
+                aria-label="Select Interface Language"
               >
                 {LANGUAGES.map((l) => (
                   <option key={l.code} value={l.code}>
@@ -318,14 +467,34 @@ export const App: React.FC = () => {
               </select>
             </div>
 
-            {/* Current Role Badge */}
-            <span className={`role-chip ${currentUser.role}`}>
-              {currentUser.role}
-            </span>
+            {/* Role Chip (No personal employee names) */}
+            <div className="user-profile-pill">
+              <div className="user-avatar-small" style={{
+                background: isDoctor ? '#7E22CE' : isPHC ? '#15803D' : isAdmin ? '#BE123C' : '#0D9488'
+              }}>
+                {isDoctor ? <Stethoscope size={13} /> :
+                 isPHC ? <UserCheck size={13} /> :
+                 isAdmin ? <Shield size={13} /> : <FileText size={13} />}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span className="user-name-small">{getRoleDisplayName(currentUser)}</span>
+                <span style={{ fontSize: '0.65rem', color: '#64748B' }}>
+                  {currentUser.phc_name || 'ITDA Paderu'}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="btn-icon"
+                title={t.nav_logout}
+                style={{ marginLeft: '0.25rem' }}
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
           </div>
         </header>
 
-        {/* Content View Router */}
+        {/* Dynamic Route View Mount */}
         <main className="content-area">
           {activeRoute === 'dashboard' && (
             <DashboardView
@@ -411,13 +580,6 @@ export const App: React.FC = () => {
             />
           )}
 
-          {activeRoute === 'config' && (
-            <ConfigStatusView
-              currentLang={currentLang}
-              user={currentUser}
-            />
-          )}
-
           {activeRoute === 'investigations' && (
             <InvestigationsView
               currentUser={currentUser}
@@ -437,39 +599,62 @@ export const App: React.FC = () => {
           )}
         </main>
 
-        {/* Mobile Bottom Navigation Bar (for narrow screens) */}
+        {/* Mobile Bottom Navigation Bar (Tailored to Role) */}
         <nav className="mobile-bottom-nav">
           <button
             className={`bottom-nav-item ${activeRoute === 'dashboard' ? 'active' : ''}`}
             onClick={() => navigateTo('dashboard')}
           >
             <Activity size={18} />
-            <span>Dashboard</span>
+            <span>{currentLang === 'te' ? 'హోమ్' : 'Home'}</span>
           </button>
 
-          <button
-            className={`bottom-nav-item ${activeRoute === 'screening' ? 'active' : ''}`}
-            onClick={() => navigateTo('screening')}
-          >
-            <FileText size={18} />
-            <span>Screen</span>
-          </button>
+          {isCHW && (
+            <button
+              className={`bottom-nav-item ${activeRoute === 'screening' ? 'active' : ''}`}
+              onClick={() => navigateTo('screening')}
+            >
+              <FileText size={18} />
+              <span>{currentLang === 'te' ? 'స్క్రీనింగ్' : 'Screen'}</span>
+            </button>
+          )}
 
-          <button
-            className={`bottom-nav-item ${activeRoute === 'otp' ? 'active' : ''}`}
-            onClick={() => navigateTo('otp')}
-          >
-            <KeyRound size={18} />
-            <span>Check-in</span>
-          </button>
+          {isPHC && (
+            <>
+              <button
+                className={`bottom-nav-item ${activeRoute === 'phc_cases' ? 'active' : ''}`}
+                onClick={() => navigateTo('phc_cases')}
+              >
+                <UserCheck size={18} />
+                <span>{currentLang === 'te' ? 'సమీక్ష' : 'Review'}</span>
+              </button>
+              <button
+                className={`bottom-nav-item ${activeRoute === 'otp' ? 'active' : ''}`}
+                onClick={() => navigateTo('otp')}
+              >
+                <KeyRound size={18} />
+                <span>{currentLang === 'te' ? 'చెక్-ఇన్' : 'Check-in'}</span>
+              </button>
+            </>
+          )}
 
-          {currentUser.role === 'doctor' && (
+          {isDoctor && (
             <button
               className={`bottom-nav-item ${activeRoute === 'queue' ? 'active' : ''}`}
               onClick={() => navigateTo('queue')}
             >
               <Stethoscope size={18} />
-              <span>Queue</span>
+              <span>{currentLang === 'te' ? 'క్యూ' : 'Queue'}</span>
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              className={`bottom-nav-item ${activeRoute === 'reports' ? 'active' : ''}`}
+              onClick={() => navigateTo('reports')}
+            >
+              <BarChart3 size={18} />
+              <span>{currentLang === 'te' ? 'నివేదికలు' : 'Reports'}</span>
             </button>
           )}
 
@@ -478,7 +663,7 @@ export const App: React.FC = () => {
             onClick={() => navigateTo('chatbot')}
           >
             <MessageSquare size={18} />
-            <span>Chat AI</span>
+            <span>{currentLang === 'te' ? 'మిత్ర AI' : 'Mitra AI'}</span>
           </button>
         </nav>
       </div>

@@ -64,45 +64,45 @@ def seed_database(reset: bool = False):
         users = [
             User(
                 email="chw@aarogya.gov.in",
-                username="chw_sarala",
+                username="chw_field",
                 hashed_password=get_password_hash("ChwPass@2026"),
-                full_name="Sarala Devi (ASHA / CHW)",
+                full_name="ASHA / Village Health Worker (CHW)",
                 role=UserRole.CHW,
                 phc_id=phc_g_madugula.id,
                 phone="+91 98480 11001"
             ),
             User(
                 email="mo@aarogya.gov.in",
-                username="mo_ramesh",
-                hashed_password=get_password_hash("MoPass@2026"),
-                full_name="Dr. Ramesh Babu (Medical Officer)",
+                username="phc_staff_mo",
+                hashed_password=get_password_hash("PhcPass@2026"),
+                full_name="PHC Staff / Medical Officer (MO)",
                 role=UserRole.PHC_STAFF,
                 phc_id=phc_g_madugula.id,
                 phone="+91 98480 11002"
             ),
             User(
                 email="doctor@aarogya.gov.in",
-                username="dr_priya",
+                username="doctor_specialist",
                 hashed_password=get_password_hash("DocPass@2026"),
-                full_name="Dr. Priya Sundaram (Head & Neck Specialist)",
+                full_name="Specialist Doctor (Oral Oncologist)",
                 role=UserRole.DOCTOR,
                 phc_id=phc_paderu.id,
                 phone="+91 98480 11003"
             ),
             User(
                 email="navigator@aarogya.gov.in",
-                username="nav_vijay",
+                username="patient_navigator",
                 hashed_password=get_password_hash("NavPass@2026"),
-                full_name="Vijay Krishna (Tribal Patient Navigator)",
+                full_name="Patient Navigator (Tribal Care Escort)",
                 role=UserRole.NAVIGATOR,
                 phc_id=phc_paderu.id,
                 phone="+91 98480 11004"
             ),
             User(
                 email="admin@aarogya.gov.in",
-                username="admin_district",
+                username="dmho_admin",
                 hashed_password=get_password_hash("AdminPass@2026"),
-                full_name="District Project Officer (ITDA Paderu)",
+                full_name="DMHO (District Medical & Health Officer)",
                 role=UserRole.ADMIN,
                 phc_id=None,
                 phone="+91 98480 11005"

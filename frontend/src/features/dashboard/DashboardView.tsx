@@ -4,7 +4,8 @@ import { translations } from '../../i18n/translations';
 import { LanguageCode, User, Screening, DoctorQueueItem } from '../../types';
 import {
   Users, Activity, Clock, CheckCircle, PlusCircle, UserCheck,
-  Stethoscope, MessageSquare, ArrowRight, AlertTriangle
+  Stethoscope, MessageSquare, ArrowRight, AlertTriangle, Shield,
+  FileCheck, FlaskConical, Compass
 } from 'lucide-react';
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
 
 export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }) => {
   const t = translations[currentLang] || translations.en;
+  const isTe = currentLang === 'te';
+
   const [screenings, setScreenings] = useState<Screening[]>([]);
   const [waitingQueue, setWaitingQueue] = useState<DoctorQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +46,14 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
     s => s.status === 'under_phc_review' || s.status === 'submitted'
   ).length;
 
+  const roleTitle = t[`role_${user.role}`] || user.role.toUpperCase();
+
   return (
     <div>
-      {/* Welcome Hero Banner */}
+      {/* Welcome Hero Banner (No Personal Names) */}
       <div style={{
-        background: 'linear-gradient(135deg, #0A192F, #0F2A4A)',
-        borderRadius: '16px',
+        background: 'linear-gradient(135deg, #0A192F 0%, #0F2A4A 50%, #0D9488 100%)',
+        borderRadius: '18px',
         padding: '1.75rem 2rem',
         color: '#FFFFFF',
         marginBottom: '1.75rem',
@@ -57,46 +62,93 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem'
+        gap: '1.25rem'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
             <span className={`role-chip ${user.role}`}>
-              {t[`role_${user.role}`] || user.role}
+              {roleTitle}
             </span>
-            {user.phc_name && (
-              <span style={{ fontSize: '0.8rem', color: '#5EEAD4', fontWeight: 600 }}>
-                • {user.phc_name}
-              </span>
-            )}
+            <span style={{ fontSize: '0.8rem', color: '#5EEAD4', fontWeight: 600 }}>
+              • {user.phc_name || (user.role === 'admin' ? 'ITDA Paderu HQ' : 'Alluri Sitharama Raju District')}
+            </span>
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            {user.full_name}
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+            {roleTitle}
           </h2>
-          <p style={{ fontSize: '0.88rem', color: '#94A3B8', marginTop: '0.2rem' }}>
-            {t.app_subtitle} • Real-time Healthcare Workflow
+          <p style={{ fontSize: '0.88rem', color: '#CBD5E1', marginTop: '0.25rem' }}>
+            {t.app_subtitle} • {isTe ? 'ప్రభుత్వ ఆరోగ్య సేవా పోర్టల్' : 'Government Healthcare Service Portal'}
           </p>
         </div>
 
+        {/* Role-Specific Quick Action Buttons */}
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {(user.role === 'chw' || user.role === 'admin') && (
-            <button className="btn btn-primary" onClick={() => onNavigate('screening')}>
-              <PlusCircle size={18} />
-              {t.screening_create_title}
-            </button>
+          {user.role === 'chw' && (
+            <>
+              <button className="btn btn-primary" onClick={() => onNavigate('screening')}>
+                <PlusCircle size={18} />
+                {t.nav_screening}
+              </button>
+              <button className="btn btn-secondary" onClick={() => onNavigate('navigation')}>
+                <Compass size={18} />
+                {t.nav_navigation}
+              </button>
+            </>
           )}
-          {(user.role === 'chw' || user.role === 'phc_staff') && (
-            <button className="btn btn-secondary" onClick={() => onNavigate('otp')}>
-              <UserCheck size={18} />
-              {t.nav_otp_checkin}
-            </button>
+
+          {user.role === 'phc_staff' && (
+            <>
+              <button className="btn btn-primary" onClick={() => onNavigate('phc_cases')}>
+                <UserCheck size={18} />
+                {t.nav_phc_cases} ({awaitingReviewCount})
+              </button>
+              <button className="btn btn-secondary" onClick={() => onNavigate('otp')}>
+                <UserCheck size={18} />
+                {t.nav_otp_checkin}
+              </button>
+              <button className="btn btn-secondary" onClick={() => onNavigate('appointments')}>
+                {t.nav_appointments}
+              </button>
+            </>
           )}
+
           {user.role === 'doctor' && (
-            <button className="btn btn-primary" onClick={() => onNavigate('queue')}>
-              <Stethoscope size={18} />
-              {t.nav_doctor_queue} ({waitingQueue.length})
+            <>
+              <button className="btn btn-primary" onClick={() => onNavigate('queue')}>
+                <Stethoscope size={18} />
+                {t.nav_doctor_queue} ({waitingQueue.length})
+              </button>
+              <button className="btn btn-secondary" onClick={() => onNavigate('investigations')}>
+                <FlaskConical size={18} />
+                {t.nav_investigations}
+              </button>
+            </>
+          )}
+
+          {user.role === 'navigator' && (
+            <button className="btn btn-primary" onClick={() => onNavigate('navigation')}>
+              <Compass size={18} />
+              {t.nav_navigation}
             </button>
           )}
+
+          {user.role === 'admin' && (
+            <>
+              <button className="btn btn-primary" onClick={() => onNavigate('reports')}>
+                <Activity size={18} />
+                {t.nav_reports}
+              </button>
+              <button className="btn btn-secondary" onClick={() => onNavigate('audit')}>
+                <Shield size={18} />
+                {t.nav_audit}
+              </button>
+            </>
+          )}
+
+          <button className="btn btn-secondary" onClick={() => onNavigate('chatbot')}>
+            <MessageSquare size={18} />
+            {isTe ? 'మిత్ర AI' : 'Mitra AI'}
+          </button>
         </div>
       </div>
 
@@ -108,7 +160,9 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
           <div>
             <div className="metric-val">{screenings.length}</div>
-            <div className="metric-label">Total Screenings Logged</div>
+            <div className="metric-label">
+              {isTe ? 'మొత్తం స్క్రీనింగ్‌లు' : 'Total Screenings Logged'}
+            </div>
           </div>
         </div>
 
@@ -118,7 +172,9 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
           <div>
             <div className="metric-val">{awaitingReviewCount}</div>
-            <div className="metric-label">Cases Awaiting PHC Review</div>
+            <div className="metric-label">
+              {isTe ? 'PHC సమీక్ష కొరకు వేచి ఉన్నవి' : 'Cases Awaiting PHC Review'}
+            </div>
           </div>
         </div>
 
@@ -128,7 +184,9 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
           <div>
             <div className="metric-val">{waitingQueue.length}</div>
-            <div className="metric-label">Patients in Doctor Queue</div>
+            <div className="metric-label">
+              {isTe ? 'డాక్టర్ క్యూలో వేచి ఉన్న రోగులు' : 'Patients in Doctor Queue'}
+            </div>
           </div>
         </div>
 
@@ -138,7 +196,9 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
           <div>
             <div className="metric-val">100%</div>
-            <div className="metric-label">Database Persistence (ACID)</div>
+            <div className="metric-label">
+              {isTe ? 'డేటాబేస్ పర్సిస్టెన్స్ (ACID)' : 'Database Persistence (ACID)'}
+            </div>
           </div>
         </div>
       </div>
@@ -147,7 +207,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
       {waitingQueue.length > 0 && (
         <div style={{
           background: '#EFF6FF',
-          border: '1px solid #BFDBFE',
+          border: '1.5px solid #93C5FD',
           borderRadius: '12px',
           padding: '1.25rem',
           marginBottom: '1.75rem',
@@ -166,16 +226,18 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
               boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.2)'
             }} />
             <div>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E3A8A' }}>
+              <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#1E3A8A' }}>
                 {t.doctor_patient_arrived}
               </h4>
-              <p style={{ fontSize: '0.8rem', color: '#3B82F6' }}>
-                {waitingQueue.length} patient(s) physically verified via OTP waiting for consultation.
+              <p style={{ fontSize: '0.82rem', color: '#2563EB', marginTop: '0.15rem' }}>
+                {isTe
+                  ? `${waitingQueue.length} మంది రోగులు PHC క్లినిక్‌కు హాజరై OTP ద్వారా ధృవీకరించబడి వేచి ఉన్నారు (గైర్హాజరు కాదు).`
+                  : `${waitingQueue.length} patient(s) physically verified via OTP waiting in clinic (Present - Not Absent).`}
               </p>
             </div>
           </div>
           <button className="btn btn-primary" onClick={() => onNavigate('queue')}>
-            Open Doctor Queue <ArrowRight size={16} />
+            {isTe ? 'డాక్టర్ క్యూ తెరవండి' : 'Open Doctor Queue'} <ArrowRight size={16} />
           </button>
         </div>
       )}
@@ -185,32 +247,36 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
         <div className="card-header">
           <div className="card-title">
             <Activity size={20} color="var(--teal-primary)" />
-            Recent Community Health Screenings
+            {isTe ? 'ఇటీవలి కమ్యూనిటీ ఓరల్ స్క్రీనింగ్‌లు' : 'Recent Community Oral Screenings'}
           </div>
-          <button className="btn btn-secondary" style={{ minHeight: '36px', padding: '0.35rem 0.85rem' }} onClick={() => onNavigate('screening')}>
-            View All
+          <button
+            className="btn btn-secondary"
+            style={{ minHeight: '34px', padding: '0.35rem 0.85rem' }}
+            onClick={() => onNavigate(user.role === 'chw' ? 'screening' : 'phc_cases')}
+          >
+            {isTe ? 'అన్నీ చూడండి' : 'View All'}
           </button>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
-            Loading screening records...
+            {isTe ? 'స్క్రీనింగ్ రికార్డులు లోడ్ అవుతున్నాయి...' : 'Loading screening records...'}
           </div>
         ) : screenings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
-            No screenings recorded yet. Tap "Create Screening" to begin.
+            {isTe ? 'ఇంకా స్క్రీనింగ్‌లు నమోదు కాలేదు. ప్రారంభించడానికి కొత్త స్క్రీనింగ్ ఎంచుకోండి.' : 'No screenings recorded yet. Tap "Create Screening" to begin.'}
           </div>
         ) : (
           <div className="table-responsive">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Ref ID</th>
-                  <th>Patient</th>
-                  <th>Category</th>
-                  <th>Reported Symptoms</th>
-                  <th>Status</th>
-                  <th>Submitted At</th>
+                  <th>{isTe ? 'రిఫరెన్స్ ID' : 'Ref ID'}</th>
+                  <th>{isTe ? 'రోగి వివరాలు' : 'Patient'}</th>
+                  <th>{isTe ? 'నోటి భాగం / వర్గం' : 'Category'}</th>
+                  <th>{isTe ? 'నమోదైన లక్షణాలు' : 'Reported Symptoms'}</th>
+                  <th>{isTe ? 'స్థితి' : 'Status'}</th>
+                  <th>{isTe ? 'సమర్పించిన సమయం' : 'Submitted At'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,7 +297,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
                     </td>
                     <td>
                       <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
-                        {scr.category}
+                        {scr.oral_site ? scr.oral_site.replace(/_/g, ' ') : scr.category}
                       </span>
                     </td>
                     <td>

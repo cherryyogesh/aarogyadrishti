@@ -126,14 +126,14 @@ export const DoctorQueueView: React.FC<Props> = ({ currentLang, user, onAcceptCa
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Patient ID</th>
-                  <th>Patient Name</th>
-                  <th>PHC Centre</th>
-                  <th>Scheduled Slot</th>
-                  <th>Waiting Duration</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th>{currentLang === 'te' ? 'పేషెంట్ ID' : 'Patient ID'}</th>
+                  <th>{currentLang === 'te' ? 'రోగి పేరు' : 'Patient Name'}</th>
+                  <th>{currentLang === 'te' ? 'PHC సెంటర్' : 'PHC Centre'}</th>
+                  <th>{currentLang === 'te' ? 'షెడ్యూల్ స్లాట్' : 'Scheduled Slot'}</th>
+                  <th>{currentLang === 'te' ? 'వేచి ఉన్న సమయం' : 'Waiting Duration'}</th>
+                  <th>{currentLang === 'te' ? 'పరీక్ష విభాగం' : 'Category / Site'}</th>
+                  <th>{currentLang === 'te' ? 'హాజరు స్థితి' : 'Attendance Status'}</th>
+                  <th>{currentLang === 'te' ? 'చర్య' : 'Action'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,12 +162,26 @@ export const DoctorQueueView: React.FC<Props> = ({ currentLang, user, onAcceptCa
                     </td>
                     <td>
                       <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
-                        {item.screening_category || 'General'}
+                        {item.screening_category || 'Mouth (Oral)'}
                       </span>
                     </td>
                     <td>
-                      <span className={`badge ${item.status === 'in_consultation' ? 'badge-success' : 'badge-warning'}`}>
-                        {item.status.replace(/_/g, ' ')}
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: '#DCFCE7',
+                        color: '#15803D',
+                        border: '1px solid #86EFAC'
+                      }}>
+                        <CheckCircle size={12} />
+                        {currentLang === 'te'
+                          ? 'హాజరయ్యారు — వేచి ఉన్నారు (గైర్హాజరు కాదు)'
+                          : 'PRESENT & WAITING IN CLINIC (NOT ABSENT)'}
                       </span>
                     </td>
                     <td>
@@ -179,9 +193,9 @@ export const DoctorQueueView: React.FC<Props> = ({ currentLang, user, onAcceptCa
                       >
                         <Video size={14} />
                         {acceptingId === item.appointment_id
-                          ? 'Connecting Room...'
+                          ? (currentLang === 'te' ? 'కనెక్ట్ అవుతోంది...' : 'Connecting Room...')
                           : item.status === 'in_consultation'
-                          ? 'Re-enter Room'
+                          ? (currentLang === 'te' ? 'రూమ్‌లోకి ప్రవేశించండి' : 'Re-enter Room')
                           : t.doctor_accept_btn}
                       </button>
                     </td>

@@ -11,10 +11,12 @@ EMERGENCY_RED_FLAGS = [
     r"sudden\s*numbness|face\s*droop",
     r"coughing\s*blood",
     r"severe\s*allergic\s*reaction|anaphylaxis",
-    r"శ్వాస\s*ఆడకపోవడం", # Telugu: breathing difficulty
-    r"ఛాతీ\s*నొప్పి",      # Telugu: chest pain
-    r"सांस\s*लेने\s*में\s*दिक्कत", # Hindi
-    r"सीने\s*में\s*दर्द"   # Hindi
+    r"శ్వాస\s*ఆడకపోవడం",
+    r"ఛాతీ\s*నొప్పి",
+    r"రక్తం\s*వాంతి|రక్తం\s*కక్కడం",
+    r"స్పృహ\s*తప్పడం",
+    r"सांस\s*लेने\s*में\s*दिक्कत",
+    r"सीने\s*में\s*दर्द"
 ]
 
 CANCER_KEYWORDS = [
@@ -23,16 +25,21 @@ CANCER_KEYWORDS = [
     r"\btumor\b",
     r"\bmalignan",
     r"క్యాన్సర్",
-    r"कैंसर"
+    r"గడ్డ",
+    r"పుట్టకురుపు",
+    r"कैंसर",
+    r"புற்றுநோய்",
+    r"ക്യാൻസർ",
+    r"ಕ್ಯಾನ್ಸರ್"
 ]
 
 DISCLAIMERS = {
-    "te": "గమనిక: ఈ AI సమాచారం కేవలం ప్రాథమిక అవగాహన కొరకు మాత్రమే. ఇది వైద్య నిర్ధారణ (డయాగ్నోసిస్) కాదు. ఖచ్చితమైన నిర్ధారణ మరియు చికిత్స కోసం దయచేసి సమీప PHC వైద్యుడిని సంప్రదించండి.",
-    "en": "Disclaimer: This AI analysis provides preliminary informational guidance only. It is NOT a medical diagnosis. Please consult a qualified PHC medical officer or specialist for definitive diagnosis and treatment.",
-    "hi": "अस्वीकरण: यह एआई विश्लेषण केवल प्रारंभिक सूचनात्मक मार्गदर्शन प्रदान करता है। यह चिकित्सीय निदान नहीं है। कृपया निश्चित निदान और उपचार के लिए अपने निकटतम प्राथमिक स्वास्थ्य केंद्र (PHC) चिकित्सक से परामर्श करें।",
-    "ta": "பொறுப்புத் துறப்பு: இந்த AI பகுப்பாய்வு முதற்கட்ட வழிகாட்டுதலுக்கு மட்டுமே. இது மருத்துவ நோயறிதல் அல்ல. முறையான சிகிச்சைக்கு PHC மருத்துவரை அணுகவும்.",
-    "ml": "നിരാകരണം: ഈ AI വിശകലനം പ്രാഥമിക വിവരങ്ങൾ മാത്രമാണ് നൽകുന്നത്. ഇത് ഒരു മെഡിക്കൽ രോഗനിർണയമല്ല. കൃത്യമായ രോഗനിർണ്ണയത്തിനും ചികിത്സയ്ക്കുമായി ഒരു പിഎച്ച്സി ഡോക്ടറെ സമീപിക്കുക.",
-    "kn": "ಹಕ್ಕುತ್ಯಾಗ: ಈ AI ವಿಶ್ಲೇಷಣೆಯು ಪ್ರಾಥಮಿಕ ಮಾರ್ಗದರ್ಶನ ಮಾತ್ರ. ಇದು ವೈದ್ಯಕೀಯ ರೋಗನಿರ್ಣಯವಲ್ಲ. ದಯವಿಟ್ಟು ನಿಖರವಾದ ಚಿಕಿತ್ಸೆಗಾಗಿ PHC ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ."
+    "te": "గమనిక: ఈ AI సహాయకుడు కేవలం ప్రాథమిక ఆరోగ్య అవగాహన కొరకు మాత్రమే. ఇది వైద్య నిర్ధారణ (డయాగ్నోసిస్) కాదు మరియు క్యాన్సర్‌ను నిర్ధారించదు. ఏవైనా లక్షణాలు 2 వారాల కంటే ఎక్కువ కాలం ఉంటే సమీప PHC వైద్యుడిని సంప్రదించండి.",
+    "en": "Medical Disclaimer: This AI assistant provides general health education only. It CANNOT diagnose or rule out cancer or any serious disease. If any sore or patch lasts longer than 2 weeks, please consult a PHC Medical Officer for an in-person clinical exam.",
+    "hi": "अस्वीकरण: यह एआई सहायक केवल सामान्य स्वास्थ्य शिक्षा के लिए है। यह कैंसर या किसी गंभीर बीमारी का निदान नहीं करता है। 2 सप्ताह से अधिक समय तक रहने वाले किसी भी घाव के लिए कृपया पीएचसी डॉक्टर से परामर्श करें।",
+    "ta": "பொறுப்புத் துறப்பு: இந்த AI உதவியாளர் பொதுவான சுகாதார கல்விக்காக மட்டுமே. இது புற்றுநோயை கண்டறியாது. 2 வாரங்களுக்கு மேல் நீடிக்கும் புண்களுக்கு PHC மருத்துவரை அணுகவும்.",
+    "ml": "നിരാകരണം: ഈ AI സഹായി പൊതുവായ ആരോഗ്യ വിവരങ്ങൾക്കായി മാത്രമാണ്. ഇത് കാൻസർ രോഗനിർണ്ണയം നടത്തുന്നില്ല. 2 ആഴ്ചയിൽ കൂടുതൽ നീണ്ടുനിൽക്കുന്ന വ്രണങ്ങൾക്ക് പിഎച്ച്സി ഡോക്ടറെ സമീപിക്കുക.",
+    "kn": "ಹಕ್ಕುತ್ಯಾಗ: ಈ AI ಸಹಾಯಕ ಕೇವಲ ಸಾಮಾನ್ಯ ಆರೋಗ್ಯ ಶಿಕ್ಷಣಕ್ಕಾಗಿ ಮಾತ್ರ. ಇದು ಕ್ಯಾನ್ಸರ್ ರೋಗನಿರ್ಣಯ ಮಾಡುವುದಿಲ್ಲ. 2 ವಾರಗಳಿಗಿಂತ ಹೆಚ್ಚು ಕಾಲ ಇರುವ ಹುಣ್ಣುಗಳಿಗೆ PHC ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ."
 }
 
 def detect_emergency_symptoms(text: str) -> Optional[str]:
@@ -53,29 +60,28 @@ def check_cancer_claim_guard(text: str) -> bool:
 
 def generate_safe_triage_guidance(category: str, symptoms: str, language: str = "te", has_image: bool = False) -> Dict[str, Any]:
     """
-    Generates rule-based, clinically validated healthcare guidance strictly adhering
-    to safety rules: never diagnoses cancer or infections from photos alone.
+    Aarogya Mitra Clinical AI Agent:
+    - Provides calm, rational, relevant clarity for minor patient doubts.
+    - Never concludes or diagnoses cancer or tumors.
+    - Advises practical home self-care (warm salt water, habit cessation, vitamin rich foods).
+    - Sets clear threshold: If lasting > 14 days, see a PHC doctor.
     """
     lang = language if language in DISCLAIMERS else "en"
     disclaimer = DISCLAIMERS[lang]
+    lower_symptoms = symptoms.lower()
 
     # 1. Emergency Escalation
     emergency_flag = detect_emergency_symptoms(symptoms)
     if emergency_flag:
         if lang == "te":
             msg = (
-                "⚠️ అత్యవసర హెచ్చరిక: మీరు పేర్కొన్న లక్షణాలు తక్షణ వైద్య సహాయం అవసరమయ్యే తీవ్రమైన స్థితిని సూచిస్తున్నాయి. "
-                "దయచేసి ఆలస్యం చేయకుండా వెంటనే సమీపంలోని ప్రభుత్వాసుపత్రి అత్యవసర విభాగానికి (Emergency/108) వెళ్లండి."
-            )
-        elif lang == "hi":
-            msg = (
-                "⚠️ आपातकालीन चेतावनी: आपके द्वारा बताए गए लक्षण गंभीर स्थिति का संकेत हो सकते हैं जिसके लिए तत्काल चिकित्सा सहायता की आवश्यकता है। "
-                "कृपया तुरंत नजदीकी अस्पताल के आपातकालीन विभाग में जाएं या 108 पर कॉल करें।"
+                "⚠️ అత్యవసర హెచ్చరిక: మీరు పేర్కొన్న లక్షణాలు తక్షణ వైద్య సహాయం అవసరమయ్యే అత్యవసర స్థితిని సూచిస్తున్నాయి. "
+                "దయచేసి ఆలస్యం చేయకుండా వెంటనే సమీపంలోని ప్రభుత్వాసుపత్రి అత్యవసర విభాగానికి వెళ్లండి లేదా 108 కు కాల్ చేయండి."
             )
         else:
             msg = (
-                "⚠️ EMERGENCY WARNING: The symptoms you described indicate a potentially serious emergency requiring immediate medical care. "
-                "Please proceed immediately to the nearest hospital Emergency Department or call emergency ambulance services (108)."
+                "⚠️ EMERGENCY WARNING: The symptoms described indicate a potentially serious emergency requiring immediate medical care. "
+                "Please proceed immediately to the nearest hospital Emergency Department or call 108 ambulance services."
             )
         return {
             "urgency": "urgent_warning",
@@ -85,61 +91,171 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": True
         }
 
-    # 2. Cancer Claim Barrier
+    # 2. Cancer Doubt Clarification (Crucial Guardrail)
     cancer_mention = check_cancer_claim_guard(symptoms)
-    cancer_guard_note = ""
-    if cancer_mention:
+    if cancer_mention or "is it cancer" in lower_symptoms or "cancer aa" in lower_symptoms:
         if lang == "te":
-            cancer_guard_note = (
-                "మచ్చలు లేదా ఫొటోల ఆధారంగా మాత్రమే క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం సాధ్యం కాదు. "
-                "కణజాల పరీక్ష (బయాప్సీ) మరియు నిపుణుల ప్రత్యక్ష పరిశీలన ద్వారా మాత్రమే సరైన నిర్ధారణ సాధ్యమవుతుంది. "
+            cancer_clarification = (
+                "దయచేసి ఆందోళన చెందకండి. నోటిలో వచ్చే సాధారణ పుండ్లు, కొరుక్కున్న గాయాలు లేదా తెల్లటి మచ్చలలో చాలావరకు క్యాన్సర్ కావు; "
+                "ఇవి పోషకాహార లోపం (విటమిన్ బి12), వేడి లేదా కారం వల్ల రావచ్చు. "
+                "\n\nముఖ్యమైన విషయం: కేవలం లక్షణాలు లేదా ఫొటోల ఆధారంగా AI లేదా ఎవరూ క్యాన్సర్‌ను నిర్ధారించలేరు లేదా తోసిపుచ్చలేరు. "
+                "సరైన నిర్ధారణకు బయాప్సీ (కణజాల పరీక్ష) మరియు డాక్టర్ ప్రత్యక్ష పరిశీలన అవసరం. "
+                "\n\nసలహా: పుండు లేదా మచ్చ 2 వారాల కంటే ఎక్కువ కాలం ఉంటే, వెంటనే సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించి పరీక్ష చేయించుకోండి."
             )
         else:
-            cancer_guard_note = (
-                "Cancer cannot be diagnosed nor ruled out based on symptoms or photographic screening alone. "
-                "A physical examination, biopsy, or specialist clinical pathology test is required. "
+            cancer_clarification = (
+                "Please be reassured that the vast majority of mouth sores, white patches, and ulcers are completely harmless (benign). "
+                "They are frequently caused by accidental cheek biting, nutritional deficiencies (like Vitamin B12 or iron), stress, or spicy foods. "
+                "\n\nCrucial Clinical Boundary: Cancer cannot be diagnosed nor ruled out based on symptoms or photographic screening alone. "
+                "Neither AI nor photographic images can conclude or rule out cancer. A definitive medical diagnosis requires an in-person physical examination and, if indicated, a tissue biopsy by a qualified doctor. "
+                "\n\nWhen to seek care: If any oral sore, white patch, or swelling persists for more than 2 weeks (14 days) without healing, please visit your PHC Medical Officer for an evaluation."
             )
+        return {
+            "urgency": "priority",
+            "visual_observations": "Patient expressed doubt regarding oral malignancy.",
+            "recommendations": cancer_clarification,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
 
-    # 3. Categorical Guidance
-    observations = []
-    actions = []
+    # 3. Common Minor Doubts & Self-Care Guidance
 
-    if category == "mouth":
-        observations.append("Observed oral mucosal surface or visible oral lesion.")
-        actions.append("Avoid tobacco, paan, spicy, or very hot foods.")
-        actions.append("Maintain good oral hygiene with warm saltwater rinses.")
-        actions.append("Ensure in-person clinical examination by a dental officer or PHC doctor.")
-    elif category == "skin":
-        observations.append("Observed visible skin eruption, redness, or surface variation.")
-        actions.append("Keep the area clean, dry, and avoid scratching to prevent secondary bacterial infection.")
-        actions.append("Do not apply unverified chemical steroid creams without a doctor's prescription.")
-        actions.append("Consult the PHC doctor if redness spreads or swelling increases.")
-    elif category == "wounds":
-        observations.append("Observed surface skin breach or wound margin.")
-        actions.append("Wash gently with clean sterile water and cover with a sterile dry dressing.")
-        actions.append("Monitor for signs of infection (increased warmth, foul odor, yellowish pus, or spreading redness).")
-        actions.append("Check Tetanus Toxoid vaccination status with PHC nurse.")
-    elif category == "eye":
-        observations.append("Observed external periocular area, conjunctiva, or eyelid margin.")
-        observations.append("Note: Ordinary external photos cannot assess internal retinal or intraocular pressure conditions.")
-        actions.append("Avoid rubbing eyes or using non-prescribed eye drops.")
-        actions.append("Seek immediate evaluation if there is severe pain, photophobia, or vision changes.")
-    elif category == "ear":
-        observations.append("Observed external pinna or ear canal entrance.")
-        observations.append("Note: Internal middle ear conditions require otoscopic examination.")
-        actions.append("Keep the ear dry; do not insert cotton buds, pins, or foreign objects into the ear canal.")
-    else:
-        observations.append(f"Recorded visible abnormality for {category} category.")
-        actions.append("Case logged for scheduled PHC clinical review and doctor triage.")
+    # A. Mouth Ulcers / Canker Sores (నోటి పూత)
+    if any(k in lower_symptoms for k in ["ulcer", "soor", "pootha", "పూత", "పుండు", "aphthous", "sore", "छाले"]):
+        if lang == "te":
+            rec = (
+                "నోటి పూత (Mouth Ulcers) సాధారణంగా విటమిన్ బి లోపం, ఒత్తిడి, కారంగా ఉండే ఆహారం లేదా ప్రమాదవశాత్తు బుగ్గ కొరుక్కోవడం వల్ల వస్తుంది. "
+                "\n\nఇంటి నివారణ చిట్కాలు:"
+                "\n• గోరువెచ్చని నీటిలో కొద్దిగా ఉప్పు వేసి రోజుకు 2-3 సార్లు నోటిని పుక్కిలించండి (Saltwater rinses)."
+                "\n• చాలా కారంగా, వేడిగా లేదా ఆమ్ల గుణం గల ఆహారాలను కొద్దిరోజులు నివారించండి."
+                "\n• పండ్లు, కూరగాయలు మరియు పాలు వంటి విటమిన్-బి సమృద్ధిగా ఉండే ఆహారం తీసుకోండి."
+                "\n• పుండు సాధారణంగా 7 నుండి 10 రోజుల్లో దానంతట అదే తగ్గిపోతుంది."
+                "\n\nఎప్పుడు డాక్టర్‌ను కలవాలి: పుండు 14 రోజుల (2 వారాల) కంటే ఎక్కువ రోజులు తగ్గకుండా ఉంటే లేదా నొప్పి లేకుండా గట్టిగా ఉంటే తప్పనిసరిగా PHC డాక్టర్‌ను సంప్రదించండి."
+            )
+        else:
+            rec = (
+                "Mouth ulcers (canker sores) are very common and usually result from minor cheek bites, stress, spicy foods, or nutritional deficiencies (Vitamin B complex, Iron). "
+                "\n\nHelpful self-care tips:"
+                "\n• Rinse your mouth with warm salt water 2-3 times daily to soothe the tissues."
+                "\n• Avoid excessively spicy, hot, or acidic foods until the sore heals."
+                "\n• Maintain gentle oral hygiene and stay well hydrated."
+                "\n• Most canker sores resolve on their own within 7 to 10 days."
+                "\n\nWhen to see a doctor: If an ulcer lasts longer than 2 weeks without healing, grows larger, or becomes painless and firm, visit your PHC doctor."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Common oral ulceration query.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
 
-    full_rec = f"{cancer_guard_note} " + " ".join(actions)
+    # B. Burning Sensation with Spicy Food (కారం తిన్నప్పుడు మంట)
+    if any(k in lower_symptoms for k in ["burn", "spicy", "manta", "మంట", "కారం", "mirchi", "जलन"]):
+        if lang == "te":
+            rec = (
+                "కారం లేదా వేడి ఆహారం తిన్నప్పుడు నోరు మంటగా ఉండటం నోటి లోపలి సున్నితమైన పొర దెబ్బతినడం వల్ల జరుగుతుంది. "
+                "ఇది గుట్కా, ఖైనీ, తమలపాకులు లేదా చుట్ట కాల్చే అలవాటు ఉన్నవారిలో మరియు విటమిన్ లోపం ఉన్నవారిలో ఎక్కువగా కనిపిస్తుంది. "
+                "\n\nముఖ్యమైన సలహా:"
+                "\n• పొగాకు, గుట్కా, ఖైనీ మరియు చుట్ట అలవాట్లను వెంటనే పూర్తిగా నిలిపివేయండి."
+                "\n• నోటిని మృదువుగా ఉంచడానికి కొబ్బరి నూనెతో లేదా మంచి నీటితో నోటిని కడగండి."
+                "\n• మీ నోరు తెరవడం తగ్గిపోతున్నట్లు (3 వేళ్ళు పట్టకపోవడం) గమనిస్తే, ఇది OSMF కావచ్చు. వెంటనే PHC వైద్యుడిని సంప్రదించండి."
+            )
+        else:
+            rec = (
+                "A burning sensation when eating spicy foods indicates mucosal thinning or irritation. In tribal and rural communities, this is strongly linked to chewing gutkha, areca nut, or reverse smoking (chutta). "
+                "\n\nRecommendations:"
+                "\n• Stop all tobacco, gutkha, paan masala, and chutta usage immediately."
+                "\n• Eat bland, soft foods and avoid spicy curries until mucosal inflammation settles."
+                "\n• Check your mouth opening: if you can no longer fit 3 vertical fingers in your mouth, this may indicate OSMF (Oral Submucous Fibrosis). Consult your PHC doctor for early medical treatment."
+            )
+        return {
+            "urgency": "priority",
+            "visual_observations": "Oral burning sensation reported.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # C. Quitting Tobacco, Gutkha, or Reverse Smoking (చుట్ట / పొగాకు మానేయడం)
+    if any(k in lower_symptoms for k in ["chutta", "tobacco", "quit", "gutkha", "khaini", "చుట్ట", "పొగాకు", "గుట్కా", "తమలపాకు"]):
+        if lang == "te":
+            rec = (
+                "పొగాకు మరియు రివర్స్ స్మోకింగ్ (చుట్ట వెలుగుతున్న భాగాన్ని నోట్లో పెట్టుకోవడం) నోటి ఆరోగ్యానికి చాలా ప్రమాదకరం. "
+                "చుట్ట వల్ల వచ్చే తీవ్రమైన వేడి అంగిలి (palate) మరియు బుగ్గలపై తెల్లటి లేదా ఎర్రటి మార్పులకు దారితీస్తుంది. "
+                "\n\nఅలవాటు మానేయడానికి ఆచరణాత్మక చిట్కాలు:"
+                "\n• చుట్ట లేదా పొగాకు తినాలనిపించినప్పుడు లవంగం (clove) లేదా సోంపు నోట్లో వేసుకుని నమలండి."
+                "\n• పుష్కలంగా నీరు త్రాగండి మరియు ప్రతిరోజూ వ్యాయామం లేదా నడక అలవాటు చేసుకోండి."
+                "\n• పొగాకు మానేసిన కొన్ని వారాల్లోనే నోటి పొర సాధారణ స్థితికి చేరుకోవడం ప్రారంభమవుతుంది."
+                "\n• మీ గ్రామంలోని ఆశా వర్కర్ లేదా PHC కౌన్సెలర్ సహాయం తీసుకోండి."
+            )
+        else:
+            rec = (
+                "Quitting chewing tobacco, gutkha, and especially reverse smoking (chutta with the burning end inside the mouth) is the single most effective step to protect your oral health. "
+                "\n\nPractical tips to quit:"
+                "\n• When a craving strikes, chew on a clove, cardamom, or fennel seeds instead."
+                "\n• Drink a glass of water and wait 5 minutes; cravings usually pass quickly."
+                "\n• Keep your mouth clean with regular rinses."
+                "\n• Reach out to your local ASHA worker or PHC clinic for de-addiction guidance and support."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Tobacco and habit cessation inquiry.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # D. Bleeding Gums or Toothache (చిగుళ్ల రక్తస్రావం / పంటి నొప్పి)
+    if any(k in lower_symptoms for k in ["gum", "bleed", "tooth", "teeth", "రక్తం", "చిగురు", "పన్ను", "నొప్పి"]):
+        if lang == "te":
+            rec = (
+                "చిగుళ్ల నుంచి రక్తం రావడం సాధారణంగా చిగుళ్ల వాపు (Gingivitis) లేదా గట్టి బ్రషింగ్ వల్ల సంభవిస్తుంది. "
+                "\n\nతీసుకోవలసిన జాగ్రత్తలు:"
+                "\n• మృదువైన బ్రష్‌తో రోజుకు రెండుసార్లు సున్నితంగా పళ్ళు తోముకోండి."
+                "\n• గోరువెచ్చని ఉప్పు నీటితో పుక్కిలించడం చిగుళ్ల వాపును తగ్గిస్తుంది."
+                "\n• నిమ్మ, ఉసిరి వంటి విటమిన్-సి పుష్కలంగా ఉండే ఆహారాన్ని తీసుకోండి."
+                "\n• రక్తస్రావం ఆగకపోయినా లేదా పంటి నొప్పి తీవ్రంగా ఉంటే PHC దంత వైద్యుడిని సంప్రదించండి."
+            )
+        else:
+            rec = (
+                "Bleeding gums are commonly caused by plaque accumulation (gingivitis) or aggressive tooth brushing. "
+                "\n\nCare instructions:"
+                "\n• Use a soft-bristled toothbrush and brush gently along the gum line."
+                "\n• Warm salt water rinses help reduce gum swelling and bacterial buildup."
+                "\n• Ensure adequate Vitamin C in your diet (fresh citrus fruits, amla)."
+                "\n• If bleeding is persistent or accompanied by loose teeth, visit your PHC dental officer."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Periodontal or dental query.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # E. General Fallback Guidance
     if lang == "te":
-        full_rec += " దయచేసి PHC సమీక్ష తేదీన అపాయింట్‌మెంట్‌కు హాజరుకండి."
+        rec = (
+            "మీరు అడిగిన ఆరోగ్య సమాచారానికి సంబంధించి ప్రాథమిక జాగ్రత్తలు:"
+            "\n• నోటి పరిశుభ్రతను పాటించండి మరియు రోజుకు రెండుసార్లు గోరువెచ్చని నీటితో నోటిని శుభ్రం చేసుకోండి."
+            "\n• పొగాకు, ధూమపానం, చుట్ట మరియు గుట్కా ఉత్పత్తులను నివారించండి."
+            "\n• చిన్న చిన్న పుండ్లు సాధారణంగా 7-10 రోజుల్లో వాటంతట అవే తగ్గుతాయి."
+            "\n• ఏవైనా మచ్చలు, పుండ్లు లేదా వాపులు 14 రోజుల కంటే ఎక్కువ సమయం కొనసాగితే PHC డాక్టర్‌ను సంప్రదించండి."
+        )
+    else:
+        rec = (
+            "General Oral & Community Health Guidance:"
+            "\n• Maintain consistent oral hygiene with gentle brushing and warm water rinses."
+            "\n• Completely avoid tobacco, gutkha, paan masala, and reverse smoking."
+            "\n• Minor oral irritations usually heal within 7 to 10 days on their own."
+            "\n• General Clinical Rule: Any oral patch, persistent ulcer, or swelling lasting beyond 14 days should be evaluated in person by a PHC Medical Officer."
+        )
 
     return {
-        "urgency": "priority" if cancer_mention or "severe" in symptoms.lower() else "routine",
-        "visual_observations": " ".join(observations),
-        "recommendations": full_rec.strip(),
+        "urgency": "routine",
+        "visual_observations": "General community health question addressed.",
+        "recommendations": rec,
         "disclaimer": disclaimer,
         "is_emergency": False
     }

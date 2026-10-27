@@ -129,7 +129,7 @@ async def create_screening(
     db.add(ai_analysis)
 
     # Queue SMS confirmation to patient
-    sms_content = format_screening_sms(ref_id)
+    sms_content = format_screening_sms(ref_id, patient_name=patient.full_name)
     sms_res = await sms_adapter.send_sms(patient.phone, sms_content, message_type="screening_confirmation")
 
     notification = NotificationLog(

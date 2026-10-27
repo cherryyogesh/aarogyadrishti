@@ -90,7 +90,7 @@ async def create_appointment(
     db.add(event)
 
     # Queue SMS confirmation
-    sms_text = format_appointment_sms(payload.scheduled_date, payload.scheduled_time, phc.name)
+    sms_text = format_appointment_sms(payload.scheduled_date, payload.scheduled_time, phc.name, arrival_time=arrival_time)
     sms_res = await sms_adapter.send_sms(patient.phone, sms_text, message_type="appointment_scheduled")
 
     notif = NotificationLog(
