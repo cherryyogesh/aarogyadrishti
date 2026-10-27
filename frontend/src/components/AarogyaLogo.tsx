@@ -4,12 +4,14 @@ interface LogoProps {
   size?: 'small' | 'medium' | 'large';
   showSubtitle?: boolean;
   lightText?: boolean;
+  currentLang?: string;
 }
 
 export const AarogyaLogo: React.FC<LogoProps> = ({
   size = 'medium',
   showSubtitle = true,
-  lightText = true
+  lightText = true,
+  currentLang = 'en'
 }) => {
   const iconSize = size === 'small' ? 32 : size === 'large' ? 56 : 42;
   const titleSize = size === 'small' ? '1rem' : size === 'large' ? '1.5rem' : '1.2rem';
@@ -139,7 +141,9 @@ export const AarogyaLogo: React.FC<LogoProps> = ({
             marginTop: '0.15rem',
             letterSpacing: '0.01em'
           }}>
-            ఆరోగ్య దృష్టి • Tribal Oral Health & Telemedicine
+            {currentLang === 'te'
+              ? 'ఆరోగ్య దృష్టి • గిరిజన నోటి ఆరోగ్యం & టెలిమెడిసిన్'
+              : 'Tribal Oral Health & Telemedicine'}
           </span>
         )}
       </div>

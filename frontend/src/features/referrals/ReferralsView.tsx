@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { ReferralSlip, User } from '../../types';
+import { ReferralSlip, User, LanguageCode } from '../../types';
 
 interface ReferralsViewProps {
   currentUser: User;
+  currentLang?: LanguageCode;
 }
 
-export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => {
+export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, currentLang = 'en' }) => {
+  const isTe = currentLang === 'te';
   const [referrals, setReferrals] = useState<ReferralSlip[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
       const data = await api.listReferrals();
       setReferrals(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load hospital referrals');
+      setError(err.message || (isTe ? 'రిఫరల్ రికార్డులను లోడ్ చేయడం విఫలమైంది' : 'Failed to load hospital referrals'));
     } finally {
       setLoading(false);
     }
@@ -33,9 +35,9 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
     try {
       await api.confirmReferralAttendance(id, true);
       await loadReferrals();
-      alert('Patient hospital attendance confirmed successfully!');
+      alert(isTe ? 'రోగి ఆసుపత్రి హాజరు విజయవంతంగా ధృవీకరించబడింది!' : 'Patient hospital attendance confirmed successfully!');
     } catch (err: any) {
-      alert(`Action failed: ${err.message}`);
+      alert(`${isTe ? 'చర్య విఫలమైంది' : 'Action failed'}: ${err.message}`);
     }
   };
 
@@ -44,7 +46,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
   };
 
   return (
-    <div className="referrals-container" style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="referrals-container" style={{ width: '100%' }}>
       {/* Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
@@ -66,13 +68,15 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
             }}>
-              Module F • Physical Hospital Referrals
+              {isTe ? 'మాడ్యూల్ F • ఆసుపత్రి అధికారిక రిఫరల్స్' : 'Module F • Physical Hospital Referrals'}
             </span>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 700 }}>
-              ఆసుపత్రి రిఫరల్ స్లిప్‌లు (Specialist Hospital Referral Slips)
+              {isTe ? 'ఆసుపత్రి రిఫరల్ స్లిప్‌లు' : 'Specialist Hospital Referral Slips'}
             </h2>
             <p style={{ margin: 0, color: '#c7d2fe', fontSize: '0.9rem' }}>
-              Official bilingual referral authorization to District Hospital Paderu and King George Hospital (KGH) Visakhapatnam.
+              {isTe
+                ? 'పాడేరు జిల్లా ఆసుపత్రి మరియు విశాఖపట్నం KGH కు అధికారిక రిఫరల్ ధృవీకరణ.'
+                : 'Official referral authorization to District Hospital Paderu and King George Hospital (KGH) Visakhapatnam.'}
             </p>
           </div>
           <button
@@ -87,7 +91,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               fontWeight: 600
             }}
           >
-            🔄 Refresh
+            {isTe ? '🔄 రిఫ్రెష్' : '🔄 Refresh'}
           </button>
         </div>
       </div>
@@ -285,13 +289,10 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#475569', letterSpacing: '0.05em' }}>
                   GOVERNMENT OF ANDHRA PRADESH • ITDA PADERU
                 </div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0.25rem 0', color: '#0f172a' }}>
-                  ఆరోగ్య దృష్టి — స్పెషలిస్ట్ హాస్పిటల్ రిఫరల్ స్లిప్
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.25rem 0', color: '#0f172a' }}>
+                  {isTe ? 'ఆరోగ్య దృష్టి — స్పెషలిస్ట్ హాస్పిటల్ రిఫరల్ స్లిప్' : 'AAROGYA DRISHTI — OFFICIAL CLINICAL REFERRAL SLIP'}
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#334155' }}>
-                  AAROGYA DRISHTI OFFICIAL CLINICAL REFERRAL SLIP
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
                   Alluri Sitharama Raju District • Public Health & Tribal Cancer Early Detection Initiative
                 </div>
               </div>
@@ -299,7 +300,9 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               {/* Barcode & Slip Metadata */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>SLIP NUMBER / రిఫరల్ సంఖ్య</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {isTe ? 'రిఫరల్ సంఖ్య' : 'SLIP NUMBER'}
+                  </div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e1b4b', letterSpacing: '0.05em' }}>
                     {selectedSlip.referral_slip_number}
                   </div>
@@ -308,26 +311,28 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
                   <div style={{ fontFamily: 'monospace', letterSpacing: '3px', fontSize: '1.1rem', background: '#fff', padding: '0.25rem 0.5rem', border: '1px solid #cbd5e1' }}>
                     ||||| | |||| || ||| |||||
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Priority: {selectedSlip.urgency.toUpperCase()}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {isTe ? 'ప్రాధాన్యత:' : 'Priority:'} {selectedSlip.urgency.toUpperCase()}
+                  </div>
                 </div>
               </div>
 
               {/* Patient Information Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem', fontSize: '0.9rem' }}>
                 <div>
-                  <span style={{ color: '#64748b' }}>రోగి పేరు (Patient Name):</span>
+                  <span style={{ color: '#64748b' }}>{isTe ? 'రోగి పేరు:' : 'Patient Name:'}</span>
                   <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{selectedSlip.patient_name}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>రోగి ID (Patient UID):</span>
+                  <span style={{ color: '#64748b' }}>{isTe ? 'రోగి ID:' : 'Patient UID:'}</span>
                   <div style={{ fontWeight: 700 }}>{selectedSlip.patient_id_display}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>వయస్సు & లింగం (Age / Sex):</span>
-                  <div style={{ fontWeight: 600 }}>{selectedSlip.age} years / {selectedSlip.gender}</div>
+                  <span style={{ color: '#64748b' }}>{isTe ? 'వయస్సు & లింగం:' : 'Age / Sex:'}</span>
+                  <div style={{ fontWeight: 600 }}>{selectedSlip.age} {isTe ? 'సం.' : 'years'} / {selectedSlip.gender}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>గ్రామం / నివాసం (Habitation & Mandal):</span>
+                  <span style={{ color: '#64748b' }}>{isTe ? 'గ్రామం & మండలం:' : 'Habitation & Mandal:'}</span>
                   <div style={{ fontWeight: 600 }}>{selectedSlip.habitation || 'G. Madugula'}, {selectedSlip.mandal}</div>
                 </div>
               </div>
@@ -335,7 +340,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               {/* Referral Destination */}
               <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', background: '#f1f5f9' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-                  రిఫర్ చేయబడిన ఆసుపత్రి & విభాగం (Referral Destination):
+                  {isTe ? 'రిఫర్ చేయబడిన ఆసుపత్రి & విభాగం:' : 'Referral Destination & Department:'}
                 </div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e1b4b', marginBottom: '0.25rem' }}>
                   🏥 {selectedSlip.target_hospital}
@@ -351,7 +356,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               {/* Clinical Indication */}
               <div style={{ marginBottom: '1.25rem', fontSize: '0.9rem' }}>
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
-                  రిఫరల్ కారణం & క్లినికల్ వివరాలు (Clinical Indication & Findings):
+                  {isTe ? 'రిఫరల్ కారణం & క్లినికల్ వివరాలు:' : 'Clinical Indication & Findings:'}
                 </div>
                 <div style={{ padding: '0.75rem', background: '#f8fafc', borderLeft: '4px solid #4338ca', borderRadius: '4px' }}>
                   {selectedSlip.reason_for_referral}
@@ -366,13 +371,17 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser }) => 
               {/* Transport Assistance & Signature Lines */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.85rem' }}>
                 <div>
-                  <strong>గిరిజన రవాణా సదుపాయం (Tribal Transport):</strong>
-                  <div>ITDA 108 Feeder Ambulance coordinated. Patient Escort assigned.</div>
+                  <strong>{isTe ? 'గిరిజన రవాణా సదుపాయం:' : 'Tribal Transport Assistance:'}</strong>
+                  <div>
+                    {isTe
+                      ? 'ITDA 108 ఫీడర్ అంబులెన్స్ సమన్వయం చేయబడింది. పేషెంట్ ఎస్కార్ట్ కేటాయించబడింది.'
+                      : 'ITDA 108 Feeder Ambulance coordinated. Patient Escort assigned.'}
+                  </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ height: '35px' }}></div>
                   <div style={{ borderTop: '1px solid #0f172a', display: 'inline-block', minWidth: '180px', paddingTop: '0.25rem' }}>
-                    Medical Officer Signature / Seal<br />
+                    {isTe ? 'వైద్యాధికారి సంతకం / సీల్' : 'Medical Officer Signature / Seal'}<br />
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedSlip.originating_phc}</span>
                   </div>
                 </div>

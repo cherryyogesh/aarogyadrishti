@@ -302,10 +302,10 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               <span style={{ fontSize: '1.4rem' }}>🔬</span>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f766e' }}>
-                  నోటి క్యాన్సర్ ప్రాథమిక పరీక్ష (Oral Cavity & OPMD Examination)
+                  {currentLang === 'te' ? 'నోటి క్యాన్సర్ ప్రాథమిక పరీక్ష (Oral Cavity & OPMD)' : 'Oral Cavity & OPMD Examination'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#134e4a' }}>
-                  Guided clinical oral screening based on IISc-TANUH and NP-NCD protocols.
+                  {currentLang === 'te' ? 'IISc-TANUH మరియు NP-NCD ప్రోటోకాల్ ఆధారంగా క్లినికల్ స్క్రీనింగ్.' : 'Guided clinical oral screening based on IISc-TANUH and NP-NCD protocols.'}
                 </div>
               </div>
             </div>
@@ -314,7 +314,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               {/* Anatomical Oral Site */}
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 700, color: '#0f766e' }}>
-                  Oral Anatomical Site (శరీర స్థానం) *
+                  {currentLang === 'te' ? 'నోటి భాగం (Oral Anatomical Site) *' : 'Oral Anatomical Site *'}
                 </label>
                 <select
                   className="form-control"
@@ -322,20 +322,20 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                   onChange={(e) => setOralSite(e.target.value)}
                   style={{ borderColor: '#14b8a6' }}
                 >
-                  <option value="buccal_mucosa">Left / Right Buccal Mucosa (బుగ్గ లోపలి భాగం)</option>
-                  <option value="tongue">Lateral / Dorsal Tongue (నాలుక అంచులు / పైభాగం)</option>
-                  <option value="floor_of_mouth">Floor of Mouth (నాలుక క్రింది భాగం)</option>
-                  <option value="palate">Hard / Soft Palate (అంగిలి)</option>
-                  <option value="gingiva">Gums / Alveolar Ridge (చిగుళ్ళు)</option>
-                  <option value="lip">Labial Mucosa / Lips (పెదవులు)</option>
-                  <option value="retromolar_trigone">Retromolar Trigone (దవడ వెనుక భాగం)</option>
+                  <option value="buccal_mucosa">{currentLang === 'te' ? 'బుగ్గ లోపలి భాగం (Buccal Mucosa)' : 'Left / Right Buccal Mucosa'}</option>
+                  <option value="tongue">{currentLang === 'te' ? 'నాలుక అంచులు / పైభాగం (Tongue)' : 'Lateral / Dorsal Tongue'}</option>
+                  <option value="floor_of_mouth">{currentLang === 'te' ? 'నాలుక క్రింది భాగం (Floor of Mouth)' : 'Floor of Mouth'}</option>
+                  <option value="palate">{currentLang === 'te' ? 'అంగిలి (Hard / Soft Palate)' : 'Hard / Soft Palate'}</option>
+                  <option value="gingiva">{currentLang === 'te' ? 'చిగుళ్ళు (Gums / Alveolar Ridge)' : 'Gums / Alveolar Ridge'}</option>
+                  <option value="lip">{currentLang === 'te' ? 'పెదవులు (Labial Mucosa / Lips)' : 'Labial Mucosa / Lips'}</option>
+                  <option value="retromolar_trigone">{currentLang === 'te' ? 'దవడ వెనుక భాగం (Retromolar Trigone)' : 'Retromolar Trigone'}</option>
                 </select>
               </div>
 
               {/* Lesion Type */}
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 700, color: '#0f766e' }}>
-                  Clinical Lesion Appearance (లక్షణ వర్గం) *
+                  {currentLang === 'te' ? 'లక్షణ వర్గం (Lesion Appearance) *' : 'Clinical Lesion Appearance *'}
                 </label>
                 <select
                   className="form-control"
@@ -343,13 +343,13 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                   onChange={(e) => setLesionType(e.target.value)}
                   style={{ borderColor: '#14b8a6' }}
                 >
-                  <option value="leukoplakia">Leukoplakia (తెల్లని మచ్చ - White Plaque)</option>
-                  <option value="erythroplakia">Erythroplakia (ఎర్రటి మచ్చ - High Malignant Risk)</option>
-                  <option value="erythroleukoplakia">Mixed Erythroleukoplakia (ఎరుపు & తెలుపు)</option>
-                  <option value="osmf">Oral Submucous Fibrosis - OSMF (నోటి బిగువు)</option>
-                  <option value="persistent_ulcer">Non-healing Ulcer &gt;2 weeks (మానని పుండు)</option>
-                  <option value="growth_mass">Vegetative Mass / Growth (గడ్డ / పులిపిరి)</option>
-                  <option value="lichen_planus">Oral Lichen Planus (నెట్‌వర్క్ చారలు)</option>
+                  <option value="leukoplakia">{currentLang === 'te' ? 'ల్యూకోప్లాకియా (తెల్లని మచ్చ - White Plaque)' : 'Leukoplakia (White Plaque)'}</option>
+                  <option value="erythroplakia">{currentLang === 'te' ? 'ఎరిత్రోప్లాకియా (ఎర్రటి మచ్చ - High Malignant Risk)' : 'Erythroplakia (High Malignant Risk)'}</option>
+                  <option value="erythroleukoplakia">{currentLang === 'te' ? 'మిశ్రమ ఎరుపు & తెలుపు మచ్చ (Erythroleukoplakia)' : 'Mixed Erythroleukoplakia'}</option>
+                  <option value="osmf">{currentLang === 'te' ? 'నోటి బిగువు (Oral Submucous Fibrosis - OSMF)' : 'Oral Submucous Fibrosis - OSMF'}</option>
+                  <option value="persistent_ulcer">{currentLang === 'te' ? 'మానని పుండు >2 వారాలు (Non-healing Ulcer)' : 'Non-healing Ulcer >2 weeks'}</option>
+                  <option value="growth_mass">{currentLang === 'te' ? 'గడ్డ / పులిపిరి పెరుగుదల (Vegetative Mass)' : 'Vegetative Mass / Growth'}</option>
+                  <option value="lichen_planus">{currentLang === 'te' ? 'లైకెన్ ప్లానస్ (తెల్లని చారలు - Lichen Planus)' : 'Oral Lichen Planus'}</option>
                 </select>
               </div>
             </div>
@@ -358,7 +358,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #ccfbf1', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, color: '#0f766e', margin: 0 }}>
-                  Inter-incisal Mouth Opening (నోరు తెరవగల దూరం): <strong>{mouthOpeningMm} mm</strong>
+                  {currentLang === 'te' ? 'నోరు తెరవగల దూరం:' : 'Inter-incisal Mouth Opening:'} <strong>{mouthOpeningMm} mm</strong>
                 </label>
                 <span style={{
                   fontSize: '0.75rem',
@@ -368,7 +368,9 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                   background: mouthOpeningMm < 35 ? '#fee2e2' : '#dcfce7',
                   color: mouthOpeningMm < 35 ? '#b91c1c' : '#166534'
                 }}>
-                  {mouthOpeningMm < 35 ? '⚠️ Restricted (<35 mm) • OSMF Suspect' : '✓ Normal (>35 mm)'}
+                  {mouthOpeningMm < 35
+                    ? (currentLang === 'te' ? '⚠️ పరిమితం (<35 mm) • OSMF అనుమానం' : '⚠️ Restricted (<35 mm) • OSMF Suspect')
+                    : (currentLang === 'te' ? '✓ సాధారణం (>35 mm)' : '✓ Normal (>35 mm)')}
                 </span>
               </div>
               <input
@@ -381,9 +383,9 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                 style={{ width: '100%', accentColor: '#0d9488' }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b' }}>
-                <span>15 mm (Severe Trismus)</span>
-                <span>35 mm (Cutoff)</span>
-                <span>55 mm (Full Normal)</span>
+                <span>{currentLang === 'te' ? '15 mm (తీవ్ర బిగువు)' : '15 mm (Severe Trismus)'}</span>
+                <span>{currentLang === 'te' ? '35 mm (కటాఫ్)' : '35 mm (Cutoff)'}</span>
+                <span>{currentLang === 'te' ? '55 mm (సాధారణం)' : '55 mm (Full Normal)'}</span>
               </div>
             </div>
 
@@ -397,7 +399,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                     onChange={(e) => setBurningSensation(e.target.checked)}
                     style={{ accentColor: '#0d9488' }}
                   />
-                  <span>కారం తిన్నప్పుడు మంట (Burning Sensation)</span>
+                  <span>{currentLang === 'te' ? 'కారం తిన్నప్పుడు మంట (Burning Sensation)' : 'Burning Sensation on Spicy Food'}</span>
                 </label>
               </div>
 
@@ -409,7 +411,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                     onChange={(e) => setBleeding(e.target.checked)}
                     style={{ accentColor: '#0d9488' }}
                   />
-                  <span>రక్తస్రావం (Bleeding on Touch)</span>
+                  <span>{currentLang === 'te' ? 'రక్తస్రావం (Bleeding on Touch)' : 'Bleeding on Touch'}</span>
                 </label>
               </div>
             </div>
@@ -603,7 +605,9 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
           disabled={submitting || uploading}
         >
           <Send size={18} />
-          {submitting ? 'Submitting & Queueing SMS...' : 'Save Screening & Submit for PHC Review'}
+          {submitting
+            ? (currentLang === 'te' ? 'సమర్పిస్తోంది...' : 'Submitting & Queueing SMS...')
+            : (currentLang === 'te' ? 'స్క్రీనింగ్ భద్రపరచండి & PHC సమీక్షకు పంపండి' : 'Save Screening & Submit for PHC Review')}
         </button>
       </form>
     </div>

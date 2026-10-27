@@ -265,7 +265,10 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                     )}
                   </div>
                   <div>
-                    <strong>Burning Sensation:</strong> {selectedCase.burning_sensation ? 'Yes (కారం తిన్నప్పుడు మంట)' : 'No'}
+                    <strong>{currentLang === 'te' ? 'కారం తిన్నప్పుడు మంట:' : 'Burning Sensation:'}</strong>{' '}
+                    {selectedCase.burning_sensation
+                      ? (currentLang === 'te' ? 'అవును (కారం తిన్నప్పుడు మంట)' : 'Yes')
+                      : (currentLang === 'te' ? 'కాదు' : 'No')}
                   </div>
                 </div>
               </div>

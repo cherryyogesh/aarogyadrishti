@@ -74,11 +74,28 @@ export const App: React.FC = () => {
     return t[`role_${user.role}`] || user.role.toUpperCase();
   };
 
+  const getRoleShortName = (role: string) => {
+    if (currentLang === 'te') {
+      if (role === 'chw') return 'ఆశా కార్యకర్త';
+      if (role === 'phc_staff') return 'PHC స్టాఫ్';
+      if (role === 'doctor') return 'డాక్టర్';
+      if (role === 'navigator') return 'నేవిగేటర్';
+      return 'DMHO అధికారి';
+    }
+    if (role === 'chw') return 'ASHA / CHW';
+    if (role === 'phc_staff') return 'PHC Staff / MO';
+    if (role === 'doctor') return 'Doctor / Specialist';
+    if (role === 'navigator') return 'Patient Navigator';
+    return 'DMHO Admin';
+  };
+
+  const cleanUserName = currentUser?.full_name ? currentUser.full_name.replace(/\s*\([^)]*\)\s*$/, '').trim() : '';
+
   if (authChecking) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A192F', color: '#5EEAD4' }}>
         <div style={{ textAlign: 'center' }}>
-          <AarogyaLogo size="large" lightText={true} />
+          <AarogyaLogo size="large" lightText={true} currentLang={currentLang} />
           <div style={{ fontSize: '0.88rem', color: '#94A3B8', marginTop: '1rem' }}>
             {currentLang === 'te' ? 'భద్రతా నెట్‌వర్క్ లోడ్ అవుతోంది...' : 'Loading secure tribal healthcare platform...'}
           </div>
@@ -138,7 +155,7 @@ export const App: React.FC = () => {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header" style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <AarogyaLogo size="medium" lightText={true} showSubtitle={true} />
+          <AarogyaLogo size="medium" lightText={true} showSubtitle={true} currentLang={currentLang} />
           {mobileMenuOpen && (
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -407,15 +424,16 @@ export const App: React.FC = () => {
                isNavigator ? <Compass size={16} /> : <FileText size={16} />}
             </div>
             <div className="user-info-text">
-              <h4>{currentUser.full_name}</h4>
-              <p>{getRoleDisplayName(currentUser)} • {currentUser.phc_name || currentUser.mandal || 'ITDA Paderu'}</p>
+              <h4>{cleanUserName || currentUser.full_name}</h4>
+              <p>{getRoleShortName(currentUser.role)} • {currentUser.phc_name?.replace('Primary Health Centre', 'PHC') || currentUser.mandal || 'ITDA Paderu'}</p>
             </div>
             <button
               onClick={handleLogout}
+              className="btn-icon"
               title={t.nav_logout}
-              style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', marginLeft: 'auto' }}
+              style={{ marginLeft: 'auto' }}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
@@ -467,7 +485,7 @@ export const App: React.FC = () => {
               </select>
             </div>
 
-            {/* Role Chip (No personal employee names) */}
+            {/* Role Chip */}
             <div className="user-profile-pill">
               <div className="user-avatar-small" style={{
                 background: isDoctor ? '#7E22CE' : isPHC ? '#15803D' : isAdmin ? '#BE123C' : '#0D9488'
@@ -476,19 +494,18 @@ export const App: React.FC = () => {
                  isPHC ? <UserCheck size={13} /> :
                  isAdmin ? <Shield size={13} /> : <FileText size={13} />}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span className="user-name-small" style={{ fontWeight: 700, color: '#0F172A' }}>{currentUser.full_name}</span>
-                <span style={{ fontSize: '0.65rem', color: '#64748B' }}>
-                  {getRoleDisplayName(currentUser)} • {currentUser.phc_name || currentUser.mandal || 'ITDA Paderu'}
+              <div className="user-pill-text">
+                <span className="user-name-small">{cleanUserName || currentUser.full_name}</span>
+                <span className="user-sub-small">
+                  {getRoleShortName(currentUser.role)} • {currentUser.phc_name?.replace('Primary Health Centre', 'PHC') || currentUser.mandal || 'ITDA Paderu'}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
                 className="btn-icon"
                 title={t.nav_logout}
-                style={{ marginLeft: '0.25rem' }}
               >
-                <LogOut size={15} />
+                <LogOut size={14} />
               </button>
             </div>
           </div>
@@ -583,18 +600,21 @@ export const App: React.FC = () => {
           {activeRoute === 'investigations' && (
             <InvestigationsView
               currentUser={currentUser}
+              currentLang={currentLang}
             />
           )}
 
           {activeRoute === 'referrals' && (
             <ReferralsView
               currentUser={currentUser}
+              currentLang={currentLang}
             />
           )}
 
           {activeRoute === 'navigation' && (
             <NavigationView
               currentUser={currentUser}
+              currentLang={currentLang}
             />
           )}
         </main>

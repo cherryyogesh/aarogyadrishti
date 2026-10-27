@@ -246,7 +246,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
       }}>
         {/* Header Logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-          <AarogyaLogo size="large" lightText={false} showSubtitle={true} />
+          <AarogyaLogo size="large" lightText={false} showSubtitle={true} currentLang={currentLang} />
         </div>
 
         {/* Tab Switcher: Sign In vs Register */}
@@ -469,7 +469,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Full Name */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_full_name || 'పూర్తి పేరు (Full Name)'} *
+                    {t.field_full_name || (isTe ? 'పూర్తి పేరు' : 'Employee Full Name')} *
                   </label>
                   <input
                     type="text"
@@ -484,7 +484,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Role */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_role || 'అధికారిక హోదా (Role)'} *
+                    {t.field_role || (isTe ? 'అధికారిక హోదా' : 'Official Role')} *
                   </label>
                   <select
                     className="form-control"
@@ -492,18 +492,18 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     onChange={(e) => setRegRole(e.target.value as UserRole)}
                     required
                   >
-                    <option value="chw">ASHA / Village Health Worker (CHW)</option>
-                    <option value="phc_staff">PHC Staff / Medical Officer (MO)</option>
-                    <option value="doctor">Specialist Doctor (Oral Oncologist)</option>
-                    <option value="navigator">Patient Navigator (Tribal Care)</option>
-                    <option value="admin">DMHO (District Medical & Health Officer)</option>
+                    <option value="chw">{isTe ? 'ఆశా / విలేజ్ హెల్త్ వర్కర్' : 'ASHA / Village Health Worker (CHW)'}</option>
+                    <option value="phc_staff">{isTe ? 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్' : 'PHC Staff / Medical Officer (MO)'}</option>
+                    <option value="doctor">{isTe ? 'స్పెషలిస్ట్ డాక్టర్ (ఆంకాలజిస్ట్)' : 'Specialist Doctor (Oral Oncologist)'}</option>
+                    <option value="navigator">{isTe ? 'పేషెంట్ నావిగేటర్ (గిరిజన సంరక్షణ)' : 'Patient Navigator (Tribal Care)'}</option>
+                    <option value="admin">{isTe ? 'DMHO (జిల్లా వైద్యాధికారి)' : 'DMHO (District Medical & Health Officer)'}</option>
                   </select>
                 </div>
 
                 {/* Mobile Number */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_mobile_number || 'మొబైల్ నంబరు (Mobile Number)'} *
+                    {t.field_mobile_number || (isTe ? 'మొబైల్ నంబరు' : 'Mobile Number')} *
                   </label>
                   <input
                     type="tel"
@@ -518,7 +518,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Mandal */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_mandal || 'మండలం (Mandal)'} *
+                    {t.field_mandal || (isTe ? 'మండలం' : 'Mandal')} *
                   </label>
                   <select
                     className="form-control"
@@ -535,7 +535,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* PHC Center */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_phc_name || 'పీహెచ్‌సీ కేంద్రం (PHC Centre)'} *
+                    {t.field_phc_name || (isTe ? 'పీహెచ్‌సీ కేంద్రం' : 'Primary Health Centre (PHC)')} *
                   </label>
                   <input
                     type="text"
@@ -550,7 +550,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* District */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_district || 'జిల్లా (District)'}
+                    {t.field_district || (isTe ? 'జిల్లా' : 'District')}
                   </label>
                   <input
                     type="text"
@@ -564,7 +564,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* State */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_state || 'రాష్ట్రం (State)'}
+                    {t.field_state || (isTe ? 'రాష్ట్రం' : 'State')}
                   </label>
                   <input
                     type="text"
@@ -578,7 +578,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Password */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_password || 'పాస్‌వర్డ్ (Create Password)'} *
+                    {t.field_password || (isTe ? 'లాగిన్ పాస్‌వర్డ్' : 'Create Password')} *
                   </label>
                   <input
                     type="password"
@@ -606,7 +606,9 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                   boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)'
                 }}
               >
-                {loading ? (isTe ? 'నమోదు అవుతోంది...' : 'Registering Employee...') : (t.btn_register_submit || 'నమోదు చేసి లాగిన్ అవ్వండి')}
+                {loading
+                  ? (isTe ? 'నమోదు అవుతోంది...' : 'Registering Employee...')
+                  : (t.btn_register_submit || (isTe ? 'నమోదు చేసి లాగిన్ అవ్వండి' : 'Register Employee & Sign In'))}
               </button>
 
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
