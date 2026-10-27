@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.db
+backend/test_aarogya.db
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+
+# Node & Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env

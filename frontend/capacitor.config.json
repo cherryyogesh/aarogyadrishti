@@ -1,0 +1,19 @@
+{
+  "appId": "in.gov.aarogya.drishti",
+  "appName": "Aarogya Drishti",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "Camera": {
+      "permissions": ["camera", "photos"]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#0A192F"
+    }
+  }
+}

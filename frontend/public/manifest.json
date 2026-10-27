@@ -1,0 +1,18 @@
+{
+  "short_name": "Aarogya Drishti",
+  "name": "Aarogya Drishti Healthcare Platform",
+  "description": "Multilingual AI-Assisted Community Healthcare Screening & Telemedicine",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0A192F",
+  "theme_color": "#0A192F",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}
