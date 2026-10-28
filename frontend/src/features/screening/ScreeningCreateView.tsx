@@ -94,6 +94,25 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
     };
   }, []);
 
+  const bindCameraVideo = (el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el) {
+      el.muted = true;
+      el.defaultMuted = true;
+      el.playsInline = true;
+      el.setAttribute('playsinline', 'true');
+      el.setAttribute('muted', 'true');
+      if (streamRef.current) {
+        if (el.srcObject !== streamRef.current) {
+          el.srcObject = streamRef.current;
+        }
+        el.play().catch((err) => {
+          console.warn('Viewfinder autoplay notice:', err);
+        });
+      }
+    }
+  };
+
   // Bind media stream to video element when live camera opens
   useEffect(() => {
     if (showLiveCamera && streamRef.current && videoRef.current) {
@@ -1156,7 +1175,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                   ) : (
                     <>
                       <video
-                        ref={videoRef}
+                        ref={bindCameraVideo}
                         autoPlay
                         playsInline
                         muted

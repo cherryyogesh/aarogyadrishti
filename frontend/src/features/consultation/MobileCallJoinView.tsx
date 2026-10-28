@@ -20,11 +20,16 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
   const [peerCount, setPeerCount] = useState(1);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
 
   const RTC_CONFIG: RTCConfiguration = {
     iceServers: [
@@ -34,10 +39,45 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
     ]
   };
 
+  const bindVideoNode = (
+    el: HTMLVideoElement | null,
+    stream: MediaStream | null,
+    isMuted: boolean,
+    isMirrored: boolean
+  ) => {
+    if (!el) return;
+    el.muted = isMuted;
+    el.defaultMuted = isMuted;
+    el.playsInline = true;
+    el.setAttribute('playsinline', 'true');
+    if (isMuted) {
+      el.setAttribute('muted', 'true');
+    } else {
+      el.removeAttribute('muted');
+    }
+    const mirrorTransform = isMirrored ? 'scaleX(-1)' : 'none';
+    el.style.transform = mirrorTransform;
+    el.style.webkitTransform = mirrorTransform;
+
+    if (stream) {
+      if (el.srcObject !== stream) {
+        el.srcObject = stream;
+      }
+      const playPromise = el.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('[WebRTC Mobile] Autoplay notice:', err);
+        });
+      }
+    } else {
+      el.srcObject = null;
+    }
+  };
+
   // 1. Initialize local mobile/laptop camera
   const startCamera = async (mode: 'user' | 'environment') => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
     }
 
     try {
@@ -54,20 +94,24 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
         });
       }
 
-      streamRef.current = stream;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        localVideoRef.current.play().catch(console.error);
-      }
+      localStreamRef.current = stream;
+      setLocalStream(stream);
 
-      // If peer connection already exists, replace video track
+      // If peer connection already exists, replace or add video track
       if (peerConnectionRef.current) {
-        const videoTrack = stream.getVideoTracks()[0];
         const senders = peerConnectionRef.current.getSenders();
-        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-        if (videoSender && videoTrack) {
-          videoSender.replaceTrack(videoTrack);
-        }
+        stream.getTracks().forEach((track) => {
+          const sender = senders.find(s => s.track && s.track.kind === track.kind);
+          if (sender) {
+            sender.replaceTrack(track);
+          } else {
+            try {
+              peerConnectionRef.current?.addTrack(track, stream);
+            } catch (e) {
+              console.warn('[WebRTC Mobile] Add track error:', e);
+            }
+          }
+        });
       }
       setCameraError(null);
     } catch (err: any) {
@@ -79,17 +123,32 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
   useEffect(() => {
     startCamera(facingMode);
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
       }
       if (socketRef.current) {
         socketRef.current.close();
       }
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
       }
     };
   }, []);
+
+  const drainIceCandidates = async (pc: RTCPeerConnection) => {
+    while (iceCandidatesQueue.current.length > 0) {
+      const candidate = iceCandidatesQueue.current.shift();
+      if (candidate) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn('[WebRTC Mobile] Error adding queued ICE candidate:', err);
+        }
+      }
+    }
+  };
 
   // 2. Connect to WebRTC signaling server
   const handleJoinCall = () => {
@@ -111,31 +170,51 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
         if (msg.type === 'peer_count') {
           setPeerCount(msg.count);
           // If we were already in the room and someone joined, initiate offer
-          if (msg.count >= 2 && !peerConnectionRef.current && !msg.is_new_joiner) {
+          if (msg.count >= 2 && !msg.is_new_joiner) {
+            if (peerConnectionRef.current) {
+              peerConnectionRef.current.close();
+              peerConnectionRef.current = null;
+            }
             initPeerConnection(true);
           }
         } else if (msg.type === 'peer_disconnected') {
           setConnected(false);
           setPeerCount(msg.count || 1);
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
+          remoteStreamRef.current = null;
+          setRemoteStream(null);
+          if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
           }
         } else if (msg.type === 'offer') {
+          if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
+          }
           const pc = initPeerConnection(false);
           await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          await drainIceCandidates(pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+          }
         } else if (msg.type === 'answer') {
           if (peerConnectionRef.current) {
             await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            await drainIceCandidates(peerConnectionRef.current);
           }
         } else if (msg.type === 'candidate') {
-          if (peerConnectionRef.current && msg.candidate) {
-            try {
-              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(msg.candidate));
-            } catch (e) {
-              console.warn('ICE candidate error:', e);
+          if (msg.candidate) {
+            const pc = peerConnectionRef.current;
+            if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+              } catch (e) {
+                console.warn('[WebRTC Mobile] ICE candidate error:', e);
+              }
+            } else {
+              iceCandidatesQueue.current.push(msg.candidate);
             }
           }
         }
@@ -153,19 +232,17 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
     const pc = new RTCPeerConnection(RTC_CONFIG);
     peerConnectionRef.current = pc;
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, streamRef.current!);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
       });
     }
 
     pc.ontrack = (event) => {
-      console.log('Mobile view: received remote track:', event.streams);
-      const remoteStream = event.streams[0] || new MediaStream([event.track]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch(console.error);
-      }
+      console.log('Mobile view: received remote track:', event.track.kind, event.streams);
+      const stream = event.streams[0] || new MediaStream([event.track]);
+      remoteStreamRef.current = stream;
+      setRemoteStream(stream);
       setConnected(true);
     };
 
@@ -173,8 +250,22 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
       if (event.candidate && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
           type: 'candidate',
-          candidate: event.candidate
+          candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
         }));
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'connected') {
+        setConnected(true);
+      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        setConnected(false);
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setConnected(true);
       }
     };
 
@@ -182,7 +273,9 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
       pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: true })
         .then(async (offer) => {
           await pc.setLocalDescription(offer);
-          socketRef.current?.send(JSON.stringify({ type: 'offer', sdp: offer }));
+          if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
+          }
         })
         .catch(console.error);
     }
@@ -191,15 +284,15 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
   };
 
   const toggleCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getVideoTracks().forEach(t => t.enabled = !videoActive);
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(t => t.enabled = !videoActive);
     }
     setVideoActive(!videoActive);
   };
 
   const toggleMic = () => {
-    if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach(t => t.enabled = !audioActive);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(t => t.enabled = !audioActive);
     }
     setAudioActive(!audioActive);
   };
@@ -305,7 +398,7 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
             boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
           }}>
             <video
-              ref={localVideoRef}
+              ref={(el) => bindVideoNode(el, localStream, true, facingMode === 'user')}
               autoPlay
               playsInline
               muted
@@ -390,14 +483,14 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
             justifyContent: 'center'
           }}>
             <video
-              ref={remoteVideoRef}
+              ref={(el) => bindVideoNode(el, remoteStream, false, false)}
               autoPlay
               playsInline
               style={{
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: connected ? 'block' : 'none'
+                display: connected && remoteStream ? 'block' : 'none'
               }}
             />
 
@@ -455,7 +548,7 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
             justifyContent: 'center'
           }}>
             <video
-              ref={localVideoRef}
+              ref={(el) => bindVideoNode(el, localStream, true, facingMode === 'user')}
               autoPlay
               playsInline
               muted
@@ -463,7 +556,7 @@ export const MobileCallJoinView: React.FC<Props> = ({ roomId, onLeave }) => {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: videoActive ? 'block' : 'none'
+                display: videoActive && localStream ? 'block' : 'none'
               }}
             />
 

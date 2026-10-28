@@ -60,24 +60,34 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const phcVideoRef = useRef<HTMLVideoElement>(null);
   const doctorVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+
   const [streamStarted, setStreamStarted] = useState(false);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const isDoctorUser = user?.role === 'doctor';
 
-  // Independent webcam active states for both sides (allows turning on webcam for PHC, patient and doctor)
+  // Independent webcam active states for both sides
   const [phcCamActive, setPhcCamActive] = useState(true);
   const [doctorCamActive, setDoctorCamActive] = useState(true);
 
+  // Single-PC Simulation: Mirror user's camera to both screens for full testing
+  const [mirrorBothScreens, setMirrorBothScreens] = useState(false);
+
   // WebRTC 2-Way Live Conference Setup
   const roomId = session.webrtc_room_id || `ad-telemed-apt-${session.appointment_id || 1}`;
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
-  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const iceCandidatesQueue = useRef<RTCIceCandidateInit[]>([]);
 
   const [isCallConnected, setIsCallConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [peerCount, setPeerCount] = useState(1);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -90,10 +100,55 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     ]
   };
 
+  // Direct video binder callback ref to guarantee immediate DOM attachment and autoplay success
+  const bindVideoNode = (
+    el: HTMLVideoElement | null,
+    stream: MediaStream | null,
+    isMuted: boolean,
+    isMirrored: boolean
+  ) => {
+    if (!el) return;
+    el.muted = isMuted;
+    el.defaultMuted = isMuted;
+    el.playsInline = true;
+    el.setAttribute('playsinline', 'true');
+    if (isMuted) {
+      el.setAttribute('muted', 'true');
+    } else {
+      el.removeAttribute('muted');
+    }
+    const mirrorTransform = isMirrored ? 'scaleX(-1)' : 'none';
+    el.style.transform = mirrorTransform;
+    el.style.webkitTransform = mirrorTransform;
+
+    if (stream) {
+      if (el.srcObject !== stream) {
+        el.srcObject = stream;
+      }
+      const playPromise = el.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Video element play() notice:', err);
+        });
+      }
+    } else {
+      el.srcObject = null;
+    }
+  };
+
   const startLocalCamera = async () => {
+    setCameraLoading(true);
+    setCameraError(null);
+
     if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-      setCameraError('Camera access not supported on this browser context');
-      return;
+      const err = 'Camera access is not supported in this browser context (HTTPS or localhost is required).';
+      setCameraError(err);
+      setCameraLoading(false);
+      return null;
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
     }
 
     try {
@@ -103,7 +158,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
           audio: true
         });
-      } catch {
+      } catch (errAudio) {
+        console.warn('Audio device unavailable or restricted, fallback to video-only:', errAudio);
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
@@ -114,52 +170,73 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
         }
       }
 
-      streamRef.current = stream;
+      localStreamRef.current = stream;
+      setLocalStream(stream);
       setCameraPermissionGranted(true);
       setCameraError(null);
       setStreamStarted(true);
 
-      if (phcVideoRef.current) {
-        phcVideoRef.current.srcObject = stream;
-        phcVideoRef.current.play().catch(() => {});
-      }
-      if (doctorVideoRef.current) {
-        doctorVideoRef.current.srcObject = stream;
-        doctorVideoRef.current.play().catch(() => {});
-      }
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        localVideoRef.current.play().catch(() => {});
-      }
-
-      // Add tracks to active peer connection if already created
+      // If peer connection exists, add or update tracks
       if (peerConnectionRef.current) {
-        stream.getTracks().forEach(t => {
-          try {
-            peerConnectionRef.current!.addTrack(t, stream);
-          } catch (e) {
-            // Track might already be added
+        const senders = peerConnectionRef.current.getSenders();
+        stream.getTracks().forEach((track) => {
+          const existingSender = senders.find(s => s.track && s.track.kind === track.kind);
+          if (existingSender) {
+            existingSender.replaceTrack(track);
+          } else {
+            try {
+              peerConnectionRef.current?.addTrack(track, stream);
+            } catch (e) {
+              console.warn('Could not add track to existing PC:', e);
+            }
           }
         });
       }
+      return stream;
     } catch (err: any) {
-      console.warn('Camera/Mic permission not granted or unavailable:', err);
+      console.warn('Webcam permission or device error:', err);
       setCameraPermissionGranted(false);
-      setCameraError(err.message || 'Camera permission denied');
+      let msg = 'Could not access camera.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        msg = 'Camera permission was denied. Please click the camera icon in your browser address bar to allow camera access.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = 'No camera found on this device.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        msg = 'Webcam is currently occupied by another program (e.g. Teams, Zoom). Please close other apps and click retry.';
+      } else if (err.message) {
+        msg = err.message;
+      }
+      setCameraError(msg);
+      return null;
+    } finally {
+      setCameraLoading(false);
     }
   };
 
-  // Initialize camera preview if available
+  // Initialize camera preview on mount
   useEffect(() => {
     startLocalCamera();
 
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+        localStreamRef.current = null;
       }
     };
   }, []);
+
+  const drainIceCandidates = async (pc: RTCPeerConnection) => {
+    while (iceCandidatesQueue.current.length > 0) {
+      const candidate = iceCandidatesQueue.current.shift();
+      if (candidate) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn('[WebRTC] Error adding queued ICE candidate:', err);
+        }
+      }
+    }
+  };
 
   // WebRTC Peer Connection Helper
   const initPeerConnection = (isInitiator: boolean): RTCPeerConnection => {
@@ -167,42 +244,65 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
       return peerConnectionRef.current;
     }
 
+    console.log(`[WebRTC] Initializing PeerConnection (initiator=${isInitiator})`);
     const pc = new RTCPeerConnection(RTC_CONFIG);
     peerConnectionRef.current = pc;
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, streamRef.current!);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
       });
     }
 
     pc.ontrack = (event) => {
-      console.log('ConsultationWorkspace: Received remote WebRTC track:', event.streams);
-      const remoteStream = event.streams[0] || new MediaStream([event.track]);
-      remoteStreamRef.current = remoteStream;
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
-        remoteVideoRef.current.play().catch(console.error);
-      }
+      console.log('[WebRTC] ConsultationWorkspace: Received remote track:', event.track.kind, event.streams);
+      const stream = event.streams[0] || new MediaStream([event.track]);
+      remoteStreamRef.current = stream;
+      setRemoteStream(stream);
       setIsCallConnected(true);
+      setIsConnecting(false);
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify({
           type: 'candidate',
-          candidate: event.candidate
+          candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate
         }));
       }
     };
 
+    pc.onconnectionstatechange = () => {
+      console.log('[WebRTC] Connection state:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        setIsCallConnected(true);
+        setIsConnecting(false);
+      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        setIsCallConnected(false);
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('[WebRTC] ICE state:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setIsCallConnected(true);
+        setIsConnecting(false);
+      }
+    };
+
     if (isInitiator) {
+      setIsConnecting(true);
       pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: true })
         .then(async (offer) => {
           await pc.setLocalDescription(offer);
-          socketRef.current?.send(JSON.stringify({ type: 'offer', sdp: offer }));
+          if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: 'offer', sdp: offer }));
+          }
         })
-        .catch(console.error);
+        .catch((err) => {
+          console.error('[WebRTC] createOffer error:', err);
+          setIsConnecting(false);
+        });
     }
 
     return pc;
@@ -222,7 +322,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     socketRef.current = ws;
 
     ws.onopen = () => {
-      console.log('WebRTC signaling connected for consultation room:', roomId);
+      console.log('[WebRTC] Signaling connected for consultation room:', roomId);
     };
 
     ws.onmessage = async (evt) => {
@@ -230,36 +330,61 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
         const msg = JSON.parse(evt.data);
         if (msg.type === 'peer_count') {
           setPeerCount(msg.count);
-          if (msg.count >= 2 && !peerConnectionRef.current && !msg.is_new_joiner) {
+          // If we were already in the room and someone new joins, we initiate the call!
+          if (msg.count >= 2 && !msg.is_new_joiner) {
+            if (peerConnectionRef.current) {
+              peerConnectionRef.current.close();
+              peerConnectionRef.current = null;
+            }
             initPeerConnection(true);
           }
         } else if (msg.type === 'peer_disconnected') {
           setIsCallConnected(false);
+          setIsConnecting(false);
           setPeerCount(msg.count || 1);
-          if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = null;
+          remoteStreamRef.current = null;
+          setRemoteStream(null);
+          if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
           }
         } else if (msg.type === 'offer') {
+          console.log('[WebRTC] Received offer from peer');
+          setIsConnecting(true);
+          if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
+          }
           const pc = initPeerConnection(false);
           await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          await drainIceCandidates(pc);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+          }
         } else if (msg.type === 'answer') {
+          console.log('[WebRTC] Received answer from peer');
           if (peerConnectionRef.current) {
             await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            await drainIceCandidates(peerConnectionRef.current);
           }
         } else if (msg.type === 'candidate') {
-          if (peerConnectionRef.current && msg.candidate) {
-            try {
-              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(msg.candidate));
-            } catch (e) {
-              console.warn('ICE candidate error:', e);
+          if (msg.candidate) {
+            const pc = peerConnectionRef.current;
+            if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+              try {
+                await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+              } catch (e) {
+                console.warn('[WebRTC] Error adding ICE candidate:', e);
+              }
+            } else {
+              iceCandidatesQueue.current.push(msg.candidate);
             }
           }
         }
       } catch (err) {
-        console.error('Signaling message error:', err);
+        console.error('[WebRTC] Signaling message error:', err);
       }
     };
 
@@ -274,52 +399,30 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     };
   }, [roomId]);
 
-  // Re-bind media streams to video elements when viewMode toggles or connection state updates
-  useEffect(() => {
-    if (streamRef.current) {
-      if (phcVideoRef.current && phcCamActive) {
-        phcVideoRef.current.srcObject = streamRef.current;
-        phcVideoRef.current.play().catch(() => {});
-      }
-      if (doctorVideoRef.current && doctorCamActive) {
-        doctorVideoRef.current.srcObject = streamRef.current;
-        doctorVideoRef.current.play().catch(() => {});
-      }
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = streamRef.current;
-        localVideoRef.current.play().catch(() => {});
-      }
-    }
-    if (remoteVideoRef.current && remoteStreamRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamRef.current;
-      remoteVideoRef.current.play().catch(() => {});
-    }
-  }, [viewMode, streamStarted, cameraPermissionGranted, isCallConnected, phcCamActive, doctorCamActive]);
-
   const togglePhcCamera = async () => {
-    if (!phcCamActive && (!streamRef.current || !cameraPermissionGranted)) {
+    if (!phcCamActive && !localStreamRef.current) {
       await startLocalCamera();
     }
     setPhcCamActive(prev => !prev);
   };
 
   const toggleDoctorCamera = async () => {
-    if (!doctorCamActive && (!streamRef.current || !cameraPermissionGranted)) {
+    if (!doctorCamActive && !localStreamRef.current) {
       await startLocalCamera();
     }
     setDoctorCamActive(prev => !prev);
   };
 
   const handleToggleVideo = () => {
-    if (streamRef.current) {
-      streamRef.current.getVideoTracks().forEach(track => track.enabled = !videoActive);
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(track => track.enabled = !videoActive);
     }
     setVideoActive(!videoActive);
   };
 
   const handleToggleAudio = () => {
-    if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach(track => track.enabled = !audioActive);
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => track.enabled = !audioActive);
     }
     setAudioActive(!audioActive);
   };
@@ -503,6 +606,28 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.8rem', color: '#94A3B8', flexWrap: 'wrap' }}>
           <span>⏱️ <strong style={{ color: '#F1F5F9' }}>{formatTimer(elapsedSeconds)}</strong></span>
 
+          {/* Test Mirror Toggle */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{
+              minHeight: '28px',
+              padding: '0.2rem 0.6rem',
+              fontSize: '0.74rem',
+              gap: '4px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              color: mirrorBothScreens ? '#6EE7B7' : '#F8FAFC',
+              background: mirrorBothScreens ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.15)',
+              borderColor: mirrorBothScreens ? '#10B981' : 'rgba(255,255,255,0.2)'
+            }}
+            onClick={() => setMirrorBothScreens(!mirrorBothScreens)}
+            title="Mirror your camera on both screens for single PC testing"
+          >
+            <Users size={13} />
+            {mirrorBothScreens ? '👥 Dual Cam Test: ON' : '👥 Dual Test Mirror'}
+          </button>
+
           <button
             type="button"
             className="btn btn-primary"
@@ -599,33 +724,34 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   border: '1px solid #334155'
                 }}>
                   {/* Remote WebRTC peer stream (if Doctor is watching remote PHC/Patient) */}
-                  {isCallConnected && isDoctorUser ? (
+                  {isCallConnected && isDoctorUser && remoteStream ? (
                     <video
-                      ref={remoteVideoRef}
+                      ref={(el) => bindVideoNode(el, remoteStream, false, false)}
                       autoPlay
                       playsInline
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
-                  ) : phcCamActive && cameraPermissionGranted && videoActive ? (
-                    /* Real Live Webcam Feed for PHC / Patient */
+                  ) : ((!isDoctorUser || mirrorBothScreens) && localStream && phcCamActive && videoActive) ? (
+                    /* Real Live Webcam Feed for PHC / Patient (or Doctor mirror test mode) */
                     <video
-                      ref={phcVideoRef}
+                      ref={(el) => bindVideoNode(el, localStream, true, true)}
                       autoPlay
                       playsInline
                       muted
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        transform: 'scaleX(-1)'
                       }}
                     />
                   ) : (
-                    /* Fallback Face Feed with Turn On Cam & Mobile Invite Prompts */
+                    /* Fallback / Standby Box with Direct Start Cam Button */
                     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                       <img
                         src="/assets/patient_face_feed.jpg"
                         alt="Patient with PHC staff"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.8)' }}
                       />
                       <div style={{
                         position: 'absolute',
@@ -652,25 +778,42 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                             PHC & Patient Camera Standby
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-                            Turn on laptop/PC webcam for PHC & patient, or connect mobile phone cam.
+                            {!isDoctorUser
+                              ? 'Turn on your webcam to display your face to the doctor.'
+                              : 'Waiting for patient to join or scan QR code on mobile.'}
                           </div>
+
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button
-                              type="button"
-                              onClick={togglePhcCamera}
-                              className="btn btn-primary"
-                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
-                            >
-                              <Video size={13} /> 📷 Turn ON PHC Webcam
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setShowInviteModal(true)}
-                              className="btn btn-secondary"
-                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#6EE7B7', borderColor: '#10B981', gap: '4px' }}
-                            >
-                              <Smartphone size={13} /> 📱 Mobile Cam
-                            </button>
+                            {!isDoctorUser ? (
+                              <button
+                                type="button"
+                                onClick={startLocalCamera}
+                                className="btn btn-primary"
+                                style={{ minHeight: '30px', padding: '0.3rem 0.75rem', fontSize: '0.74rem', gap: '5px' }}
+                              >
+                                <Video size={13} /> {cameraLoading ? 'Starting Camera...' : '🎥 Turn ON Patient Webcam'}
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setMirrorBothScreens(true)}
+                                  className="btn btn-primary"
+                                  style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                                  title="Display your live webcam here for single PC testing"
+                                >
+                                  <Users size={12} /> 👥 Mirror My Webcam
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowInviteModal(true)}
+                                  className="btn btn-secondary"
+                                  style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#6EE7B7', borderColor: '#10B981', gap: '4px' }}
+                                >
+                                  <Smartphone size={12} /> 📱 Mobile QR
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -712,7 +855,9 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       type="button"
                       onClick={togglePhcCamera}
                       style={{
-                        background: (phcCamActive && cameraPermissionGranted && videoActive) ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                        background: (phcCamActive && ((isDoctorUser && mirrorBothScreens && localStream) || (!isDoctorUser && localStream) || (isCallConnected && isDoctorUser && remoteStream)) && videoActive)
+                          ? 'rgba(16, 185, 129, 0.9)'
+                          : 'rgba(239, 68, 68, 0.9)',
                         border: 'none',
                         borderRadius: '20px',
                         padding: '0.2rem 0.55rem',
@@ -727,8 +872,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       }}
                       title="Toggle live webcam for PHC / Patient side"
                     >
-                      {phcCamActive && cameraPermissionGranted && videoActive ? <Video size={11} /> : <VideoOff size={11} />}
-                      {phcCamActive && cameraPermissionGranted && videoActive ? 'PHC Cam: ON' : 'Turn On Cam'}
+                      {(phcCamActive && ((isDoctorUser && mirrorBothScreens && localStream) || (!isDoctorUser && localStream) || (isCallConnected && isDoctorUser && remoteStream)) && videoActive) ? <Video size={11} /> : <VideoOff size={11} />}
+                      {(phcCamActive && ((isDoctorUser && mirrorBothScreens && localStream) || (!isDoctorUser && localStream) || (isCallConnected && isDoctorUser && remoteStream)) && videoActive) ? 'PHC Cam: LIVE' : 'Cam Standby'}
                     </button>
                   </div>
 
@@ -743,13 +888,24 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     borderRadius: '6px',
                     fontSize: '0.72rem',
                     color: '#FFFFFF',
-                    zIndex: 2
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
                   }}>
-                    <div style={{ fontWeight: 700 }}>
-                      {session.patient_name} ({session.patient_age}y)
+                    <div>
+                      <div style={{ fontWeight: 700 }}>
+                        {session.patient_name} ({session.patient_age}y)
+                      </div>
+                      <div style={{ fontSize: '0.66rem', color: '#94A3B8' }}>
+                        With PHC Staff Nurse & Medical Officer • {session.phc_name}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.66rem', color: '#94A3B8' }}>
-                      With PHC Staff Nurse & Medical Officer • {session.phc_name}
+                    {/* Live Audio activity wave for PHC */}
+                    <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                      <span style={{ width: '3px', height: '12px', background: '#10B981', borderRadius: '2px', animation: 'pulse 0.9s infinite' }} />
+                      <span style={{ width: '3px', height: '18px', background: '#10B981', borderRadius: '2px', animation: 'pulse 1.1s infinite' }} />
+                      <span style={{ width: '3px', height: '9px', background: '#10B981', borderRadius: '2px', animation: 'pulse 0.7s infinite' }} />
                     </div>
                   </div>
                 </div>
@@ -767,24 +923,25 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   border: '1px solid #1E3A8A'
                 }}>
                   {/* Remote WebRTC peer stream (if PHC is watching remote Doctor) */}
-                  {isCallConnected && !isDoctorUser ? (
+                  {isCallConnected && !isDoctorUser && remoteStream ? (
                     <video
-                      ref={remoteVideoRef}
+                      ref={(el) => bindVideoNode(el, remoteStream, false, false)}
                       autoPlay
                       playsInline
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
-                  ) : doctorCamActive && cameraPermissionGranted && videoActive ? (
-                    /* Real Live Webcam Feed for Doctor */
+                  ) : ((isDoctorUser || mirrorBothScreens) && localStream && doctorCamActive && videoActive) ? (
+                    /* Real Live Webcam Feed for Doctor (mirrored self-view) */
                     <video
-                      ref={doctorVideoRef}
+                      ref={(el) => bindVideoNode(el, localStream, true, true)}
                       autoPlay
                       playsInline
                       muted
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover'
+                        objectFit: 'cover',
+                        transform: 'scaleX(-1)'
                       }}
                     />
                   ) : (
@@ -793,7 +950,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       <img
                         src="/assets/doctor_face_feed.jpg"
                         alt="Dr. Priya Sundaram - Specialist Oncologist"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.8)' }}
                       />
                       <div style={{
                         position: 'absolute',
@@ -820,17 +977,32 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                             Specialist Doctor Camera Standby
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-                            Turn on live webcam for Dr. Priya Sundaram (Specialist Oncologist).
+                            {isDoctorUser
+                              ? 'Turn on your webcam to display your face to the patient.'
+                              : 'Waiting for Specialist Doctor (Dr. Priya Sundaram) to join the tele-hub.'}
                           </div>
+
                           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button
-                              type="button"
-                              onClick={toggleDoctorCamera}
-                              className="btn btn-primary"
-                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
-                            >
-                              <Video size={13} /> 📷 Turn ON Doctor Webcam
-                            </button>
+                            {isDoctorUser ? (
+                              <button
+                                type="button"
+                                onClick={startLocalCamera}
+                                className="btn btn-primary"
+                                style={{ minHeight: '30px', padding: '0.3rem 0.75rem', fontSize: '0.74rem', gap: '5px' }}
+                              >
+                                <Video size={13} /> {cameraLoading ? 'Starting Camera...' : '🎥 Turn ON Doctor Webcam'}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setMirrorBothScreens(true)}
+                                className="btn btn-primary"
+                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                                title="Display your live webcam here for single PC testing"
+                              >
+                                <Users size={12} /> 👥 Mirror Webcam Here
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -872,7 +1044,9 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       type="button"
                       onClick={toggleDoctorCamera}
                       style={{
-                        background: (doctorCamActive && cameraPermissionGranted && videoActive) ? 'rgba(56, 189, 248, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                        background: (doctorCamActive && ((isDoctorUser && localStream) || (!isDoctorUser && mirrorBothScreens && localStream) || (isCallConnected && !isDoctorUser && remoteStream)) && videoActive)
+                          ? 'rgba(56, 189, 248, 0.9)'
+                          : 'rgba(239, 68, 68, 0.9)',
                         border: 'none',
                         borderRadius: '20px',
                         padding: '0.2rem 0.55rem',
@@ -887,8 +1061,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       }}
                       title="Toggle live webcam for Doctor side"
                     >
-                      {doctorCamActive && cameraPermissionGranted && videoActive ? <Video size={11} /> : <VideoOff size={11} />}
-                      {doctorCamActive && cameraPermissionGranted && videoActive ? 'Doctor Cam: ON' : 'Turn On Cam'}
+                      {(doctorCamActive && ((isDoctorUser && localStream) || (!isDoctorUser && mirrorBothScreens && localStream) || (isCallConnected && !isDoctorUser && remoteStream)) && videoActive) ? <Video size={11} /> : <VideoOff size={11} />}
+                      {(doctorCamActive && ((isDoctorUser && localStream) || (!isDoctorUser && mirrorBothScreens && localStream) || (isCallConnected && !isDoctorUser && remoteStream)) && videoActive) ? 'Doctor Cam: LIVE' : 'Cam Standby'}
                     </button>
                   </div>
 
@@ -936,9 +1110,9 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 borderRadius: '12px',
                 overflow: 'hidden'
               }}>
-                {isCallConnected ? (
+                {isCallConnected && remoteStream ? (
                   <video
-                    ref={remoteVideoRef}
+                    ref={(el) => bindVideoNode(el, remoteStream, false, false)}
                     autoPlay
                     playsInline
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -956,7 +1130,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   position: 'absolute',
                   top: '12px',
                   right: '12px',
-                  width: '150px',
+                  width: '160px',
                   aspectRatio: '4/3',
                   background: '#0B132B',
                   borderRadius: '10px',
@@ -965,19 +1139,20 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   overflow: 'hidden',
                   zIndex: 10
                 }}>
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: videoActive && cameraPermissionGranted ? 'block' : 'none'
-                    }}
-                  />
-                  {(!videoActive || !cameraPermissionGranted) && (
+                  {localStream && videoActive ? (
+                    <video
+                      ref={(el) => bindVideoNode(el, localStream, true, true)}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transform: 'scaleX(-1)'
+                      }}
+                    />
+                  ) : (
                     <img
                       src={isDoctorUser ? "/assets/doctor_face_feed.jpg" : "/assets/patient_face_feed.jpg"}
                       alt="Local Face Feed"
@@ -1027,16 +1202,42 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               gap: '0.65rem',
               paddingTop: '0.75rem'
             }}>
+              {/* Webcam Restart / Allow Button if error or not yet active */}
+              {(!localStream || cameraError) && (
+                <button
+                  type="button"
+                  onClick={startLocalCamera}
+                  style={{
+                    background: '#0D9488',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '0.35rem 0.85rem',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(13, 148, 136, 0.4)'
+                  }}
+                  title="Click to allow and turn on your camera"
+                >
+                  <Video size={14} />
+                  {cameraLoading ? 'Starting Cam...' : '🎥 Turn ON Webcam'}
+                </button>
+              )}
+
               {/* PHC / Patient Webcam Toggle */}
               <button
                 type="button"
                 onClick={togglePhcCamera}
                 style={{
-                  background: (phcCamActive && cameraPermissionGranted && videoActive) ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.2)',
-                  border: `1px solid ${(phcCamActive && cameraPermissionGranted && videoActive) ? '#10B981' : '#EF4444'}`,
+                  background: phcCamActive ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.2)',
+                  border: `1px solid ${phcCamActive ? '#10B981' : '#EF4444'}`,
                   borderRadius: '20px',
                   padding: '0.35rem 0.85rem',
-                  color: (phcCamActive && cameraPermissionGranted && videoActive) ? '#6EE7B7' : '#FCA5A5',
+                  color: phcCamActive ? '#6EE7B7' : '#FCA5A5',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1046,8 +1247,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 }}
                 title="Turn on/off webcam for PHC and patient"
               >
-                {phcCamActive && cameraPermissionGranted && videoActive ? <Video size={14} /> : <VideoOff size={14} />}
-                PHC Cam: {phcCamActive && cameraPermissionGranted && videoActive ? 'ON' : 'OFF'}
+                {phcCamActive ? <Video size={14} /> : <VideoOff size={14} />}
+                PHC Cam: {phcCamActive ? 'ON' : 'OFF'}
               </button>
 
               {/* Doctor Webcam Toggle */}
@@ -1055,11 +1256,11 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 type="button"
                 onClick={toggleDoctorCamera}
                 style={{
-                  background: (doctorCamActive && cameraPermissionGranted && videoActive) ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.2)',
-                  border: `1px solid ${(doctorCamActive && cameraPermissionGranted && videoActive) ? '#38BDF8' : '#EF4444'}`,
+                  background: doctorCamActive ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.2)',
+                  border: `1px solid ${doctorCamActive ? '#38BDF8' : '#EF4444'}`,
                   borderRadius: '20px',
                   padding: '0.35rem 0.85rem',
-                  color: (doctorCamActive && cameraPermissionGranted && videoActive) ? '#7DD3FC' : '#FCA5A5',
+                  color: doctorCamActive ? '#7DD3FC' : '#FCA5A5',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1069,8 +1270,31 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 }}
                 title="Turn on/off webcam for Doctor"
               >
-                {doctorCamActive && cameraPermissionGranted && videoActive ? <Video size={14} /> : <VideoOff size={14} />}
-                Doctor Cam: {doctorCamActive && cameraPermissionGranted && videoActive ? 'ON' : 'OFF'}
+                {doctorCamActive ? <Video size={14} /> : <VideoOff size={14} />}
+                Doctor Cam: {doctorCamActive ? 'ON' : 'OFF'}
+              </button>
+
+              {/* Dual Test Mirror Toggle */}
+              <button
+                type="button"
+                onClick={() => setMirrorBothScreens(!mirrorBothScreens)}
+                style={{
+                  background: mirrorBothScreens ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255,255,255,0.15)',
+                  border: `1px solid ${mirrorBothScreens ? '#10B981' : 'rgba(255,255,255,0.2)'}`,
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: mirrorBothScreens ? '#6EE7B7' : '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+                title="Mirror your camera across both screens for single-PC simulation"
+              >
+                <Users size={14} />
+                {mirrorBothScreens ? '👥 Dual Cam Test: ON' : '👥 Dual Test Mirror'}
               </button>
 
               {/* Audio Microphone Mute Toggle */}
