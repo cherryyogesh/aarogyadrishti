@@ -11,6 +11,7 @@ import { AppointmentsView } from './features/appointments/AppointmentsView';
 import { OTPCheckinView } from './features/otp/OTPCheckinView';
 import { DoctorQueueView } from './features/doctor/DoctorQueueView';
 import { ConsultationWorkspace } from './features/consultation/ConsultationWorkspace';
+import { MobileCallJoinView } from './features/consultation/MobileCallJoinView';
 import { ChatbotView } from './features/chatbot/ChatbotView';
 import { DistrictReportsView } from './features/reports/DistrictReportsView';
 import { AuditLogView } from './features/audit/AuditLogView';
@@ -37,6 +38,15 @@ export const App: React.FC = () => {
 
   // Active Telemedicine Consultation Session
   const [activeConsultation, setActiveConsultation] = useState<any | null>(null);
+
+  // Check if URL has join_call parameter (from mobile scan or invite link)
+  const [guestRoomId, setGuestRoomId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('join_call') || p.get('join');
+    }
+    return null;
+  });
 
   const t = translations[currentLang] || translations.en;
 
@@ -90,6 +100,19 @@ export const App: React.FC = () => {
   };
 
   const cleanUserName = currentUser?.full_name ? currentUser.full_name.replace(/\s*\([^)]*\)\s*$/, '').trim() : '';
+
+  // Dedicated Instant Mobile / Remote Guest Call Join
+  if (guestRoomId) {
+    return (
+      <MobileCallJoinView
+        roomId={guestRoomId}
+        onLeave={() => {
+          setGuestRoomId(null);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }}
+      />
+    );
+  }
 
   if (authChecking) {
     return (

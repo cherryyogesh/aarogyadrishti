@@ -6,7 +6,7 @@ import {
   Video, VideoOff, Mic, MicOff, Stethoscope, FileText, CheckCircle,
   AlertCircle, ArrowLeft, Send, Sparkles, Building, Printer, Download,
   Plus, Users, LayoutGrid, Maximize2, ShieldCheck, Check, X, PhoneCall,
-  Activity, Clock
+  Activity, Clock, QrCode, Smartphone, ExternalLink, Copy
 } from 'lucide-react';
 
 interface Props {
@@ -64,6 +64,26 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const [cameraError, setCameraError] = useState<string | null>(null);
   const isDoctorUser = user?.role === 'doctor';
 
+  // WebRTC 2-Way Live Conference Setup
+  const roomId = session.webrtc_room_id || `ad-telemed-apt-${session.appointment_id || 1}`;
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+
+  const [isCallConnected, setIsCallConnected] = useState(false);
+  const [peerCount, setPeerCount] = useState(1);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const RTC_CONFIG: RTCConfiguration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  };
+
   // Initialize camera preview if available
   useEffect(() => {
     let active = true;
@@ -102,6 +122,11 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
           localVideoRef.current.play().catch(console.error);
         }
         setStreamStarted(true);
+
+        // Add tracks to active peer connection if already created
+        if (peerConnectionRef.current) {
+          stream.getTracks().forEach(t => peerConnectionRef.current!.addTrack(t, stream));
+        }
       } catch (err: any) {
         console.warn('Camera/Mic permission not granted or unavailable:', err);
         if (active) {
@@ -122,13 +147,130 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     };
   }, []);
 
-  // Re-bind media stream to video element when viewMode toggles or stream updates
+  // WebRTC Peer Connection Helper
+  const initPeerConnection = (isInitiator: boolean): RTCPeerConnection => {
+    if (peerConnectionRef.current) {
+      return peerConnectionRef.current;
+    }
+
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    peerConnectionRef.current = pc;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, streamRef.current!);
+      });
+    }
+
+    pc.ontrack = (event) => {
+      console.log('ConsultationWorkspace: Received remote WebRTC track:', event.streams);
+      const remoteStream = event.streams[0] || new MediaStream([event.track]);
+      remoteStreamRef.current = remoteStream;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        remoteVideoRef.current.play().catch(console.error);
+      }
+      setIsCallConnected(true);
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({
+          type: 'candidate',
+          candidate: event.candidate
+        }));
+      }
+    };
+
+    if (isInitiator) {
+      pc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: true })
+        .then(async (offer) => {
+          await pc.setLocalDescription(offer);
+          socketRef.current?.send(JSON.stringify({ type: 'offer', sdp: offer }));
+        })
+        .catch(console.error);
+    }
+
+    return pc;
+  };
+
+  const lanIp = '192.168.1.40';
+  const mobileJoinUrl = `http://${lanIp}:5173/?join_call=${roomId}`;
+  const localJoinUrl = typeof window !== 'undefined' ? `${window.location.origin}/?join_call=${roomId}` : '';
+
+  // WebRTC Signaling WebSocket Client
+  useEffect(() => {
+    const host = window.location.hostname;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${host}:8000/api/v1/webrtc/ws/${roomId}`;
+
+    const ws = new WebSocket(wsUrl);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('WebRTC signaling connected for consultation room:', roomId);
+    };
+
+    ws.onmessage = async (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        if (msg.type === 'peer_count') {
+          setPeerCount(msg.count);
+          if (msg.count >= 2 && !peerConnectionRef.current && !msg.is_new_joiner) {
+            initPeerConnection(true);
+          }
+        } else if (msg.type === 'peer_disconnected') {
+          setIsCallConnected(false);
+          setPeerCount(msg.count || 1);
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = null;
+          }
+        } else if (msg.type === 'offer') {
+          const pc = initPeerConnection(false);
+          await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+        } else if (msg.type === 'answer') {
+          if (peerConnectionRef.current) {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          }
+        } else if (msg.type === 'candidate') {
+          if (peerConnectionRef.current && msg.candidate) {
+            try {
+              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(msg.candidate));
+            } catch (e) {
+              console.warn('ICE candidate error:', e);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Signaling message error:', err);
+      }
+    };
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+    };
+  }, [roomId]);
+
+  // Re-bind media streams to video elements when viewMode toggles or connection state updates
   useEffect(() => {
     if (localVideoRef.current && streamRef.current) {
       localVideoRef.current.srcObject = streamRef.current;
       localVideoRef.current.play().catch(console.error);
     }
-  }, [viewMode, streamStarted, cameraPermissionGranted]);
+    if (remoteVideoRef.current && remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.play().catch(console.error);
+    }
+  }, [viewMode, streamStarted, cameraPermissionGranted, isCallConnected]);
 
   const handleToggleVideo = () => {
     if (streamRef.current) {
@@ -283,16 +425,22 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            background: 'rgba(16, 185, 129, 0.2)',
-            border: '1px solid #10B981',
-            color: '#6EE7B7',
-            padding: '0.2rem 0.6rem',
+            background: isCallConnected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+            border: `1px solid ${isCallConnected ? '#10B981' : '#EAB308'}`,
+            color: isCallConnected ? '#6EE7B7' : '#FDE047',
+            padding: '0.2rem 0.65rem',
             borderRadius: '9999px',
             fontSize: '0.74rem',
             fontWeight: 700
           }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-            VIDEO BRIDGE CONNECTED
+            <span style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              backgroundColor: isCallConnected ? '#10B981' : '#EAB308',
+              animation: 'pulse 1s infinite'
+            }} />
+            {isCallConnected ? '● LIVE 2-WAY WEBRTC (CONNECTED)' : (peerCount > 1 ? 'CONNECTING WEBRTC...' : '1/2 PEER (WAITING FOR 2ND CAM)')}
           </span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#E2E8F0', flexWrap: 'wrap' }}>
@@ -314,9 +462,47 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8rem', color: '#94A3B8' }}>
-          <span>⏱️ Duration: <strong style={{ color: '#F1F5F9' }}>{formatTimer(elapsedSeconds)}</strong></span>
-          <span>⚡ Latency: <strong style={{ color: '#10B981' }}>28ms (HD 720p)</strong></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.8rem', color: '#94A3B8', flexWrap: 'wrap' }}>
+          <span>⏱️ <strong style={{ color: '#F1F5F9' }}>{formatTimer(elapsedSeconds)}</strong></span>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{
+              minHeight: '28px',
+              padding: '0.2rem 0.6rem',
+              fontSize: '0.74rem',
+              gap: '4px',
+              display: 'inline-flex',
+              alignItems: 'center'
+            }}
+            onClick={() => setShowInviteModal(true)}
+          >
+            <Smartphone size={13} />
+            📱 Connect Mobile Cam / QR
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{
+              minHeight: '28px',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.74rem',
+              color: '#38BDF8',
+              borderColor: '#0284C7',
+              background: 'rgba(2, 132, 199, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onClick={() => window.open(localJoinUrl, '_blank')}
+            title="Open in new window to test 2-way call on this PC"
+          >
+            <ExternalLink size={13} />
+            🪟 Test in 2nd Window
+          </button>
+
           <button
             type="button"
             className="btn btn-secondary"
@@ -414,13 +600,69 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       )}
                     </>
                   ) : (
-                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                      <img
-                        src="/assets/patient_face_feed.jpg"
-                        alt="Patient with PHC staff nurse"
+                    isCallConnected ? (
+                      <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                    </div>
+                    ) : (
+                      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                        <img
+                          src="/assets/patient_face_feed.jpg"
+                          alt="Patient with PHC staff nurse"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(15, 23, 42, 0.65)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '1rem',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{
+                            background: 'rgba(15, 23, 42, 0.95)',
+                            border: '1px solid #10B981',
+                            borderRadius: '12px',
+                            padding: '0.85rem 1.15rem',
+                            color: '#E2E8F0',
+                            maxWidth: '92%',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                          }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#6EE7B7', marginBottom: '0.3rem' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
+                              Waiting for PHC / Mobile Cam...
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                              Connect patient or mobile phone camera to start live 2-way call.
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => setShowInviteModal(true)}
+                                className="btn btn-primary"
+                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                              >
+                                <Smartphone size={13} /> 📱 Connect Mobile Cam
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => window.open(localJoinUrl, '_blank')}
+                                className="btn btn-secondary"
+                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#38BDF8', borderColor: '#0284C7' }}
+                              >
+                                <ExternalLink size={13} /> 🪟 2nd Window
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
                   )}
 
                   {/* Endpoint Overlay - PHC Staff & Patient */}
@@ -448,20 +690,20 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    border: '1px solid #10B981',
+                    background: isCallConnected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(234, 179, 8, 0.2)',
+                    border: `1px solid ${isCallConnected ? '#10B981' : '#EAB308'}`,
                     padding: '0.15rem 0.45rem',
                     borderRadius: '4px',
                     fontSize: '0.65rem',
-                    color: '#6EE7B7',
+                    color: isCallConnected ? '#6EE7B7' : '#FDE047',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                     zIndex: 2
                   }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
-                    LIVE HD 1080p
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isCallConnected ? '#10B981' : '#EAB308', animation: 'pulse 1s infinite' }} />
+                    {isCallConnected ? 'LIVE HD 1080p' : 'STANDBY'}
                   </div>
 
                   <div style={{
@@ -538,13 +780,61 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                       )}
                     </>
                   ) : (
-                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                      <img
-                        src="/assets/doctor_face_feed.jpg"
-                        alt="Dr. Priya Sundaram - Specialist Oncologist"
+                    isCallConnected ? (
+                      <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
-                    </div>
+                    ) : (
+                      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                        <img
+                          src="/assets/doctor_face_feed.jpg"
+                          alt="Dr. Priya Sundaram - Specialist Oncologist"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(15, 23, 42, 0.65)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '1rem',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{
+                            background: 'rgba(15, 23, 42, 0.95)',
+                            border: '1px solid #38BDF8',
+                            borderRadius: '12px',
+                            padding: '0.85rem 1.15rem',
+                            color: '#E2E8F0',
+                            maxWidth: '92%',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                          }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#38BDF8', marginBottom: '0.3rem' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38BDF8', animation: 'pulse 1s infinite' }} />
+                              Connecting to Specialist Doctor Hub...
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                              Doctor tele-hub endpoint is establishing live WebRTC audio/video link.
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => setShowInviteModal(true)}
+                                className="btn btn-primary"
+                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                              >
+                                <Smartphone size={13} /> 📱 Connect Mobile Cam
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
                   )}
 
                   {/* Endpoint Overlay - Doctor */}
@@ -572,19 +862,19 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    border: '1px solid #10B981',
+                    background: isCallConnected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(56, 189, 248, 0.2)',
+                    border: `1px solid ${isCallConnected ? '#10B981' : '#38BDF8'}`,
                     padding: '0.15rem 0.45rem',
                     borderRadius: '4px',
                     fontSize: '0.65rem',
-                    color: '#6EE7B7',
+                    color: isCallConnected ? '#6EE7B7' : '#7DD3FC',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
                     zIndex: 2
                   }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isCallConnected ? '#10B981' : '#38BDF8', animation: 'pulse 1s infinite' }} />
                     TELEMEDICINE HUB
                   </div>
 
@@ -632,11 +922,20 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 borderRadius: '12px',
                 overflow: 'hidden'
               }}>
-                <img
-                  src={isDoctorUser ? "/assets/patient_face_feed.jpg" : "/assets/doctor_face_feed.jpg"}
-                  alt="Remote Participant Face"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                {isCallConnected ? (
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <img
+                    src={isDoctorUser ? "/assets/patient_face_feed.jpg" : "/assets/doctor_face_feed.jpg"}
+                    alt="Remote Participant Face"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )}
 
                 {/* PiP Inset (Local Participant) */}
                 <div style={{
@@ -710,7 +1009,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              gap: '0.75rem',
+              flexWrap: 'wrap',
+              gap: '0.65rem',
               paddingTop: '0.75rem'
             }}>
               <button
@@ -771,6 +1071,50 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 title="Toggle View Mode"
               >
                 <LayoutGrid size={17} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+                title="Connect mobile phone camera via QR code"
+              >
+                <Smartphone size={14} />
+                Connect Mobile Cam
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.open(localJoinUrl, '_blank')}
+                style={{
+                  background: 'rgba(2, 132, 199, 0.25)',
+                  border: '1px solid #0284C7',
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: '#7DD3FC',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+                title="Open 2nd window on this PC to test 2-way WebRTC"
+              >
+                <ExternalLink size={14} />
+                2nd Window Test
               </button>
             </div>
           </div>
@@ -1202,6 +1546,205 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Cam & QR Code Live Video Join Modal */}
+      {showInviteModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div className="card" style={{
+            maxWidth: '560px',
+            width: '100%',
+            padding: '1.75rem',
+            background: '#0B132B',
+            border: '1px solid #1E293B',
+            color: '#FFFFFF',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+            borderRadius: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0D9488 0%, #059669 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF'
+                }}>
+                  <Smartphone size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
+                    Connect Mobile / Web Camera
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                    Live 2-Way Video Call • Room: <span style={{ color: '#38BDF8', fontWeight: 700 }}>{roomId}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(180px, 200px) 1fr',
+              gap: '1.25rem',
+              alignItems: 'center',
+              background: '#0F172A',
+              padding: '1.25rem',
+              borderRadius: '12px',
+              border: '1px solid #1E293B',
+              marginBottom: '1.25rem'
+            }}>
+              {/* QR Code Container */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  background: '#FFFFFF',
+                  padding: '8px',
+                  borderRadius: '10px',
+                  display: 'inline-block',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                }}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mobileJoinUrl)}`}
+                    alt="Mobile Call QR Code"
+                    style={{ width: '180px', height: '180px', display: 'block' }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.4rem', fontWeight: 600 }}>
+                  Scan with Phone Camera
+                </div>
+              </div>
+
+              {/* Steps / Explanation */}
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38BDF8', marginBottom: '0.5rem' }}>
+                  Quick 2-Way Connection:
+                </div>
+                <ol style={{ fontSize: '0.75rem', color: '#CBD5E1', paddingLeft: '1.2rem', margin: 0, lineHeight: 1.6 }}>
+                  <li>Open the <strong>Camera app</strong> on your mobile phone.</li>
+                  <li>Scan the QR code to open the instant video bridge.</li>
+                  <li>Tap <strong>"Join Live Video Call"</strong> and allow camera/mic.</li>
+                  <li>Both laptop and phone will immediately stream video & audio peer-to-peer!</li>
+                </ol>
+
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #334155' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.open(localJoinUrl, '_blank');
+                      setShowInviteModal(false);
+                    }}
+                    className="btn btn-primary"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <ExternalLink size={14} /> Open in 2nd Browser Window Now
+                  </button>
+                  <div style={{ fontSize: '0.66rem', color: '#94A3B8', textAlign: 'center', marginTop: '0.35rem' }}>
+                    Instant 2-way call testing on this same laptop
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Direct Link Copy Boxes */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.25rem' }}>
+                  📱 Mobile Wi-Fi Direct Join Link:
+                </div>
+                <div style={{
+                  display: 'flex',
+                  background: '#0F172A',
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  overflow: 'hidden'
+                }}>
+                  <input
+                    type="text"
+                    readOnly
+                    value={mobileJoinUrl}
+                    style={{
+                      flex: 1,
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#6EE7B7',
+                      padding: '0.45rem 0.75rem',
+                      fontSize: '0.74rem',
+                      fontFamily: 'monospace',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(mobileJoinUrl);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2000);
+                    }}
+                    style={{
+                      background: copiedLink ? '#059669' : '#1E293B',
+                      border: 'none',
+                      color: '#FFF',
+                      padding: '0.45rem 0.85rem',
+                      cursor: 'pointer',
+                      fontSize: '0.72rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    {copiedLink ? <Check size={13} /> : <Copy size={13} />}
+                    {copiedLink ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowInviteModal(false)}
+                style={{ minHeight: '34px', padding: '0.35rem 1rem', fontSize: '0.8rem' }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
