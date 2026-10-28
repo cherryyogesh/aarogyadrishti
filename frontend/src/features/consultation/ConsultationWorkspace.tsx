@@ -57,12 +57,18 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const [finalizing, setFinalizing] = useState(false);
   const [completed, setCompleted] = useState(false);
 
+  const phcVideoRef = useRef<HTMLVideoElement>(null);
+  const doctorVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [streamStarted, setStreamStarted] = useState(false);
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const isDoctorUser = user?.role === 'doctor';
+
+  // Independent webcam active states for both sides (allows turning on webcam for PHC, patient and doctor)
+  const [phcCamActive, setPhcCamActive] = useState(true);
+  const [doctorCamActive, setDoctorCamActive] = useState(true);
 
   // WebRTC 2-Way Live Conference Setup
   const roomId = session.webrtc_room_id || `ad-telemed-apt-${session.appointment_id || 1}`;
@@ -84,62 +90,70 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     ]
   };
 
-  // Initialize camera preview if available
-  useEffect(() => {
-    let active = true;
+  const startLocalCamera = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      setCameraError('Camera access not supported on this browser context');
+      return;
+    }
 
-    const startLocalCamera = async () => {
-      if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-        setCameraError('Camera access not supported on this browser context');
-        return;
-      }
-
+    try {
+      let stream: MediaStream;
       try {
-        let stream: MediaStream;
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: true
+        });
+      } catch {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-            audio: true
-          });
-        } catch {
-          // Fallback to video-only if audio device is unavailable or blocked
           stream = await navigator.mediaDevices.getUserMedia({
             video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
             audio: false
           });
-        }
-
-        if (!active) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        setCameraPermissionGranted(true);
-        setCameraError(null);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-          localVideoRef.current.play().catch(console.error);
-        }
-        setStreamStarted(true);
-
-        // Add tracks to active peer connection if already created
-        if (peerConnectionRef.current) {
-          stream.getTracks().forEach(t => peerConnectionRef.current!.addTrack(t, stream));
-        }
-      } catch (err: any) {
-        console.warn('Camera/Mic permission not granted or unavailable:', err);
-        if (active) {
-          setCameraPermissionGranted(false);
-          setCameraError(err.message || 'Camera permission denied');
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
       }
-    };
 
+      streamRef.current = stream;
+      setCameraPermissionGranted(true);
+      setCameraError(null);
+      setStreamStarted(true);
+
+      if (phcVideoRef.current) {
+        phcVideoRef.current.srcObject = stream;
+        phcVideoRef.current.play().catch(() => {});
+      }
+      if (doctorVideoRef.current) {
+        doctorVideoRef.current.srcObject = stream;
+        doctorVideoRef.current.play().catch(() => {});
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.play().catch(() => {});
+      }
+
+      // Add tracks to active peer connection if already created
+      if (peerConnectionRef.current) {
+        stream.getTracks().forEach(t => {
+          try {
+            peerConnectionRef.current!.addTrack(t, stream);
+          } catch (e) {
+            // Track might already be added
+          }
+        });
+      }
+    } catch (err: any) {
+      console.warn('Camera/Mic permission not granted or unavailable:', err);
+      setCameraPermissionGranted(false);
+      setCameraError(err.message || 'Camera permission denied');
+    }
+  };
+
+  // Initialize camera preview if available
+  useEffect(() => {
     startLocalCamera();
 
     return () => {
-      active = false;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -262,15 +276,39 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
 
   // Re-bind media streams to video elements when viewMode toggles or connection state updates
   useEffect(() => {
-    if (localVideoRef.current && streamRef.current) {
-      localVideoRef.current.srcObject = streamRef.current;
-      localVideoRef.current.play().catch(console.error);
+    if (streamRef.current) {
+      if (phcVideoRef.current && phcCamActive) {
+        phcVideoRef.current.srcObject = streamRef.current;
+        phcVideoRef.current.play().catch(() => {});
+      }
+      if (doctorVideoRef.current && doctorCamActive) {
+        doctorVideoRef.current.srcObject = streamRef.current;
+        doctorVideoRef.current.play().catch(() => {});
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = streamRef.current;
+        localVideoRef.current.play().catch(() => {});
+      }
     }
     if (remoteVideoRef.current && remoteStreamRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current;
-      remoteVideoRef.current.play().catch(console.error);
+      remoteVideoRef.current.play().catch(() => {});
     }
-  }, [viewMode, streamStarted, cameraPermissionGranted, isCallConnected]);
+  }, [viewMode, streamStarted, cameraPermissionGranted, isCallConnected, phcCamActive, doctorCamActive]);
+
+  const togglePhcCamera = async () => {
+    if (!phcCamActive && (!streamRef.current || !cameraPermissionGranted)) {
+      await startLocalCamera();
+    }
+    setPhcCamActive(prev => !prev);
+  };
+
+  const toggleDoctorCamera = async () => {
+    if (!doctorCamActive && (!streamRef.current || !cameraPermissionGranted)) {
+      await startLocalCamera();
+    }
+    setDoctorCamActive(prev => !prev);
+  };
 
   const handleToggleVideo = () => {
     if (streamRef.current) {
@@ -560,109 +598,83 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   justifyContent: 'center',
                   border: '1px solid #334155'
                 }}>
-                  {!isDoctorUser ? (
-                    <>
-                      <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: videoActive && cameraPermissionGranted ? 'block' : 'none'
-                        }}
-                      />
-                      {(!videoActive || !cameraPermissionGranted) && (
-                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                          <img
-                            src="/assets/patient_face_feed.jpg"
-                            alt="Patient with PHC staff"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                          {!videoActive && (
-                            <div style={{
-                              position: 'absolute',
-                              inset: 0,
-                              background: 'rgba(15, 23, 42, 0.75)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#94A3B8'
-                            }}>
-                              <VideoOff size={36} style={{ margin: '0 auto 0.4rem', opacity: 0.6 }} />
-                              <div style={{ fontSize: '0.8rem' }}>PHC Camera Paused</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
+                  {/* Remote WebRTC peer stream (if Doctor is watching remote PHC/Patient) */}
+                  {isCallConnected && isDoctorUser ? (
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : phcCamActive && cameraPermissionGranted && videoActive ? (
+                    /* Real Live Webcam Feed for PHC / Patient */
+                    <video
+                      ref={phcVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
                   ) : (
-                    isCallConnected ? (
-                      <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    /* Fallback Face Feed with Turn On Cam & Mobile Invite Prompts */
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <img
+                        src="/assets/patient_face_feed.jpg"
+                        alt="Patient with PHC staff"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
                       />
-                    ) : (
-                      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                        <img
-                          src="/assets/patient_face_feed.jpg"
-                          alt="Patient with PHC staff nurse"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
-                        />
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        textAlign: 'center'
+                      }}>
                         <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(15, 23, 42, 0.65)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '1rem',
-                          textAlign: 'center'
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid #10B981',
+                          borderRadius: '12px',
+                          padding: '0.85rem 1.15rem',
+                          color: '#E2E8F0',
+                          maxWidth: '92%',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
                         }}>
-                          <div style={{
-                            background: 'rgba(15, 23, 42, 0.95)',
-                            border: '1px solid #10B981',
-                            borderRadius: '12px',
-                            padding: '0.85rem 1.15rem',
-                            color: '#E2E8F0',
-                            maxWidth: '92%',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
-                          }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#6EE7B7', marginBottom: '0.3rem' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
-                              Waiting for PHC / Mobile Cam...
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-                              Connect patient or mobile phone camera to start live 2-way call.
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                              <button
-                                type="button"
-                                onClick={() => setShowInviteModal(true)}
-                                className="btn btn-primary"
-                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
-                              >
-                                <Smartphone size={13} /> 📱 Connect Mobile Cam
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => window.open(localJoinUrl, '_blank')}
-                                className="btn btn-secondary"
-                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#38BDF8', borderColor: '#0284C7' }}
-                              >
-                                <ExternalLink size={13} /> 🪟 2nd Window
-                              </button>
-                            </div>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#6EE7B7', marginBottom: '0.3rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
+                            PHC & Patient Camera Standby
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                            Turn on laptop/PC webcam for PHC & patient, or connect mobile phone cam.
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={togglePhcCamera}
+                              className="btn btn-primary"
+                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                            >
+                              <Video size={13} /> 📷 Turn ON PHC Webcam
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowInviteModal(true)}
+                              className="btn btn-secondary"
+                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#6EE7B7', borderColor: '#10B981', gap: '4px' }}
+                            >
+                              <Smartphone size={13} /> 📱 Mobile Cam
+                            </button>
                           </div>
                         </div>
                       </div>
-                    )
+                    </div>
                   )}
 
                   {/* Endpoint Overlay - PHC Staff & Patient */}
@@ -686,24 +698,38 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     PHC CLINIC ENDPOINT
                   </div>
 
+                  {/* Top-Right Pill: PHC Camera Status & Quick Toggle */}
                   <div style={{
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    background: isCallConnected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(234, 179, 8, 0.2)',
-                    border: `1px solid ${isCallConnected ? '#10B981' : '#EAB308'}`,
-                    padding: '0.15rem 0.45rem',
-                    borderRadius: '4px',
-                    fontSize: '0.65rem',
-                    color: isCallConnected ? '#6EE7B7' : '#FDE047',
-                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    zIndex: 2
+                    zIndex: 3
                   }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isCallConnected ? '#10B981' : '#EAB308', animation: 'pulse 1s infinite' }} />
-                    {isCallConnected ? 'LIVE HD 1080p' : 'STANDBY'}
+                    <button
+                      type="button"
+                      onClick={togglePhcCamera}
+                      style={{
+                        background: (phcCamActive && cameraPermissionGranted && videoActive) ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '0.2rem 0.55rem',
+                        color: '#FFF',
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                      }}
+                      title="Toggle live webcam for PHC / Patient side"
+                    >
+                      {phcCamActive && cameraPermissionGranted && videoActive ? <Video size={11} /> : <VideoOff size={11} />}
+                      {phcCamActive && cameraPermissionGranted && videoActive ? 'PHC Cam: ON' : 'Turn On Cam'}
+                    </button>
                   </div>
 
                   <div style={{
@@ -740,101 +766,75 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   justifyContent: 'center',
                   border: '1px solid #1E3A8A'
                 }}>
-                  {isDoctorUser ? (
-                    <>
-                      <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                          display: videoActive && cameraPermissionGranted ? 'block' : 'none'
-                        }}
-                      />
-                      {(!videoActive || !cameraPermissionGranted) && (
-                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                          <img
-                            src="/assets/doctor_face_feed.jpg"
-                            alt="Dr. Priya Sundaram - Oncologist"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                          {!videoActive && (
-                            <div style={{
-                              position: 'absolute',
-                              inset: 0,
-                              background: 'rgba(15, 23, 42, 0.75)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#94A3B8'
-                            }}>
-                              <VideoOff size={36} style={{ margin: '0 auto 0.4rem', opacity: 0.6 }} />
-                              <div style={{ fontSize: '0.8rem' }}>Doctor Camera Paused</div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
+                  {/* Remote WebRTC peer stream (if PHC is watching remote Doctor) */}
+                  {isCallConnected && !isDoctorUser ? (
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : doctorCamActive && cameraPermissionGranted && videoActive ? (
+                    /* Real Live Webcam Feed for Doctor */
+                    <video
+                      ref={doctorVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
                   ) : (
-                    isCallConnected ? (
-                      <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    /* Fallback Doctor Face Feed with Turn On Cam Option */
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <img
+                        src="/assets/doctor_face_feed.jpg"
+                        alt="Dr. Priya Sundaram - Specialist Oncologist"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
                       />
-                    ) : (
-                      <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                        <img
-                          src="/assets/doctor_face_feed.jpg"
-                          alt="Dr. Priya Sundaram - Specialist Oncologist"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.85)' }}
-                        />
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.65)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        textAlign: 'center'
+                      }}>
                         <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(15, 23, 42, 0.65)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '1rem',
-                          textAlign: 'center'
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid #38BDF8',
+                          borderRadius: '12px',
+                          padding: '0.85rem 1.15rem',
+                          color: '#E2E8F0',
+                          maxWidth: '92%',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
                         }}>
-                          <div style={{
-                            background: 'rgba(15, 23, 42, 0.95)',
-                            border: '1px solid #38BDF8',
-                            borderRadius: '12px',
-                            padding: '0.85rem 1.15rem',
-                            color: '#E2E8F0',
-                            maxWidth: '92%',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
-                          }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#38BDF8', marginBottom: '0.3rem' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38BDF8', animation: 'pulse 1s infinite' }} />
-                              Connecting to Specialist Doctor Hub...
-                            </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-                              Doctor tele-hub endpoint is establishing live WebRTC audio/video link.
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                              <button
-                                type="button"
-                                onClick={() => setShowInviteModal(true)}
-                                className="btn btn-primary"
-                                style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
-                              >
-                                <Smartphone size={13} /> 📱 Connect Mobile Cam
-                              </button>
-                            </div>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 800, color: '#38BDF8', marginBottom: '0.3rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#38BDF8', animation: 'pulse 1s infinite' }} />
+                            Specialist Doctor Camera Standby
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                            Turn on live webcam for Dr. Priya Sundaram (Specialist Oncologist).
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={toggleDoctorCamera}
+                              className="btn btn-primary"
+                              style={{ minHeight: '28px', padding: '0.25rem 0.65rem', fontSize: '0.72rem', gap: '4px' }}
+                            >
+                              <Video size={13} /> 📷 Turn ON Doctor Webcam
+                            </button>
                           </div>
                         </div>
                       </div>
-                    )
+                    </div>
                   )}
 
                   {/* Endpoint Overlay - Doctor */}
@@ -858,24 +858,38 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     SPECIALIST DOCTOR ENDPOINT
                   </div>
 
+                  {/* Top-Right Pill: Doctor Camera Status & Quick Toggle */}
                   <div style={{
                     position: 'absolute',
                     top: '8px',
                     right: '8px',
-                    background: isCallConnected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(56, 189, 248, 0.2)',
-                    border: `1px solid ${isCallConnected ? '#10B981' : '#38BDF8'}`,
-                    padding: '0.15rem 0.45rem',
-                    borderRadius: '4px',
-                    fontSize: '0.65rem',
-                    color: isCallConnected ? '#6EE7B7' : '#7DD3FC',
-                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    zIndex: 2
+                    zIndex: 3
                   }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isCallConnected ? '#10B981' : '#38BDF8', animation: 'pulse 1s infinite' }} />
-                    TELEMEDICINE HUB
+                    <button
+                      type="button"
+                      onClick={toggleDoctorCamera}
+                      style={{
+                        background: (doctorCamActive && cameraPermissionGranted && videoActive) ? 'rgba(56, 189, 248, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '0.2rem 0.55rem',
+                        color: '#FFF',
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                      }}
+                      title="Toggle live webcam for Doctor side"
+                    >
+                      {doctorCamActive && cameraPermissionGranted && videoActive ? <Video size={11} /> : <VideoOff size={11} />}
+                      {doctorCamActive && cameraPermissionGranted && videoActive ? 'Doctor Cam: ON' : 'Turn On Cam'}
+                    </button>
                   </div>
 
                   {/* Audio wave pulse and doctor info at bottom */}
@@ -1013,26 +1027,53 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               gap: '0.65rem',
               paddingTop: '0.75rem'
             }}>
+              {/* PHC / Patient Webcam Toggle */}
               <button
                 type="button"
-                onClick={handleToggleVideo}
+                onClick={togglePhcCamera}
                 style={{
-                  background: videoActive ? 'rgba(255,255,255,0.15)' : '#EF4444',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '50%',
-                  width: '38px',
-                  height: '38px',
-                  color: 'white',
+                  background: (phcCamActive && cameraPermissionGranted && videoActive) ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.2)',
+                  border: `1px solid ${(phcCamActive && cameraPermissionGranted && videoActive) ? '#10B981' : '#EF4444'}`,
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: (phcCamActive && cameraPermissionGranted && videoActive) ? '#6EE7B7' : '#FCA5A5',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
                 }}
-                title={videoActive ? 'Pause Video' : 'Resume Video'}
+                title="Turn on/off webcam for PHC and patient"
               >
-                {videoActive ? <Video size={18} /> : <VideoOff size={18} />}
+                {phcCamActive && cameraPermissionGranted && videoActive ? <Video size={14} /> : <VideoOff size={14} />}
+                PHC Cam: {phcCamActive && cameraPermissionGranted && videoActive ? 'ON' : 'OFF'}
               </button>
 
+              {/* Doctor Webcam Toggle */}
+              <button
+                type="button"
+                onClick={toggleDoctorCamera}
+                style={{
+                  background: (doctorCamActive && cameraPermissionGranted && videoActive) ? 'rgba(56, 189, 248, 0.25)' : 'rgba(239, 68, 68, 0.2)',
+                  border: `1px solid ${(doctorCamActive && cameraPermissionGranted && videoActive) ? '#38BDF8' : '#EF4444'}`,
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: (doctorCamActive && cameraPermissionGranted && videoActive) ? '#7DD3FC' : '#FCA5A5',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+                title="Turn on/off webcam for Doctor"
+              >
+                {doctorCamActive && cameraPermissionGranted && videoActive ? <Video size={14} /> : <VideoOff size={14} />}
+                Doctor Cam: {doctorCamActive && cameraPermissionGranted && videoActive ? 'ON' : 'OFF'}
+              </button>
+
+              {/* Audio Microphone Mute Toggle */}
               <button
                 type="button"
                 onClick={handleToggleAudio}
@@ -1053,6 +1094,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 {audioActive ? <Mic size={18} /> : <MicOff size={18} />}
               </button>
 
+              {/* Grid / PiP Toggle */}
               <button
                 type="button"
                 onClick={() => setViewMode(viewMode === 'dual' ? 'pip' : 'dual')}
@@ -1073,6 +1115,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 <LayoutGrid size={17} />
               </button>
 
+              {/* Connect Mobile Camera QR Modal Button */}
               <button
                 type="button"
                 onClick={() => setShowInviteModal(true)}
@@ -1095,6 +1138,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 Connect Mobile Cam
               </button>
 
+              {/* Open in 2nd Window Test Button */}
               <button
                 type="button"
                 onClick={() => window.open(localJoinUrl, '_blank')}
