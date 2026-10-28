@@ -21,6 +21,43 @@ class OralSite(str, enum.Enum):
     GINGIVA = "gingiva"                   # Gums / Alveolar ridge
     LIP = "lip"                           # Labial mucosa / Vermilion border
     RETROMOLAR = "retromolar_trigone"     # Behind wisdom teeth
+    # Nose & ENT Sites
+    NASAL_BRIDGE = "nasal_bridge"
+    ALAR_MARGIN = "alar_margin"
+    NASAL_SEPTUM = "nasal_septum"
+    ANTERIOR_TURBINATE = "anterior_turbinate"
+    NASOLABIAL_FOLD = "nasolabial_fold"
+    # Eye & Ocular Surface
+    CORNEA_LIMBUS = "cornea_limbus"
+    BULBAR_CONJUNCTIVA = "bulbar_conjunctiva"
+    EYELID_MARGIN = "eyelid_margin"
+    INNER_OUTER_CANTHUS = "inner_outer_canthus"
+    LACRIMAL_SAC = "lacrimal_sac"
+    # Ear & Auricular Sites
+    HELIX_ANTIHELIX = "helix_antihelix"
+    EAR_LOBULE = "ear_lobule"
+    EXTERNAL_AUDITORY_CANAL = "external_auditory_canal"
+    RETROAURICULAR_CREASE = "retroauricular_crease"
+    CONCHAL_BOWL = "conchal_bowl"
+    # Skin & Cutaneous Sites
+    FACE_HEAD_NECK = "face_head_neck"
+    UPPER_LIMBS = "upper_limbs"
+    TRUNK_BACK = "trunk_back"
+    LOWER_LIMBS = "lower_limbs"
+    ACRAL_PALMS_SOLES = "acral_palms_soles"
+    SKINFOLDS = "skinfolds"
+    # Wound & Ulcer Sites
+    PLANTAR_FOOT_HALLUX = "plantar_foot_hallux"
+    MALLEOLUS_LOWER_LEG = "malleolus_lower_leg"
+    SACRUM_BUTTOCKS = "sacrum_buttocks"
+    SURGICAL_DEHISCENCE = "surgical_dehiscence"
+    TRAUMA_EXTREMITY = "trauma_extremity"
+    # Other & Lymph Node Sites
+    CERVICAL_LYMPH_NODES = "cervical_lymph_nodes"
+    AXILLARY_NODES = "axillary_nodes"
+    INGUINAL_NODES = "inguinal_nodes"
+    ANTERIOR_NECK_THYROID = "anterior_neck_thyroid"
+    SUBCUTANEOUS_SOFT_TISSUE = "subcutaneous_soft_tissue"
     OTHER = "other_oral_cavity"
 
 class LesionType(str, enum.Enum):
@@ -31,6 +68,47 @@ class LesionType(str, enum.Enum):
     PERSISTENT_ULCER = "persistent_ulcer"     # Non-healing ulcer > 2-3 weeks
     GROWTH_MASS = "growth_mass"               # Exophytic vegetative growth
     LICHEN_PLANUS = "lichen_planus"           # Wickham striae / reticular pattern
+    # Nose
+    BLEEDING_ULCER = "bleeding_ulcer"
+    NASAL_POLYP = "nasal_polyp"
+    CRUSTED_PLAQUE = "crusted_plaque"
+    SEPTAL_PERFORATION = "septal_perforation"
+    PEARLY_NODULE_BCC = "pearly_nodule_bcc"
+    VESTIBULITIS = "vestibulitis"
+    # Eye
+    PTERYGIUM = "pterygium"
+    PINGUECULA = "pinguecula"
+    MARGINAL_ULCER = "marginal_ulcer"
+    CORNEAL_INFILTRATE = "corneal_infiltrate"
+    OSSN_NEOPLASIA = "ossn_neoplasia"
+    CHALAZION_MASS = "chalazion_mass"
+    # Ear
+    SCALC_ULCER = "scalc_ulcer"
+    CSOM_DISCHARGE = "csom_discharge"
+    HEMATOMA_SEROMA = "hematoma_seroma"
+    PIGMENTED_MACULE = "pigmented_macule"
+    OTOMYCOSIS = "otomycosis"
+    KELOID_FIBROMA = "keloid_fibroma"
+    # Skin
+    MELANOMA_ABCDE = "melanoma_abcde"
+    BCC_PEARLY = "bcc_pearly"
+    SCC_INDURATED = "scc_indurated"
+    ACTINIC_KERATOSIS = "actinic_keratosis"
+    PSORIASIS_ECZEMA = "psoriasis_eczema"
+    HYPOPIGMENTED_PATCH = "hypopigmented_patch"
+    # Wounds
+    GRANULATION_RED = "granulation_red"
+    YELLOW_SLOUGH = "yellow_slough"
+    BLACK_ESCHAR_GANGRENE = "black_eschar_gangrene"
+    MACERATED_EDGE = "macerated_edge"
+    DEEP_BONE_PROBING = "deep_bone_probing"
+    CELLULITIC_WOUND = "cellulitic_wound"
+    # Other
+    HARD_FIXED_MASS = "hard_fixed_mass"
+    SOFT_MOBILE_LIPOMA = "soft_mobile_lipoma"
+    TENDER_LYMPHADENOPATHY = "tender_lymphadenopathy"
+    CYSTIC_SWELLING = "cystic_swelling"
+    THYROID_NODULE = "thyroid_nodule"
     OTHER = "other_abnormality"
 
 class ScreeningStatus(str, enum.Enum):

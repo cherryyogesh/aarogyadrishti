@@ -200,6 +200,7 @@ class ScreeningResponse(BaseModel):
     mandal: str = "Paderu"
     phc_id: int
     phc_name: str
+    category: str = "mouth"
     oral_site: str = "buccal_mucosa"
     lesion_type: str = "leukoplakia"
     symptoms: str
