@@ -509,7 +509,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             2. Visible-Health Screening Category
           </div>
           <p style={{ fontSize: '0.78rem', color: '#64748B', marginBottom: '1rem' }}>
-            {t.screening_guidelines_note}
+            {t.screening_guidelines_note || (isTe ? 'దయచేసి పరీక్షించవలసిన ప్రధాన భాగాన్ని ఎంచుకుని స్పష్టమైన వెలుతురులో ఫొటో తీయండి.' : 'Select the anatomical area to examine and capture clear clinical photographs.')}
           </p>
 
           <div style={{
@@ -811,7 +811,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                       onClick={handleApplyEnhancement}
                     >
                       <Sparkles size={14} />
-                      {enhancing ? 'Applying CLAHE Filter...' : t.photo_enhance_btn}
+                      {enhancing ? 'Applying CLAHE Filter...' : (t.photo_enhance_btn || (isTe ? 'ఫొటో స్పష్టత పెంచండి (CLAHE Filter)' : 'Enhance Lesion Clarity (CLAHE Filter)'))}
                     </button>
                     <span style={{ fontSize: '0.72rem', color: '#64748B', marginLeft: '0.75rem' }}>
                       (Applies non-generative contrast enhancement to highlight lesion margins)
@@ -1250,24 +1250,28 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
         {/* Step 4: Symptoms & Duration */}
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <div className="card-title" style={{ marginBottom: '1rem' }}>
-            4. Symptoms & Clinical Timeline
+            {t.section_symptoms_timeline || (isTe ? '4. లక్షణాలు & క్లినికల్ కాలక్రమం' : '4. Symptoms & Clinical Timeline')}
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t.screening_symptoms} *</label>
+            <label className="form-label">
+              {t.screening_symptoms || t.symptoms_label || (isTe ? 'లక్షణాలు మరియు సమస్య వివరణ' : 'Detailed Symptoms & Clinical Presentation')} *
+            </label>
             <textarea
               className="form-control"
               rows={3}
               required
               value={symptoms}
               onChange={(e) => setSymptoms(e.target.value)}
-              placeholder="e.g. Red itchy rash on left arm for 4 days. Mild burning sensation in sunlight..."
+              placeholder={isTe ? 'ఉదా: ఎడమ బుగ్గ లోపలి భాగంలో 3 వారాలుగా తుడవలేని తెల్లని మచ్చ, కారం తిన్నప్పుడు మంట...' : 'e.g. Persistent non-scrapable white patch on left inner cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks...'}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
-              <label className="form-label">{t.screening_duration} *</label>
+              <label className="form-label">
+                {t.screening_duration || t.duration_days_label || (isTe ? 'సమస్య ప్రారంభమైన రోజుల సంఖ్య' : 'Duration of Symptoms (Days)')} *
+              </label>
               <input
                 type="number"
                 min="1"
@@ -1279,15 +1283,17 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               />
             </div>
             <div className="form-group">
-              <label className="form-label">{t.screening_severity}</label>
+              <label className="form-label">
+                {t.screening_severity || t.severity_label || (isTe ? 'తీవ్రత స్థాయి' : 'Initial Severity Rating')}
+              </label>
               <select
                 className="form-control"
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value)}
               >
-                <option value="mild">{t.screening_severity_mild}</option>
-                <option value="moderate">{t.screening_severity_moderate}</option>
-                <option value="severe">{t.screening_severity_severe}</option>
+                <option value="mild">{t.screening_severity_mild || (isTe ? 'తేలికపాటి (Mild)' : 'Mild')}</option>
+                <option value="moderate">{t.screening_severity_moderate || (isTe ? 'మధ్యస్థం (Moderate)' : 'Moderate')}</option>
+                <option value="severe">{t.screening_severity_severe || (isTe ? 'తీవ్రమైన (Severe)' : 'Severe')}</option>
               </select>
             </div>
           </div>

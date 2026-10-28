@@ -9,7 +9,7 @@ export const LANGUAGES: { code: LanguageCode; label: string; nativeName: string 
   { code: 'kn', label: 'Kannada', nativeName: 'ಕನ್ನಡ' },
 ];
 
-export const translations: Record<LanguageCode, Record<string, string>> = {
+const rawTranslations: Record<LanguageCode, Record<string, string>> = {
   te: {
     app_title: 'ఆరోగ్య దృష్టి',
     app_subtitle: 'కమ్యూనిటీ ఓరల్ హెల్త్ స్క్రీనింగ్ & టెలిమెడిసిన్',
@@ -90,6 +90,26 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     symptoms_label: 'లక్షణాలు మరియు సమస్య వివరణ',
     duration_days_label: 'సమస్య ప్రారంభమైన రోజుల సంఖ్య',
     severity_label: 'తీవ్రత స్థాయి',
+    screening_symptoms: 'లక్షణాలు మరియు సమస్య వివరణ',
+    screening_duration: 'సమస్య ప్రారంభమైన రోజుల సంఖ్య',
+    screening_severity: 'తీవ్రత స్థాయి',
+    screening_severity_mild: 'తేలికపాటి (Mild)',
+    screening_severity_moderate: 'మధ్యస్థం (Moderate)',
+    screening_severity_severe: 'తీవ్రమైన (Severe)',
+    section_symptoms_timeline: '4. లక్షణాలు & క్లినికల్ కాలక్రమం',
+    screening_guidelines_note: 'దయచేసి పరీక్షించవలసిన ప్రధాన భాగాన్ని ఎంచుకుని స్పష్టమైన వెలుతురులో ఫొటో తీయండి.',
+    photo_enhance_btn: 'స్పష్టతను మెరుగుపరచండి (CLAHE Filter)',
+    screening_category_mouth: 'నోరు & నాలుక (Oral Cavity)',
+    screening_category_skin: 'చర్మం (Dermatology)',
+    screening_category_wounds: 'గాయాలు / పుండ్లు (Wounds)',
+    screening_category_eye: 'కంటి వెలుపలి భాగం (External Eye)',
+    screening_category_ear: 'చెవి బాహ్య భాగం (External Ear)',
+    screening_category_nose: 'ముక్కు (Nose)',
+    screening_category_other: 'ఇతర ఉపరితల సమస్యలు (Other)',
+    nav_config: 'సిస్టమ్ కాన్ఫిగరేషన్ & స్థితి',
+    doctor_workspace_title: 'వైద్యుల సంప్రదింపుల కార్యక్షేత్రం',
+    doctor_patient_arrived: 'రోగి PHC కేంద్రానికి చేరుకున్నారు',
+    patient_address: 'నివాస చిరునామా / ఆవాసం',
     submit_screening_btn: 'స్క్రీనింగ్ రికార్డు & ఫొటోలను భద్రపరచండి',
     sms_sent_notice: '✓ పేషెంట్ రిజిస్టర్డ్ మొబైల్‌కు నిర్ధారణ SMS విజయవంతంగా పంపబడింది.',
 
@@ -276,6 +296,26 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     symptoms_label: 'Detailed Symptoms & Clinical Presentation',
     duration_days_label: 'Duration of Symptoms (Days)',
     severity_label: 'Initial Severity Rating',
+    screening_symptoms: 'Detailed Symptoms & Clinical Presentation',
+    screening_duration: 'Duration of Symptoms (Days)',
+    screening_severity: 'Initial Severity Rating',
+    screening_severity_mild: 'Mild',
+    screening_severity_moderate: 'Moderate',
+    screening_severity_severe: 'Severe',
+    section_symptoms_timeline: '4. Symptoms & Clinical Timeline',
+    screening_guidelines_note: 'Select the anatomical area to examine and capture clear clinical photographs.',
+    photo_enhance_btn: 'Enhance Lesion Clarity (CLAHE Filter)',
+    screening_category_mouth: 'Oral Cavity & Mouth',
+    screening_category_skin: 'Skin / Rash',
+    screening_category_wounds: 'Wounds / Ulcers',
+    screening_category_eye: 'External Eye',
+    screening_category_ear: 'External Ear',
+    screening_category_nose: 'Nose',
+    screening_category_other: 'Other Visible Site',
+    nav_config: 'System Configuration & Status',
+    doctor_workspace_title: 'Doctor Consultation Workspace',
+    doctor_patient_arrived: 'Patient Arrived at PHC',
+    patient_address: 'Residential Address / Habitation',
     submit_screening_btn: 'Save Screening & Transmit Photos',
     sms_sent_notice: '✓ Confirmation SMS dispatched to patient registered mobile number.',
 
@@ -525,3 +565,17 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
     chat_disclaimer: 'ಹಕ್ಕುತ್ಯಾಗ: ಇದು ವೈದ್ಯಕೀಯ ರೋಗನಿರ್ಣಯವಲ್ಲ. ಕ್ಯಾನ್ಸರ್ ನಿರ್ಣಯಿಸುವುದಿಲ್ಲ.'
   }
 };
+
+// Ensure every language falls back to English for any missing translation keys
+export const translations: Record<LanguageCode, Record<string, string>> = (Object.keys(rawTranslations) as LanguageCode[]).reduce((acc, code) => {
+  acc[code] = new Proxy(rawTranslations[code] || {}, {
+    get(target, prop: string) {
+      if (typeof prop === 'string' && prop in target && target[prop]) {
+        return target[prop];
+      }
+      return rawTranslations.en?.[prop] || rawTranslations.te?.[prop] || '';
+    }
+  });
+  return acc;
+}, {} as Record<LanguageCode, Record<string, string>>);
+

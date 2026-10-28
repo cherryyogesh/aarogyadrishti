@@ -103,6 +103,10 @@ class ApiService {
     preferred_language: string;
     address?: string;
     village_town?: string;
+    habitation?: string;
+    gram_panchayat?: string;
+    mandal?: string;
+    district?: string;
     phc_id: number;
     consent_granted?: boolean;
     consent_notes?: string;
