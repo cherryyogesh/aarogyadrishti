@@ -59,10 +59,10 @@ const DEMO_ACCOUNTS = [
     email: 'doctor@aarogya.gov.in',
     phone: '9848011003',
     pass: 'DocPass@2026',
-    labelEn: 'Specialist Doctor (Oral Oncologist)',
-    labelTe: 'స్పెషలిస్ట్ డాక్టర్ / ఆంకాలజిస్ట్ (Doctor / Specialist)',
-    subtitleEn: 'Live waiting queue, teleconsultation & biopsy evaluation',
-    subtitleTe: 'ప్రత్యక్ష వెయిటింగ్ క్యూ, టెలికన్సల్టేషన్ & బయాప్సీ పరిశీలన',
+    labelEn: 'Doctors',
+    labelTe: 'వైద్యులు (Doctors)',
+    subtitleEn: 'Live waiting queue & teleconsultation for oral, ENT, eye, and skin conditions',
+    subtitleTe: 'ప్రత్యక్ష వెయిటింగ్ క్యూ & నోరు, చెవి, కంటి, చర్మ సమస్యల టెలికన్సల్టేషన్',
     icon: Activity,
     color: '#7E22CE'
   },
@@ -119,8 +119,67 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
 
   const handleMandalChange = (mandal: string) => {
     setRegMandal(mandal);
-    if (PHC_CENTRES_MAP[mandal]) {
-      setRegPhcName(PHC_CENTRES_MAP[mandal]);
+    if (regRole === 'chw' || regRole === 'phc_staff') {
+      if (PHC_CENTRES_MAP[mandal]) {
+        setRegPhcName(PHC_CENTRES_MAP[mandal]);
+      } else {
+        setRegPhcName(`${mandal} Primary Health Centre`);
+      }
+    }
+  };
+
+  const handleRoleChange = (newRole: UserRole) => {
+    setRegRole(newRole);
+    if (newRole === 'doctor') {
+      if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
+        setRegPhcName('District Hospital Paderu / Specialist Medical Centre');
+      }
+    } else if (newRole === 'navigator') {
+      if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
+        setRegPhcName('ITDA Tribal Patient Navigation Cell, Paderu');
+      }
+    } else if (newRole === 'admin') {
+      if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
+        setRegPhcName('District Medical & Health Office (DM&HO), Alluri Sitharama Raju');
+      }
+    } else {
+      // chw or phc_staff
+      setRegPhcName(PHC_CENTRES_MAP[regMandal] || `${regMandal} Primary Health Centre`);
+    }
+  };
+
+  const getFacilityFieldConfig = (role: UserRole) => {
+    switch (role) {
+      case 'doctor':
+        return {
+          label: isTe ? 'ఆసుపత్రి / మెడికల్ ఇన్స్టిట్యూట్ / క్లినిక్ పేరు' : 'Hospital / Medical Centre / Department',
+          placeholder: isTe ? 'ఉదా: డిస్ట్రిక్ట్ హాస్పిటల్ పాడేరు / ఏరియా హాస్పిటల్ / స్పెషాలిటీ క్లినిక్' : 'e.g. District Hospital Paderu / Area Hospital / Specialist Medical Centre',
+          hint: isTe ? 'వైద్యులు సంప్రదింపులు అందించే ఆసుపత్రి లేదా క్లినిక్ (నోరు, కన్ను, చెవి, చర్మం తదితర విభాగాలు)' : 'Hospital, Area Hospital, or Clinic where you practice (Mouth, Ear, Eyes, Skin, etc.)',
+          icon: '🏥'
+        };
+      case 'navigator':
+        return {
+          label: isTe ? 'కేటాయించిన ఆసుపత్రి / 108 రవాణా సమన్వయ కేంద్రం' : 'Assigned Hospital / Transport Coordination Hub (108 Agency)',
+          placeholder: isTe ? 'ఉదా: ITDA ఏజెన్సీ హబ్ పాడేరు / ఏరియా హాస్పిటల్ ట్రాన్స్‌పోర్ట్ సెల్' : 'e.g. ITDA Agency Hub Paderu / Area Hospital Transport Cell',
+          hint: isTe ? 'గిరిజన రోగుల రవాణా సహాయం & 108 ఫీడర్ అంబులెన్స్ కేంద్రం' : 'Base hospital or 108 tribal feeder transport coordination hub',
+          icon: '🚑'
+        };
+      case 'admin':
+        return {
+          label: isTe ? 'జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO Directorate)' : 'District Health Office / Administrative Directorate',
+          placeholder: isTe ? 'ఉదా: జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO), అల్లూరి సీతారామరాజు జిల్లా' : 'e.g. District Medical & Health Office (DM&HO), Alluri Sitharama Raju District',
+          hint: isTe ? 'జిల్లా ముఖ్య ఆరోగ్య పరిపాలనా కార్యాలయం' : 'District health administration headquarters',
+          icon: '🏛️'
+        };
+      case 'phc_staff':
+      case 'chw':
+      default:
+        return {
+          label: isTe ? 'పీహెచ్‌సీ కేంద్రం (Primary Health Centre)' : 'Primary Health Centre (PHC)',
+          placeholder: isTe ? 'ఉదా: జి. మాడుగుల ప్రాథమిక ఆరోగ్య కేంద్రం' : 'e.g. G. Madugula Primary Health Centre',
+          hint: isTe ? 'గ్రామ స్క్రీనింగ్ & ప్రాథమిక సేవల కోసం కేటాయించిన పీహెచ్‌సీ' : 'Assigned PHC centre for community health screening & local care',
+          icon: '🩺'
+        };
     }
   };
 
@@ -489,14 +548,14 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                   <select
                     className="form-control"
                     value={regRole}
-                    onChange={(e) => setRegRole(e.target.value as UserRole)}
+                    onChange={(e) => handleRoleChange(e.target.value as UserRole)}
                     required
                   >
-                    <option value="chw">{isTe ? 'ఆశా / విలేజ్ హెల్త్ వర్కర్' : 'ASHA / Village Health Worker (CHW)'}</option>
-                    <option value="phc_staff">{isTe ? 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్' : 'PHC Staff / Medical Officer (MO)'}</option>
-                    <option value="doctor">{isTe ? 'స్పెషలిస్ట్ డాక్టర్ (ఆంకాలజిస్ట్)' : 'Specialist Doctor (Oral Oncologist)'}</option>
-                    <option value="navigator">{isTe ? 'పేషెంట్ నావిగేటర్ (గిరిజన సంరక్షణ)' : 'Patient Navigator (Tribal Care)'}</option>
-                    <option value="admin">{isTe ? 'DMHO (జిల్లా వైద్యాధికారి)' : 'DMHO (District Medical & Health Officer)'}</option>
+                    <option value="chw">{isTe ? 'ఆశా / విలేజ్ హెల్త్ వర్కర్ (ASHA / CHW)' : 'ASHA / Village Health Worker (CHW)'}</option>
+                    <option value="phc_staff">{isTe ? 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్ (PHC Staff / MO)' : 'PHC Staff / Medical Officer (MO)'}</option>
+                    <option value="doctor">{isTe ? 'వైద్యులు (Doctors)' : 'Doctors'}</option>
+                    <option value="navigator">{isTe ? 'పేషెంట్ నావిగేటర్ (Patient Navigator)' : 'Patient Navigator (Tribal Care)'}</option>
+                    <option value="admin">{isTe ? 'DMHO (డిస్ట్రిక్ట్ మెడికల్ & హెల్త్ ఆఫీసర్)' : 'DMHO (District Medical & Health Officer)'}</option>
                   </select>
                 </div>
 
@@ -532,20 +591,30 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                   </select>
                 </div>
 
-                {/* PHC Center */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_phc_name || (isTe ? 'పీహెచ్‌సీ కేంద్రం' : 'Primary Health Centre (PHC)')} *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={regPhcName}
-                    onChange={(e) => setRegPhcName(e.target.value)}
-                    placeholder="e.g. G. Madugula Primary Health Centre"
-                    required
-                  />
-                </div>
+                {/* Role-adaptive Facility / Hospital / PHC Center */}
+                {(() => {
+                  const facilityConfig = getFacilityFieldConfig(regRole);
+                  return (
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="form-label" style={{ fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span>{facilityConfig.icon}</span>
+                        <span>{facilityConfig.label}</span>
+                        <span style={{ color: '#DC2626' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={regPhcName}
+                        onChange={(e) => setRegPhcName(e.target.value)}
+                        placeholder={facilityConfig.placeholder}
+                        required
+                      />
+                      <span style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '0.25rem', display: 'block' }}>
+                        {facilityConfig.hint}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* District */}
                 <div className="form-group">

@@ -75,7 +75,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       case 'phc_staff':
         return { label: isTe ? 'పీహెచ్‌సీ స్టాఫ్ / MO' : 'PHC Staff / MO', bg: '#DCFCE7', color: '#15803D' };
       case 'doctor':
-        return { label: isTe ? 'స్పెషలిస్ట్ డాక్టర్' : 'Specialist Doctor', bg: '#F3E8FF', color: '#7E22CE' };
+        return { label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors', bg: '#F3E8FF', color: '#7E22CE' };
       case 'navigator':
         return { label: isTe ? 'పేషెంట్ నేవిగేటర్' : 'Patient Navigator', bg: '#FEF3C7', color: '#B45309' };
       case 'admin':

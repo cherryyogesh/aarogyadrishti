@@ -15,7 +15,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'కమ్యూనిటీ ఓరల్ హెల్త్ స్క్రీనింగ్ & టెలిమెడిసిన్',
     role_chw: 'ఆశా / విలేజ్ హెల్త్ వర్కర్ (ASHA / CHW)',
     role_phc_staff: 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్ (PHC Staff / MO)',
-    role_doctor: 'స్పెషలిస్ట్ వైద్యులు (Doctor / Specialist)',
+    role_doctor: 'వైద్యులు (Doctors)',
     role_navigator: 'ట్రైబల్ పేషెంట్ నావిగేటర్ (Patient Navigator)',
     role_admin: 'DMHO (డిస్ట్రిక్ట్ మెడికల్ & హెల్త్ ఆఫీసర్)',
 
@@ -221,7 +221,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'Community Oral Health Screening & Telemedicine',
     role_chw: 'ASHA / Village Health Worker (CHW)',
     role_phc_staff: 'PHC Staff / Medical Officer (MO)',
-    role_doctor: 'Specialist Doctor (Oncologist)',
+    role_doctor: 'Doctors',
     role_navigator: 'Patient Navigator (Tribal Care)',
     role_admin: 'DMHO (District Medical & Health Officer)',
 
@@ -427,7 +427,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'सामुदायिक मुख स्वास्थ्य स्क्रीनिंग और टेलीमेडिसिन',
     role_chw: 'आशा / सामुदायिक स्वास्थ्य कार्यकर्ता (ASHA / CHW)',
     role_phc_staff: 'पीएचसी चिकित्सा अधिकारी (PHC Staff / MO)',
-    role_doctor: 'विशेषज्ञ चिकित्सक (Doctor / Specialist)',
+    role_doctor: 'चिकित्सक (Doctors)',
     role_navigator: 'रोगी नेविगेटर (Patient Navigator)',
     role_admin: 'डीएमएचओ (जिला चिकित्सा एवं स्वास्थ्य अधिकारी)',
 
@@ -465,7 +465,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'வாய்வழி புற்றுநோய் கண்டறிதல் மற்றும் டெலிமெடிசின்',
     role_chw: 'ஆஷா பணியாளர் (ASHA / CHW)',
     role_phc_staff: 'PHC மருத்துவ அலுவலர் (PHC Staff / MO)',
-    role_doctor: 'சிறப்பு மருத்துவர் (Doctor / Specialist)',
+    role_doctor: 'மருத்துவர்கள் (Doctors)',
     role_navigator: 'நோயாளி வழிகாட்டி (Patient Navigator)',
     role_admin: 'DMHO (மாவட்ட தலைமை மருத்துவ அலுவலர்)',
 
@@ -500,7 +500,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'കമ്മ്യൂണിറ്റി ഓറൽ ഹെൽത്ത് സ്ക്രീനിംഗും ടെലിമെഡിസിനും',
     role_chw: 'ആശ പ്രവർത്തക (ASHA / CHW)',
     role_phc_staff: 'പിഎച്ച്സി മെഡിക്കൽ ഓഫീസർ (PHC Staff / MO)',
-    role_doctor: 'സ്പെഷ്യലിസ്റ്റ് ഡോക്ടർ (Doctor / Specialist)',
+    role_doctor: 'ഡോക്ടർമാർ (Doctors)',
     role_navigator: 'പേഷ്യന്റ് നാവിഗേറ്റർ (Patient Navigator)',
     role_admin: 'ഡിഎംഎച്ച്ഒ (ജില്ലാ മെഡിക്കൽ ഓഫീസർ)',
 
@@ -535,7 +535,7 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     app_subtitle: 'ಸಮುದಾಯ ಬಾಯಿ ಆರೋಗ್ಯ ತಪಾಸಣೆ ಮತ್ತು ಟೆಲಿಮೆಡಿಸಿನ್',
     role_chw: 'ಆಶಾ ಕಾರ್ಯಕರ್ತೆ (ASHA / CHW)',
     role_phc_staff: 'ಪಿಎಚ್‌ಸಿ ವೈದ್ಯಾಧಿಕಾರಿ (PHC Staff / MO)',
-    role_doctor: 'ತಜ್ಞ ವೈದ್ಯರು (Doctor / Specialist)',
+    role_doctor: 'ವೈದ್ಯರು (Doctors)',
     role_navigator: 'ರೋಗಿ ಮಾರ್ಗದರ್ಶಿ (Patient Navigator)',
     role_admin: 'ಡಿಎಂಎಚ್‌ಒ (ಜಿಲ್ಲಾ ಆರೋಗ್ಯಾಧಿಕಾರಿ)',
 

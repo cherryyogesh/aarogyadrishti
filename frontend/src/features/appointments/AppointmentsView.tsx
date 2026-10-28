@@ -543,12 +543,12 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
             }}>
               <div style={{ fontWeight: 700, color: '#065F46', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
                 <Video size={18} />
-                {currentLang === 'te' ? 'PHC & డాక్టర్ వీడియో కాన్ఫరెన్స్' : 'PHC Clinic ⟷ Specialist Doctor Tele-Conference'}
+                {currentLang === 'te' ? 'PHC & డాక్టర్ వీడియో కాన్ఫరెన్స్' : 'PHC Clinic ⟷ Doctor Tele-Conference'}
               </div>
               <div style={{ fontSize: '0.84rem', color: '#047857', lineHeight: '1.5' }}>
                 {currentLang === 'te'
                   ? 'వైద్య సిబ్బంది సమక్షంలో రోగి డాక్టర్‌తో ప్రత్యక్ష వీడియో కాన్ఫరెన్స్‌లో పాల్గొనవచ్చు. ఇప్పుడే వీడియో కాల్ ప్రారంభించండి లేదా షెడ్యూల్ ప్రకారం కనెక్ట్ అవ్వండి.'
-                  : 'The patient at the PHC clinic can now engage in a live video conference with the specialist doctor in the presence of attending medical staff.'}
+                  : 'The patient at the PHC clinic can now engage in a live video conference with the doctor in the presence of attending medical staff.'}
               </div>
             </div>
 

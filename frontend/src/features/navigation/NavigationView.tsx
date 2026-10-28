@@ -462,7 +462,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
               }}>
                 <span style={{ fontWeight: 700 }}>Dispatched to:</span>
                 <span>✓ PHC Staff</span>
-                <span>✓ Specialist Doctor</span>
+                <span>✓ Doctors</span>
                 <span>✓ DMHO ASR</span>
               </div>
 
@@ -1136,7 +1136,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   </div>
                   <div>
                     <div style={{ color: '#16A34A', fontWeight: 800 }}>✓ TRANSMITTED</div>
-                    <div>Specialist Doctor</div>
+                    <div>Doctors</div>
                   </div>
                   <div>
                     <div style={{ color: '#16A34A', fontWeight: 800 }}>✓ TRANSMITTED</div>

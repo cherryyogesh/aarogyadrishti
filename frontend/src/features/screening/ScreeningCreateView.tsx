@@ -418,7 +418,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               <li><strong>Step 1 (Immediate):</strong> Patient received SMS with Registration ID {successResult.patient_id_display || 'AD-ASR-10023'}.</li>
               <li><strong>Step 2 (Automated):</strong> Arogya Mitra AI voice call will trigger to ask reliable clinical information (duration of suffering, mouth opening).</li>
               <li><strong>Step 3 (WhatsApp Media):</strong> Patient prompted to send close-up photo to dedicated Arogya Mitra WhatsApp number (+91 94940-22764).</li>
-              <li><strong>Step 4 (Doctor Review & Dispatch):</strong> Consolidated summary sheet generated and routed to PHC Staff, Specialist Doctor, and DMHO.</li>
+              <li><strong>Step 4 (Doctor Review & Dispatch):</strong> Consolidated summary sheet generated and routed to PHC Staff, Doctors, and DMHO.</li>
             </ul>
           </div>
         </div>
