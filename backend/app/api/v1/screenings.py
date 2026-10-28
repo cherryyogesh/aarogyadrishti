@@ -9,7 +9,7 @@ from app.core.security import mask_phone_number
 from app.models.entities import (
     Screening, ScreeningImage, ImageProcessingResult, AIAnalysis,
     Patient, PHC, User, UserRole, ScreeningStatus, OralSite, LesionType,
-    NotificationLog, AuditEvent
+    NotificationLog, AuditEvent, NavigationTask, NavigationStatus
 )
 from app.schemas.all_schemas import (
     ScreeningCreate, ScreeningResponse, ScreeningImageResponse,
@@ -19,7 +19,7 @@ from app.integrations.sms.adapter import sms_adapter, format_screening_sms
 from app.integrations.ai.hf_client import hf_client
 from app.api.deps import get_current_user, require_roles
 
-router = APIRouter(prefix="/screenings", tags=["Oral Screenings (Module B & C)"])
+router = APIRouter(prefix="/screenings", tags=["Oral Screenings"])
 
 def generate_screening_ref(db: Session) -> str:
     while True:
@@ -152,6 +152,22 @@ async def create_screening(
         details=f"Recorded oral screening {ref_id} ({oral_site_enum.value} - {lesion_type_enum.value}) for {patient.full_name}."
     )
     db.add(audit)
+
+    # Auto-create Arogya Mitra Care Lead for end-to-end follow-up
+    lead_ref = f"LEAD-2026-{random.randint(1000, 9999)}"
+    lead_task = NavigationTask(
+        task_ref=lead_ref,
+        patient_id=patient.id,
+        screening_id=screening.id,
+        task_type="ai_screening_lead",
+        status=NavigationStatus.PENDING,
+        ai_call_status="pending",
+        duration_suffering_days=payload.duration_days,
+        severity_stage=f"Stage {payload.severity.capitalize()} - {lesion_type_enum.value.replace('_', ' ').title()}",
+        notes=f"Arogya Mitra AI Care Lead created from screening {ref_id}. Preliminary evaluation: {lesion_type_enum.value} on {oral_site_enum.value}."
+    )
+    db.add(lead_task)
+
     db.commit()
     db.refresh(screening)
 

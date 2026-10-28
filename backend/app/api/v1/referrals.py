@@ -10,7 +10,7 @@ from app.models.entities import (
 from app.schemas.all_schemas import ReferralSlipResponse
 from app.api.deps import get_current_user, require_roles
 
-router = APIRouter(prefix="/referrals", tags=["Hospital Referrals & Referral Slip (Module F)"])
+router = APIRouter(prefix="/referrals", tags=["Hospital Referrals & Referral Slip"])
 
 def generate_slip_number(db: Session) -> str:
     while True:

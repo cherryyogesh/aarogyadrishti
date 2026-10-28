@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { ReferralSlip, User, LanguageCode } from '../../types';
+import { ReferralSlip, User, LanguageCode, Patient } from '../../types';
+import { Plus } from 'lucide-react';
 
 interface ReferralsViewProps {
   currentUser: User;
@@ -13,6 +14,23 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSlip, setSelectedSlip] = useState<ReferralSlip | null>(null);
+
+  // Create Referral Slip State (Doctor & Clinical Staff)
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | ''>('');
+  const [targetHospital, setTargetHospital] = useState('District Hospital Paderu / KGH Visakhapatnam');
+  const [specialtyNeeded, setSpecialtyNeeded] = useState('Head & Neck Surgical Oncology');
+  const [urgency, setUrgency] = useState('priority');
+  const [reason, setReason] = useState('Suspected Oral Potentially Malignant Disorder (Leukoplakia / OSMF) requiring biopsy');
+  const [clinicalNotes, setClinicalNotes] = useState('');
+  const [scheduledDate, setScheduledDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString().split('T')[0];
+  });
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const loadReferrals = async () => {
     try {
@@ -29,7 +47,36 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
 
   useEffect(() => {
     loadReferrals();
+    api.searchPatients().then(setPatients).catch(console.error);
   }, []);
+
+  const handleCreateReferral = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatientId) {
+      setCreateError(isTe ? 'దయచేసి రోగిని ఎంచుకోండి' : 'Please select a registered patient');
+      return;
+    }
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      const newSlip = await api.createReferral({
+        patient_id: Number(selectedPatientId),
+        specialty_needed: specialtyNeeded,
+        target_hospital: targetHospital,
+        urgency: urgency,
+        reason_for_referral: reason,
+        clinical_notes: clinicalNotes,
+        scheduled_appointment_date: scheduledDate
+      });
+      setShowCreateModal(false);
+      await loadReferrals();
+      setSelectedSlip(newSlip);
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to create referral slip');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
 
   const handleConfirmAttendance = async (id: number) => {
     try {
@@ -68,7 +115,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
             }}>
-              {isTe ? 'మాడ్యూల్ F • ఆసుపత్రి అధికారిక రిఫరల్స్' : 'Module F • Physical Hospital Referrals'}
+              {isTe ? 'ఆసుపత్రి అధికారిక రిఫరల్స్' : 'Official Hospital Referrals'}
             </span>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 700 }}>
               {isTe ? 'ఆసుపత్రి రిఫరల్ స్లిప్‌లు' : 'Specialist Hospital Referral Slips'}
@@ -79,20 +126,45 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 : 'Official referral authorization to District Hospital Paderu and King George Hospital (KGH) Visakhapatnam.'}
             </p>
           </div>
-          <button
-            onClick={loadReferrals}
-            style={{
-              background: '#4338ca',
-              border: 'none',
-              color: '#fff',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600
-            }}
-          >
-            {isTe ? '🔄 రిఫ్రెష్' : '🔄 Refresh'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {(currentUser.role === 'doctor' || currentUser.role === 'phc_staff' || currentUser.role === 'admin') && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                style={{
+                  background: '#10B981',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                <Plus size={16} />
+                {isTe ? '+ రిఫరల్ స్లిప్ జారీ చేయండి' : '+ Create Referral Slip'}
+              </button>
+            )}
+            <button
+              onClick={loadReferrals}
+              style={{
+                background: '#4338ca',
+                border: 'none',
+                color: '#fff',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '0.88rem'
+              }}
+            >
+              {isTe ? '🔄 రిఫ్రెష్' : '🔄 Refresh'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -387,11 +459,195 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 </div>
               </div>
 
-              {/* Nonclinical hackathon note */}
-              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.7rem', color: '#94a3b8' }}>
-                AAROHAN INTER-CENTRE HACKATHON 2026 • ITDA PADERU • SIMULATION DEMONSTRATION SLIP — NOT FOR CLINICAL USE
+              {/* Official Referral Footer */}
+              <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.75rem', color: '#64748b' }}>
+                GOVERNMENT OF ANDHRA PRADESH • ITDA PADERU TRIBAL HEALTHCARE NETWORK • OFFICIAL REFERRAL DOCUMENT
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Referral Slip Modal (Doctor, PHC Staff, Admin) */}
+      {showCreateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0F172A' }}>
+                  {isTe ? 'కొత్త ఆసుపత్రి రిఫరల్ స్లిప్ జారీ చేయండి' : 'Issue Official Hospital Referral Slip'}
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: '#64748B' }}>
+                  {isTe ? 'వైద్యుల అధికారిక రిఫరల్ మరియు అధీకృత స్లిప్ సృష్టి' : 'Authorized medical referral to secondary/tertiary cancer centres'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#64748B' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {createError && (
+              <div style={{ background: '#FEE2E2', color: '#991B1B', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateReferral}>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {isTe ? 'రోగిని ఎంచుకోండి *' : 'Select Registered Patient *'}
+                </label>
+                <select
+                  className="form-control"
+                  required
+                  value={selectedPatientId}
+                  onChange={(e) => setSelectedPatientId(Number(e.target.value))}
+                >
+                  <option value="">-- {isTe ? 'రోగిని ఎంచుకోండి' : 'Choose Patient'} --</option>
+                  {patients.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.patient_id_display} • {p.full_name} ({p.age}y, {p.gender}) - {p.mandal || 'Tribal Area'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    {isTe ? 'రిఫర్ చేయబడిన ఆసుపత్రి *' : 'Target Hospital *'}
+                  </label>
+                  <select
+                    className="form-control"
+                    value={targetHospital}
+                    onChange={(e) => setTargetHospital(e.target.value)}
+                  >
+                    <option value="District Hospital Paderu / KGH Visakhapatnam">District Hospital Paderu / KGH Visakhapatnam</option>
+                    <option value="King George Hospital (KGH) Visakhapatnam">King George Hospital (KGH) Visakhapatnam (Tertiary Hub)</option>
+                    <option value="District Hospital Paderu">District Hospital Paderu (Head & Neck Unit)</option>
+                    <option value="Area Hospital Chintapalli">Area Hospital Chintapalli (Secondary Care)</option>
+                    <option value="Area Hospital Araku Valley">Area Hospital Araku Valley</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    {isTe ? 'అవసరమైన స్పెషాలిటీ *' : 'Specialty Required *'}
+                  </label>
+                  <select
+                    className="form-control"
+                    value={specialtyNeeded}
+                    onChange={(e) => setSpecialtyNeeded(e.target.value)}
+                  >
+                    <option value="Head & Neck Surgical Oncology">Head & Neck Surgical Oncology</option>
+                    <option value="Oral & Maxillofacial Surgery">Oral & Maxillofacial Surgery</option>
+                    <option value="Medical Oncology & Chemotherapy">Medical Oncology & Chemotherapy</option>
+                    <option value="Radiation Oncology">Radiation Oncology</option>
+                    <option value="Incisional Biopsy & Pathology">Incisional Biopsy & Pathology</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    {isTe ? 'ప్రాధాన్యత స్థాయి *' : 'Referral Urgency *'}
+                  </label>
+                  <select
+                    className="form-control"
+                    value={urgency}
+                    onChange={(e) => setUrgency(e.target.value)}
+                  >
+                    <option value="priority">Priority (Review within 1-2 Weeks)</option>
+                    <option value="urgent">Urgent / High Suspicion (Within 48-72 Hours)</option>
+                    <option value="routine">Routine Specialist Review (3-4 Weeks)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ fontWeight: 700 }}>
+                    {isTe ? 'షెడ్యూల్ చేసిన తేదీ *' : 'Scheduled Visit Date *'}
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    required
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {isTe ? 'రిఫరల్ కారణం (Reason for Referral) *' : 'Reason for Referral *'}
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={2}
+                  required
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g. Suspected Oral Potentially Malignant Disorder (Leukoplakia / OSMF) requiring biopsy..."
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  {isTe ? 'వైద్యుల క్లినికల్ గమనికలు (Doctor Clinical Notes)' : 'Doctor Clinical Findings & Notes'}
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={clinicalNotes}
+                  onChange={(e) => setClinicalNotes(e.target.value)}
+                  placeholder="Clinical observations, lesion size, location, lymph node status, and relevant history..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-teal"
+                  disabled={createSubmitting}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Plus size={16} />
+                  {createSubmitting
+                    ? (isTe ? 'జారీ చేయబడుతోంది...' : 'Generating Slip...')
+                    : (isTe ? 'రిఫరల్ స్లిప్ జారీ చేయండి' : 'Issue Referral Slip')}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -14,7 +14,7 @@ from app.schemas.all_schemas import (
 )
 from app.api.deps import get_current_user, require_roles
 
-router = APIRouter(prefix="/investigations", tags=["Diagnostic Investigations & Biopsy (Module G)"])
+router = APIRouter(prefix="/investigations", tags=["Diagnostic Investigations & Biopsy"])
 
 def generate_investigation_ref(db: Session) -> str:
     while True:

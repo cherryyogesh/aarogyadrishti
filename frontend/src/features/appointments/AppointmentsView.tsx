@@ -4,16 +4,17 @@ import { translations } from '../../i18n/translations';
 import { LanguageCode, Appointment, Patient, User } from '../../types';
 import {
   Calendar, Clock, UserCheck, AlertCircle, X, Check,
-  RefreshCw, Trash2, Plus
+  RefreshCw, Trash2, Plus, Video, CheckCircle
 } from 'lucide-react';
 
 interface Props {
   currentLang: LanguageCode;
   user: User;
   preSelectedScreening?: any | null;
+  onStartConsultation?: (session: any) => void;
 }
 
-export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelectedScreening }) => {
+export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelectedScreening, onStartConsultation }) => {
   const t = translations[currentLang] || translations.en;
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -32,6 +33,10 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
   const [scheduledTime, setScheduledTime] = useState('11:00');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+
+  // Post-booking video conference prompt
+  const [bookedAppointment, setBookedAppointment] = useState<Appointment | null>(null);
+  const [connectingId, setConnectingId] = useState<number | null>(null);
 
   // Reschedule / Cancel Modal
   const [actionApt, setActionApt] = useState<Appointment | null>(null);
@@ -82,7 +87,7 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
     setBookingLoading(true);
     setBookingError(null);
     try {
-      await api.createAppointment({
+      const created = await api.createAppointment({
         patient_id: Number(selectedPatientId),
         phc_id: user.phc_id || 1,
         doctor_id: user.role === 'doctor' ? user.id : 3, // Doctor Priya
@@ -92,11 +97,26 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
         appointment_type: 'telemedicine'
       });
       setShowBookModal(false);
+      setBookedAppointment(created);
       fetchAppointments();
     } catch (err: any) {
       setBookingError(err.message || 'Booking conflict or error occurred');
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  const handleJoinCall = async (apt: Appointment) => {
+    setConnectingId(apt.id);
+    try {
+      const session = await api.acceptPatientCase(apt.id);
+      if (onStartConsultation) {
+        onStartConsultation(session);
+      }
+    } catch (err: any) {
+      alert('Failed to connect video conference: ' + (err.message || 'Error occurred'));
+    } finally {
+      setConnectingId(null);
     }
   };
 
@@ -202,36 +222,66 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                       </span>
                     </td>
                     <td>
-                      {apt.status === 'scheduled' || apt.status === 'rescheduled' ? (
-                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {apt.status !== 'cancelled' && apt.status !== 'completed' && (
                           <button
-                            className="btn btn-secondary"
-                            style={{ minHeight: '30px', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
-                            onClick={() => {
-                              setActionApt(apt);
-                              setActionType('reschedule');
-                              setNewDate(apt.scheduled_date);
-                              setNewTime(apt.scheduled_time);
-                              setActionReason('');
+                            className="btn btn-primary"
+                            style={{
+                              minHeight: '28px',
+                              padding: '0.2rem 0.6rem',
+                              fontSize: '0.74rem',
+                              background: 'linear-gradient(135deg, #0D9488 0%, #059669 100%)',
+                              borderColor: '#0D9488',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              whiteSpace: 'nowrap'
                             }}
+                            disabled={connectingId === apt.id}
+                            onClick={() => handleJoinCall(apt)}
+                            title={currentLang === 'te' ? 'PHC రోగి మరియు డాక్టర్ మధ్య వీడియో కాన్ఫరెన్స్ ప్రారంభించండి' : 'Connect PHC clinic (patient with medical staff) to doctor video call'}
                           >
-                            <RefreshCw size={12} /> Reschedule
+                            <Video size={13} />
+                            {connectingId === apt.id
+                              ? (currentLang === 'te' ? 'కనెక్ట్...' : 'Connecting...')
+                              : (currentLang === 'te' ? 'వీడియో కాల్' : 'Video Call')}
                           </button>
-                          <button
-                            className="btn btn-danger"
-                            style={{ minHeight: '30px', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
-                            onClick={() => {
-                              setActionApt(apt);
-                              setActionType('cancel');
-                              setActionReason('');
-                            }}
-                          >
-                            <Trash2 size={12} /> Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Locked</span>
-                      )}
+                        )}
+                        {(apt.status === 'scheduled' || apt.status === 'rescheduled') && (
+                          <>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ minHeight: '28px', padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
+                              onClick={() => {
+                                setActionApt(apt);
+                                setActionType('reschedule');
+                                setNewDate(apt.scheduled_date);
+                                setNewTime(apt.scheduled_time);
+                                setActionReason('');
+                              }}
+                            >
+                              <RefreshCw size={11} /> Reschedule
+                            </button>
+                            <button
+                              className="btn btn-danger"
+                              style={{ minHeight: '28px', padding: '0.2rem 0.5rem', fontSize: '0.74rem' }}
+                              onClick={() => {
+                                setActionApt(apt);
+                                setActionType('cancel');
+                                setActionReason('');
+                              }}
+                            >
+                              <Trash2 size={11} /> Cancel
+                            </button>
+                          </>
+                        )}
+                        {apt.status === 'completed' && (
+                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>✓ Completed</span>
+                        )}
+                        {apt.status === 'cancelled' && (
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Cancelled</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -441,6 +491,95 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Booking Video Conference Connect Modal */}
+      {bookedAppointment && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 70,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '2rem',
+            boxShadow: 'var(--shadow-xl)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              backgroundColor: '#DCFCE7', color: '#166534',
+              margin: '0 auto 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <CheckCircle size={36} />
+            </div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A' }}>
+              {currentLang === 'te' ? 'అపాయింట్‌మెంట్ ఖరారైంది!' : 'Appointment Confirmed!'}
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: '#64748B', marginTop: '0.4rem', marginBottom: '1.5rem' }}>
+              {currentLang === 'te'
+                ? `సూచన ID: ${bookedAppointment.reference_id} • పేషెంట్: ${bookedAppointment.patient_name}`
+                : `Ref ID: ${bookedAppointment.reference_id} • Patient: ${bookedAppointment.patient_name}`}
+            </p>
+
+            <div style={{
+              background: 'linear-gradient(135deg, #F0FDF4 0%, #ECFDF5 100%)',
+              border: '1px solid #A7F3D0',
+              borderRadius: '12px',
+              padding: '1.25rem',
+              textAlign: 'left',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ fontWeight: 700, color: '#065F46', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
+                <Video size={18} />
+                {currentLang === 'te' ? 'PHC & డాక్టర్ వీడియో కాన్ఫరెన్స్' : 'PHC Clinic ⟷ Specialist Doctor Tele-Conference'}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: '#047857', lineHeight: '1.5' }}>
+                {currentLang === 'te'
+                  ? 'వైద్య సిబ్బంది సమక్షంలో రోగి డాక్టర్‌తో ప్రత్యక్ష వీడియో కాన్ఫరెన్స్‌లో పాల్గొనవచ్చు. ఇప్పుడే వీడియో కాల్ ప్రారంభించండి లేదా షెడ్యూల్ ప్రకారం కనెక్ట్ అవ్వండి.'
+                  : 'The patient at the PHC clinic can now engage in a live video conference with the specialist doctor in the presence of attending medical staff.'}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setBookedAppointment(null)}
+              >
+                {currentLang === 'te' ? 'షెడ్యూల్ చూడండి' : 'View Schedule'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
+                  border: 'none',
+                  padding: '0.65rem 1.25rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                disabled={connectingId === bookedAppointment.id}
+                onClick={() => handleJoinCall(bookedAppointment)}
+              >
+                <Video size={18} />
+                {connectingId === bookedAppointment.id
+                  ? (currentLang === 'te' ? 'కనెక్ట్ అవుతోంది...' : 'Connecting...')
+                  : (currentLang === 'te' ? 'వీడియో కాల్ ప్రారంభించండి' : 'Start Video Conference Now')}
+              </button>
+            </div>
           </div>
         </div>
       )}

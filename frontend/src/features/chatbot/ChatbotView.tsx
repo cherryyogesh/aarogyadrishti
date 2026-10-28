@@ -4,7 +4,8 @@ import { translations } from '../../i18n/translations';
 import { LanguageCode, ChatMessage, ImageUploadResponse } from '../../types';
 import {
   Plus, Send, Camera, Image as ImageIcon, X, AlertTriangle,
-  Copy, RefreshCw, ShieldAlert, Sparkles, Check, HelpCircle
+  Copy, RefreshCw, ShieldAlert, Sparkles, Check, HelpCircle,
+  Mic, MicOff, Volume2, VolumeX, Radio
 } from 'lucide-react';
 
 interface Props {
@@ -27,6 +28,12 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Voice Assistance (Speech-to-Text & Text-to-Speech)
+  const [isListening, setIsListening] = useState(false);
+  const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
@@ -46,15 +53,50 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Setup Speech-to-Text Recognition
   useEffect(() => {
-    // Initial welcome message
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = isTe ? 'te-IN' : 'en-IN';
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInputText(prev => (prev ? `${prev} ${transcript}` : transcript));
+          setIsListening(false);
+        };
+
+        recognition.onerror = (err: any) => {
+          console.warn('Speech recognition error:', err);
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    }
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isTe]);
+
+  // Initial welcome message
+  useEffect(() => {
     const welcomeMsg: ChatMessage = {
       id: 0,
       session_id: sessionId,
       role: 'assistant',
       content: isTe
-        ? 'నమస్కారం! నేను ఆరోగ్య మిత్ర (Aarogya Mitra) — మీ ఉచిత ఆరోగ్య సందేహాల నివృత్తి AI సహాయకుడిని. నోటి పూత, పుండ్లు, చిగుళ్ల సమస్యలు లేదా పొగాకు/చుట్ట మానేయడం వంటి చిన్న చిన్న సందేహాలపై మీరు నన్ను అడగవచ్చు. నేను తగిన స్పష్టతనిస్తాను. నేను వైద్య నిర్ధారణ (డయాగ్నోసిస్) చేయను లేదా క్యాన్సర్‌ను నిర్ధారించను.'
-        : 'Hello! I am Aarogya Mitra — your free healthcare assistant. You can ask me everyday oral health questions, home care tips for simple sores, or guidance on quitting tobacco/chutta. I provide rational clarity without needing to rush to the doctor for minor issues. Note: I cannot diagnose cancer or replace an in-person doctor examination.',
+        ? 'నమస్కారం! నేను ఆరోగ్య మిత్ర (Aarogya Mitra) — మీ వాయిస్ మరియు చాట్‌బాట్ ఆరోగ్య సహాయకుడిని. నోటి పూత, తెల్లటి మచ్చలు, కారం తిన్నప్పుడు మంట లేదా పొగాకు/చుట్ట అలవాటు మానేయడంపై మీరు నాతో మాట్లాడవచ్చు లేదా టైప్ చేయవచ్చు.\n\n⚠️ ముఖ్య గమనిక: నేను వైద్య నిర్ధారణ (డయాగ్నోసిస్) చేయను మరియు క్యాన్సర్‌ను ఎప్పటికీ నిర్ధారించను. అనుమానాస్పద లేదా 14 రోజుల కంటే ఎక్కువ కాలం ఉండే లక్షణాలకు సమీప PHC డాక్టర్‌ను సంప్రదించడం తప్పనిసరి.'
+        : 'Hello! I am Aarogya Mitra — your voice and chatbot health assistant. You can speak or type oral health doubts, sore care, or tobacco habit cessation.\n\n⚠️ Essential Medical Guardrail: I provide educational guidance and NEVER diagnose or confirm cancer. For any persistent patch (>14 days), an in-person doctor evaluation is strictly mandatory.',
       language: currentLang,
       has_attachment: false,
       disclaimer: t.chat_disclaimer,
@@ -66,6 +108,44 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert(isTe ? 'ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ ఇన్‌పుట్ అందుబాటులో లేదు' : 'Speech recognition not supported in this browser.');
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.lang = isTe ? 'te-IN' : 'en-IN';
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+        setIsListening(false);
+      }
+    }
+  };
+
+  const speakText = (id: number, text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (speakingMsgId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingMsgId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[*#_~⚠️•]/g, ' ');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = isTe ? 'te-IN' : 'en-IN';
+    utterance.rate = 0.95;
+    utterance.onend = () => setSpeakingMsgId(null);
+    utterance.onerror = () => setSpeakingMsgId(null);
+    setSpeakingMsgId(id);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,13 +193,16 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         attachment_image_id: imageIdToSend || undefined
       });
       setMessages((prev) => [...prev, response]);
+      if (autoSpeak) {
+        speakText(response.id, response.content);
+      }
     } catch (err: any) {
       const fallbackAsstMsg: ChatMessage = {
         id: Date.now() + 1,
         session_id: sessionId,
         role: 'assistant',
         content: isTe
-          ? 'క్షమించండి, సర్వర్ స్పందించడంలో ఆలస్యమైంది. ప్రాథమిక సలహా: నోటి పూతకు గోరువెచ్చని ఉప్పునీటి పుక్కిలింత సహాయపడుతుంది. పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే దయచేసి PHC డాక్టర్‌ను సంప్రదించండి.'
+          ? 'ప్రాథమిక సలహా: నోటి పూతకు గోరువెచ్చని ఉప్పునీటి పుక్కిలింత సహాయపడుతుంది. పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే దయచేసి PHC డాక్టర్‌ను సంప్రదించండి. AI క్యాన్సర్‌ను నిర్ధారించదు.'
           : 'Notice: If you have an oral sore, rinse with warm salt water and avoid spicy foods. Any ulcer lasting longer than 2 weeks must be examined in person by a PHC Medical Officer.',
         language: currentLang,
         has_attachment: false,
@@ -166,7 +249,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         onChange={handleFileSelect}
       />
 
-      {/* Chat Header */}
+      {/* Chat Header with Voice Assistance Controls */}
       <div className="chat-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
@@ -183,22 +266,52 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </div>
           <div>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              {t.chat_title}
+              {isTe ? 'ఆరోగ్య మిత్ర AI సహాయకుడు' : 'Arogya Mitra AI Assistant'}
               <span style={{ fontSize: '0.65rem', background: '#DCFCE7', color: '#166534', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>
-                {isTe ? 'ఉచిత ఆరోగ్య సలహా' : 'Free AI Health Guide'}
+                {isTe ? 'వాయిస్ + చాట్‌బాట్' : 'Voice + Chatbot'}
               </span>
             </h3>
             <p style={{ fontSize: '0.76rem', color: '#64748B' }}>
-              {t.chat_subtitle}
+              {isTe ? 'ఉచిత ఆరోగ్య సలహా • స్వదేశీ జ్ఞానంతో సురక్షిత మార్గదర్శకత్వం' : 'Free Clinical AI Assistant • Voice Enabled & Safe Triage'}
             </p>
           </div>
+        </div>
+
+        {/* Voice Auto-Speak Toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{
+              minHeight: '32px',
+              padding: '0.2rem 0.6rem',
+              fontSize: '0.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: autoSpeak ? '#ECFDF5' : '#F8FAFC',
+              borderColor: autoSpeak ? '#10B981' : '#CBD5E1',
+              color: autoSpeak ? '#065F46' : '#475569'
+            }}
+            onClick={() => setAutoSpeak(!autoSpeak)}
+            title="Automatically read aloud AI responses using Speech Synthesis"
+          >
+            <Volume2 size={14} color={autoSpeak ? '#059669' : '#64748B'} />
+            {autoSpeak
+              ? (isTe ? 'వాయిస్ మోడ్: ఆన్‌లో ఉంది' : 'Auto-Speak: ON')
+              : (isTe ? 'వాయిస్ మోడ్' : 'Auto-Speak')}
+          </button>
         </div>
       </div>
 
       {/* Mandatory Non-Diagnostic Disclaimer Banner */}
       <div className="chat-disclaimer-banner">
         <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#D97706' }} />
-        <span>{t.chat_disclaimer}</span>
+        <span>
+          {isTe
+            ? 'ముఖ్య గమనిక: ఆరోగ్య మిత్ర AI ఎట్టి పరిస్థితుల్లోనూ క్యాన్సర్‌ను నిర్ధారించదు. లక్షణాలు 14 రోజుల కంటే ఎక్కువ కొనసాగితే లేదా అనుమానాస్పదంగా ఉంటే PHC డాక్టర్‌ను సంప్రదించడం మరియు బయాప్సీ తప్పనిసరి.'
+            : 'Crucial Medical Boundary: Arogya Mitra AI NEVER diagnoses or confirms cancer. If symptoms last >14 days or appear suspicious, an in-person doctor evaluation and punch biopsy are mandatory.'}
+        </span>
       </div>
 
       {/* Messages Scroll Viewport */}
@@ -249,29 +362,51 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   {m.content}
                 </div>
 
-                {/* Assistant Footer Actions (Copy & Disclaimer) */}
+                {/* Assistant Footer Actions (Voice Readout & Copy) */}
                 {!isUser && (
-                  <div className="message-action-bar">
+                  <div className="message-action-bar" style={{ display: 'flex', gap: '0.5rem', marginTop: '0.65rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '0.45rem' }}>
+                    <button
+                      className="message-action-btn"
+                      onClick={() => speakText(m.id, m.content)}
+                      title={speakingMsgId === m.id ? 'Stop speaking' : 'Listen via voice'}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: speakingMsgId === m.id ? '#DCFCE7' : '#F1F5F9',
+                        color: speakingMsgId === m.id ? '#166534' : '#0D9488',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {speakingMsgId === m.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                      <span>{speakingMsgId === m.id ? (isTe ? 'మాట్లాడుతోంది...' : 'Speaking...') : (isTe ? 'వినండి' : 'Listen')}</span>
+                    </button>
+
                     <button
                       className="message-action-btn"
                       onClick={() => handleCopyMessage(m.id, m.content)}
                       title="Copy advice text"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#F1F5F9',
+                        color: '#64748B',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
                     >
-                      {copiedId === m.id ? (
-                        <>
-                          <Check size={12} color="#10B981" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} /> Copy
-                        </>
-                      )}
+                      {copiedId === m.id ? <Check size={13} color="#059669" /> : <Copy size={13} />}
+                      <span>{copiedId === m.id ? (isTe ? 'కాపీ చేయబడింది' : 'Copied') : (isTe ? 'కాపీ' : 'Copy')}</span>
                     </button>
-                    {m.disclaimer && (
-                      <span style={{ fontSize: '0.68rem', color: '#94A3B8', fontStyle: 'italic', marginLeft: 'auto' }}>
-                        Non-clinical guidance
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -281,72 +416,62 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
         {loading && (
           <div className="chat-message-row assistant-row">
-            <div className="chat-bubble chat-bubble-assistant" style={{ fontStyle: 'italic', color: '#64748B' }}>
-              <RefreshCw size={14} className="spin" style={{ display: 'inline', marginRight: '6px' }} />
-              {isTe ? 'ఆరోగ్య మిత్ర ఆలోచిస్తోంది...' : 'Aarogya Mitra is analyzing your query...'}
+            <div className="chat-bubble chat-bubble-assistant" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="typing-dots">
+                <span /><span /><span />
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                {isTe ? 'ఆరోగ్య మిత్ర ఆలోచిస్తోంది...' : 'Arogya Mitra is analyzing...'}
+              </span>
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Prompts Carousel for Instant Answers */}
-      <div style={{
-        padding: '0.5rem 1rem 0.25rem',
-        display: 'flex',
-        gap: '0.45rem',
-        overflowX: 'auto',
-        background: '#F8FAFC',
-        borderTop: '1px solid #E2E8F0'
-      }}>
-        {quickPrompts.map((p, idx) => (
+      {/* Suggested Quick Question Prompts */}
+      <div className="quick-prompts-bar">
+        {quickPrompts.map((qp, idx) => (
           <button
             key={idx}
-            type="button"
-            onClick={() => handleQuickPromptClick(p.text)}
+            className="quick-prompt-chip"
+            onClick={() => handleQuickPromptClick(qp.text)}
             disabled={loading}
-            style={{
-              whiteSpace: 'nowrap',
-              background: '#FFFFFF',
-              border: '1px solid #CBD5E1',
-              borderRadius: '16px',
-              padding: '0.3rem 0.75rem',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: '#0F766E',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              transition: 'all 0.15s ease'
-            }}
           >
-            <HelpCircle size={12} color="#0D9488" />
-            {p.label}
+            {qp.label}
           </button>
         ))}
       </div>
 
-      {/* Attachment Staging Strip */}
+      {/* Uploading indicator */}
+      {uploadingAttachment && (
+        <div style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem', color: 'var(--teal-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <RefreshCw size={14} className="spin" /> Uploading image attachment...
+        </div>
+      )}
+
+      {/* Attached preview chip */}
       {attachedImage && (
-        <div className="attachment-staging-strip">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.5rem 1.25rem',
+          background: '#F1F5F9',
+          borderTop: '1px solid var(--border-color)'
+        }}>
           <img
             src={attachedImage.preview_url}
-            alt="Staged Attachment"
-            style={{ width: '48px', height: '48px', borderRadius: '6px', objectFit: 'cover' }}
+            alt="Preview"
+            style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
           />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {attachedImage.original_filename}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: attachedImage.quality.quality_state === 'poor' ? '#DC2626' : '#166534' }}>
-              Quality: {attachedImage.quality.quality_state} • Blur: {attachedImage.quality.blur_score}
-            </div>
+          <div style={{ flex: 1, fontSize: '0.78rem' }}>
+            <div style={{ fontWeight: 600 }}>{attachedImage.original_filename}</div>
+            <div style={{ color: '#64748B' }}>Quality: {attachedImage.quality.quality_state}</div>
           </div>
           <button
             type="button"
-            className="btn-icon"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
             onClick={() => setAttachedImage(null)}
             title="Remove attachment"
           >
@@ -399,7 +524,34 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         </div>
       )}
 
-      {/* Bottom Composer */}
+      {/* Voice Listening Banner */}
+      {isListening && (
+        <div style={{
+          background: '#FEF2F2',
+          borderTop: '1px solid #FECACA',
+          padding: '0.5rem 1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          color: '#DC2626',
+          fontSize: '0.82rem',
+          fontWeight: 700
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#DC2626', animation: 'pulse 1s infinite' }} />
+            <span>{isTe ? '🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి (తెలుగు / English)' : '🎙️ Listening... Speak now in Telugu or English'}</span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleListening}
+            style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontWeight: 700 }}
+          >
+            {isTe ? 'ఆపండి' : 'Stop'}
+          </button>
+        </div>
+      )}
+
+      {/* Bottom Composer with Mic & Send */}
       <form onSubmit={handleSend} className="chat-composer" style={{ position: 'relative' }}>
         {/* Plus Button */}
         <button
@@ -414,17 +566,40 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <input
           type="text"
           className="form-control"
-          placeholder={t.chat_input_placeholder}
+          placeholder={isListening ? (isTe ? 'వాయిస్ రికార్డ్ అవుతోంది...' : 'Transcribing voice...') : t.chat_input_placeholder}
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           disabled={loading || uploadingAttachment}
           style={{ flex: 1 }}
         />
 
+        {/* Microphone Button (Speech-to-Text) */}
+        <button
+          type="button"
+          onClick={toggleListening}
+          style={{
+            background: isListening ? '#DC2626' : '#F1F5F9',
+            color: isListening ? '#FFFFFF' : '#0D9488',
+            border: '1px solid #CBD5E1',
+            borderRadius: '8px',
+            width: '42px',
+            height: '42px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0
+          }}
+          title={isListening ? 'Stop listening' : 'Speak your question (Voice Input)'}
+        >
+          {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+        </button>
+
+        {/* Send Button */}
         <button
           type="submit"
           className="btn btn-primary"
-          style={{ minHeight: '44px', padding: '0 1.25rem', fontWeight: 700 }}
+          style={{ minHeight: '42px', padding: '0 1.25rem', fontWeight: 700 }}
           disabled={loading || uploadingAttachment || (!inputText.trim() && !attachedImage)}
         >
           <Send size={18} />

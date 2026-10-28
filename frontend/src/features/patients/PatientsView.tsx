@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
 import { LanguageCode, Patient, User } from '../../types';
+import { ASR_DISTRICT_MANDALS } from '../../constants/mandals';
 import { Search, UserPlus, Phone, ShieldCheck, X, FileText, Calendar } from 'lucide-react';
 
 interface Props {
@@ -24,6 +25,7 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
   const [phone, setPhone] = useState('+91 ');
   const [preferredLang, setPreferredLang] = useState('te');
   const [village, setVillage] = useState('');
+  const [mandal, setMandal] = useState('G. Madugula (Ganagaraju Madugula)');
   const [consentGranted, setConsentGranted] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
@@ -61,6 +63,8 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
         phone,
         preferred_language: preferredLang,
         village_town: village,
+        habitation: village,
+        mandal: mandal,
         phc_id: user.phc_id || 1,
         consent_granted: consentGranted,
         consent_notes: 'Digital informed consent confirmed with patient'
@@ -301,6 +305,23 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                     placeholder="Village or Town"
                   />
                 </div>
+              </div>
+
+              {/* Mandal Dropdown (11 Mandals of ASR District) */}
+              <div className="form-group">
+                <label className="form-label">{currentLang === 'te' ? 'మండలం (ASR District Mandal) *' : 'Mandal (Alluri Sitharama Raju District) *'}</label>
+                <select
+                  className="form-control"
+                  value={mandal}
+                  onChange={(e) => setMandal(e.target.value)}
+                  required
+                >
+                  {ASR_DISTRICT_MANDALS.map((m) => (
+                    <option key={m.id} value={m.name}>
+                      {currentLang === 'te' ? `${m.nameTe} (${m.name})` : m.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Digital Consent Checklist */}

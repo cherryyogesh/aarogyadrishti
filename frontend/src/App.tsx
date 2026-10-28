@@ -533,6 +533,7 @@ export const App: React.FC = () => {
               currentLang={currentLang}
               user={currentUser}
               onScreeningCreated={() => setActiveRoute('dashboard')}
+              onNavigateToLead={() => setActiveRoute('navigation')}
             />
           )}
 
@@ -552,6 +553,9 @@ export const App: React.FC = () => {
               currentLang={currentLang}
               user={currentUser}
               preSelectedScreening={preSelectedScreening}
+              onStartConsultation={(session) => {
+                setActiveConsultation(session);
+              }}
             />
           )}
 

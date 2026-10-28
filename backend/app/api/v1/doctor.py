@@ -74,32 +74,48 @@ def get_doctor_waiting_queue(
 def accept_patient_case(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.ADMIN]))
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.PHC_STAFF, UserRole.ADMIN]))
 ):
     apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not apt:
         raise HTTPException(status_code=404, detail="Appointment not found.")
 
-    if apt.status not in [AppointmentStatus.WAITING_FOR_DOCTOR, AppointmentStatus.IN_CONSULTATION]:
+    valid_statuses = [
+        AppointmentStatus.SCHEDULED,
+        AppointmentStatus.WAITING_FOR_DOCTOR,
+        AppointmentStatus.IN_CONSULTATION,
+        AppointmentStatus.CHECKED_IN,
+        AppointmentStatus.RESCHEDULED
+    ]
+    if apt.status not in valid_statuses:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot accept case in current status '{apt.status.value}'. Patient must be checked-in."
+            detail=f"Cannot start video conference in current status '{apt.status.value}'."
         )
 
     now = datetime.now(timezone.utc)
+    if not apt.checkin_time:
+        apt.checkin_time = now
 
-    # Assign doctor if not already assigned
-    apt.doctor_id = current_user.id
+    # Assign doctor if not already assigned and current user is doctor
+    if current_user.role == UserRole.DOCTOR:
+        apt.doctor_id = current_user.id
+    elif not apt.doctor_id:
+        doc = db.query(User).filter(User.role == UserRole.DOCTOR).first()
+        if doc:
+            apt.doctor_id = doc.id
+
     prev_status = apt.status.value
     apt.status = AppointmentStatus.IN_CONSULTATION
-    apt.consultation_start_time = now
+    if not apt.consultation_start_time:
+        apt.consultation_start_time = now
 
     event = AppointmentEvent(
         appointment_id=apt.id,
         previous_status=prev_status,
         new_status=AppointmentStatus.IN_CONSULTATION.value,
         changed_by_user_id=current_user.id,
-        reason=f"Consultation accepted and started by Dr. {current_user.full_name}."
+        reason=f"Telemedicine video conference connected between PHC and Doctor by {current_user.full_name} ({current_user.role.value})."
     )
     db.add(event)
 
@@ -108,7 +124,7 @@ def accept_patient_case(
     if not consultation:
         consultation = Consultation(
             appointment_id=apt.id,
-            doctor_id=current_user.id,
+            doctor_id=apt.doctor_id or current_user.id,
             patient_id=apt.patient_id,
             session_token=uuid.uuid4().hex,
             webrtc_room_id=f"ad-telemed-{apt.reference_id.lower()}",
@@ -122,7 +138,7 @@ def accept_patient_case(
         action="DOCTOR_ACCEPT_PATIENT",
         entity_type="Appointment",
         entity_id=apt.reference_id,
-        details=f"Dr. {current_user.full_name} accepted consultation for {apt.patient.full_name}."
+        details=f"{current_user.full_name} joined teleconsultation video conference for {apt.patient.full_name}."
     )
     db.add(audit)
     db.commit()
@@ -160,5 +176,10 @@ def accept_patient_case(
         stun_server=settings.STUN_SERVER_URL,
         patient_name=apt.patient.full_name,
         patient_age=apt.patient.age,
+        patient_id=apt.patient.id,
+        patient_id_display=apt.patient.patient_id_display,
+        phc_name=apt.phc.name if apt.phc else "PHC Clinic",
+        doctor_name=apt.doctor.full_name if apt.doctor else "Dr. Priya Sundaram (Specialist Oncologist)",
+        mandal=getattr(apt.patient, 'mandal', 'G. Madugula') or 'G. Madugula',
         screening_details=screening_info
     )

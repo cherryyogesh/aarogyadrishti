@@ -165,7 +165,7 @@ export interface Screening {
   clinical_reviews: ClinicalReview[];
 }
 
-// Module G: Biopsy & Pathology
+// Diagnostic Biopsy & Pathology Investigations
 export interface Investigation {
   id: number;
   investigation_ref: string;
@@ -183,7 +183,7 @@ export interface Investigation {
   created_at: string;
 }
 
-// Module I: Tribal Patient Navigation
+// Tribal Patient Navigation & Support
 export interface NavigationTask {
   id: number;
   task_ref: string;
@@ -202,10 +202,22 @@ export interface NavigationTask {
   missed_visit_reason?: string | null;
   notes?: string | null;
   navigator_name?: string | null;
+  screening_id?: number | null;
+  ai_call_status?: string | null;
+  ai_call_transcript?: string | null;
+  duration_suffering_days?: number | null;
+  severity_stage?: string | null;
+  whatsapp_photo_url?: string | null;
+  doctor_reviewed?: boolean;
+  doctor_review_notes?: string | null;
+  doctor_reviewed_at?: string | null;
+  dispatched_to_phc?: boolean;
+  dispatched_to_doctor?: boolean;
+  dispatched_to_dmho?: boolean;
   created_at: string;
 }
 
-// Module F: Hospital Referral Slip
+// Hospital Referral Slips
 export interface ReferralSlip {
   id: number;
   referral_slip_number: string;
@@ -288,6 +300,11 @@ export interface ConsultationSession {
   stun_server: string;
   patient_name: string;
   patient_age: number;
+  patient_id?: number;
+  patient_id_display?: string;
+  phc_name?: string;
+  doctor_name?: string;
+  mandal?: string;
   screening_details?: any;
 }
 

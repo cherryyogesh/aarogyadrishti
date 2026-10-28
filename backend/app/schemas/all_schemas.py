@@ -307,6 +307,11 @@ class ConsultationAcceptResponse(BaseModel):
     stun_server: str
     patient_name: str
     patient_age: int
+    patient_id: Optional[int] = None
+    patient_id_display: Optional[str] = None
+    phc_name: Optional[str] = None
+    doctor_name: Optional[str] = None
+    mandal: Optional[str] = None
     screening_details: Optional[Any] = None
 
 class ConsultationCompletePayload(BaseModel):
@@ -390,7 +395,32 @@ class NavigationTaskResponse(BaseModel):
     missed_visit_reason: Optional[str] = None
     notes: Optional[str] = None
     navigator_name: Optional[str] = None
+    screening_id: Optional[int] = None
+    ai_call_status: Optional[str] = "pending"
+    ai_call_transcript: Optional[str] = None
+    duration_suffering_days: Optional[int] = None
+    severity_stage: Optional[str] = None
+    whatsapp_photo_url: Optional[str] = None
+    doctor_reviewed: Optional[bool] = False
+    doctor_review_notes: Optional[str] = None
+    doctor_reviewed_at: Optional[datetime] = None
+    dispatched_to_phc: Optional[bool] = True
+    dispatched_to_doctor: Optional[bool] = True
+    dispatched_to_dmho: Optional[bool] = True
     created_at: datetime
+
+class AIFollowupRecordPayload(BaseModel):
+    duration_suffering_days: int
+    severity_stage: str = "Stage I - OPMD Risk"
+    ai_call_transcript: str
+    mouth_opening_difficulty: bool = False
+    habit_status: str = "tobacco_user"
+    whatsapp_photos_requested: bool = True
+    whatsapp_photo_url: Optional[str] = None
+
+class DoctorReviewPayload(BaseModel):
+    doctor_review_notes: str
+    clinical_decision: str = "approved_biopsy" # approved_biopsy, conservative_treatment, referral_advised
 
 # ----------------- REFERRAL SLIP SCHEMA -----------------
 class ReferralSlipResponse(BaseModel):

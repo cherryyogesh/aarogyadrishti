@@ -380,10 +380,23 @@ class NavigationTask(Base):
     feeder_ambulance_notified = Column(Boolean, default=False) # Tribal feeder ambulance (108)
     missed_visit_reason = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    screening_id = Column(Integer, ForeignKey("screenings.id", ondelete="SET NULL"), nullable=True)
+    ai_call_status = Column(String(50), default="pending")  # pending, in_progress, completed
+    ai_call_transcript = Column(Text, nullable=True)
+    duration_suffering_days = Column(Integer, nullable=True)
+    severity_stage = Column(String(100), nullable=True)
+    whatsapp_photo_url = Column(String(500), nullable=True)
+    doctor_reviewed = Column(Boolean, default=False)
+    doctor_review_notes = Column(Text, nullable=True)
+    doctor_reviewed_at = Column(DateTime, nullable=True)
+    dispatched_to_phc = Column(Boolean, default=True)
+    dispatched_to_doctor = Column(Boolean, default=True)
+    dispatched_to_dmho = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     patient = relationship("Patient", back_populates="navigation_tasks")
     navigator = relationship("User", foreign_keys=[assigned_navigator_id])
+    screening = relationship("Screening")
 
 class Consultation(Base):
     __tablename__ = "consultations"
