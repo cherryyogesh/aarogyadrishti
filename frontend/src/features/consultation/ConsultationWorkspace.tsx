@@ -58,44 +58,88 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const [completed, setCompleted] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [streamStarted, setStreamStarted] = useState(false);
+  const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const isDoctorUser = user?.role === 'doctor';
 
   // Initialize camera preview if available
   useEffect(() => {
-    let localStream: MediaStream | null = null;
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          localStream = stream;
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-          }
-          setStreamStarted(true);
-        })
-        .catch((err) => {
-          console.warn('Camera/Mic permission not granted or unavailable:', err);
-        });
-    }
+    let active = true;
+
+    const startLocalCamera = async () => {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        setCameraError('Camera access not supported on this browser context');
+        return;
+      }
+
+      try {
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            audio: true
+          });
+        } catch {
+          // Fallback to video-only if audio device is unavailable or blocked
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            audio: false
+          });
+        }
+
+        if (!active) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        setCameraPermissionGranted(true);
+        setCameraError(null);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          localVideoRef.current.play().catch(console.error);
+        }
+        setStreamStarted(true);
+      } catch (err: any) {
+        console.warn('Camera/Mic permission not granted or unavailable:', err);
+        if (active) {
+          setCameraPermissionGranted(false);
+          setCameraError(err.message || 'Camera permission denied');
+        }
+      }
+    };
+
+    startLocalCamera();
 
     return () => {
-      if (localStream) {
-        localStream.getTracks().forEach((track) => track.stop());
+      active = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
     };
   }, []);
 
+  // Re-bind media stream to video element when viewMode toggles or stream updates
+  useEffect(() => {
+    if (localVideoRef.current && streamRef.current) {
+      localVideoRef.current.srcObject = streamRef.current;
+      localVideoRef.current.play().catch(console.error);
+    }
+  }, [viewMode, streamStarted, cameraPermissionGranted]);
+
   const handleToggleVideo = () => {
-    if (localVideoRef.current && localVideoRef.current.srcObject) {
-      const stream = localVideoRef.current.srcObject as MediaStream;
-      stream.getVideoTracks().forEach(track => track.enabled = !videoActive);
+    if (streamRef.current) {
+      streamRef.current.getVideoTracks().forEach(track => track.enabled = !videoActive);
     }
     setVideoActive(!videoActive);
   };
 
   const handleToggleAudio = () => {
-    if (localVideoRef.current && localVideoRef.current.srcObject) {
-      const stream = localVideoRef.current.srcObject as MediaStream;
-      stream.getAudioTracks().forEach(track => track.enabled = !audioActive);
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach(track => track.enabled = !audioActive);
     }
     setAudioActive(!audioActive);
   };
@@ -330,23 +374,52 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   justifyContent: 'center',
                   border: '1px solid #334155'
                 }}>
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: videoActive ? 'block' : 'none'
-                    }}
-                  />
-
-                  {!videoActive && (
-                    <div style={{ textAlign: 'center', color: '#94A3B8', padding: '1rem' }}>
-                      <VideoOff size={36} style={{ margin: '0 auto 0.4rem', opacity: 0.6 }} />
-                      <div style={{ fontSize: '0.8rem' }}>PHC Camera Paused</div>
+                  {!isDoctorUser ? (
+                    <>
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: videoActive && cameraPermissionGranted ? 'block' : 'none'
+                        }}
+                      />
+                      {(!videoActive || !cameraPermissionGranted) && (
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          <img
+                            src="/assets/patient_face_feed.jpg"
+                            alt="Patient with PHC staff"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          {!videoActive && (
+                            <div style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'rgba(15, 23, 42, 0.75)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#94A3B8'
+                            }}>
+                              <VideoOff size={36} style={{ margin: '0 auto 0.4rem', opacity: 0.6 }} />
+                              <div style={{ fontSize: '0.8rem' }}>PHC Camera Paused</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <img
+                        src="/assets/patient_face_feed.jpg"
+                        alt="Patient with PHC staff nurse"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
                     </div>
                   )}
 
@@ -364,10 +437,31 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    zIndex: 2
                   }}>
                     <Building size={12} />
                     PHC CLINIC ENDPOINT
+                  </div>
+
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    border: '1px solid #10B981',
+                    padding: '0.15rem 0.45rem',
+                    borderRadius: '4px',
+                    fontSize: '0.65rem',
+                    color: '#6EE7B7',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    zIndex: 2
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
+                    LIVE HD 1080p
                   </div>
 
                   <div style={{
@@ -380,13 +474,14 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     padding: '0.35rem 0.6rem',
                     borderRadius: '6px',
                     fontSize: '0.72rem',
-                    color: '#FFFFFF'
+                    color: '#FFFFFF',
+                    zIndex: 2
                   }}>
                     <div style={{ fontWeight: 700 }}>
                       {session.patient_name} ({session.patient_age}y)
                     </div>
                     <div style={{ fontSize: '0.66rem', color: '#94A3B8' }}>
-                      With PHC Staff Nurse & Medical Officer
+                      With PHC Staff Nurse & Medical Officer • {session.phc_name}
                     </div>
                   </div>
                 </div>
@@ -399,47 +494,58 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   position: 'relative',
                   aspectRatio: '4/3',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: '1px solid #1E3A8A'
                 }}>
-                  {/* Doctor Telemedicine Visual Feed */}
-                  <div style={{
-                    width: '76px',
-                    height: '76px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #0284C7 0%, #0D9488 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFFFFF',
-                    boxShadow: '0 0 20px rgba(13, 148, 136, 0.4)',
-                    marginBottom: '0.5rem'
-                  }}>
-                    <Stethoscope size={38} />
-                  </div>
-
-                  <div style={{
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    color: '#FFFFFF',
-                    textAlign: 'center',
-                    padding: '0 0.5rem'
-                  }}>
-                    {session.doctor_name || 'Dr. Priya Sundaram'}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: '#93C5FD' }}>
-                    Specialist Oncologist • Hub Online
-                  </div>
-
-                  {/* Audio wave pulse simulation */}
-                  <div style={{ display: 'flex', gap: '3px', alignItems: 'center', marginTop: '0.6rem' }}>
-                    <span style={{ width: '3px', height: '14px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1s infinite' }} />
-                    <span style={{ width: '3px', height: '22px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1.2s infinite' }} />
-                    <span style={{ width: '3px', height: '10px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 0.8s infinite' }} />
-                    <span style={{ width: '3px', height: '18px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1.1s infinite' }} />
-                  </div>
+                  {isDoctorUser ? (
+                    <>
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: videoActive && cameraPermissionGranted ? 'block' : 'none'
+                        }}
+                      />
+                      {(!videoActive || !cameraPermissionGranted) && (
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          <img
+                            src="/assets/doctor_face_feed.jpg"
+                            alt="Dr. Priya Sundaram - Oncologist"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                          {!videoActive && (
+                            <div style={{
+                              position: 'absolute',
+                              inset: 0,
+                              background: 'rgba(15, 23, 42, 0.75)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#94A3B8'
+                            }}>
+                              <VideoOff size={36} style={{ margin: '0 auto 0.4rem', opacity: 0.6 }} />
+                              <div style={{ fontSize: '0.8rem' }}>Doctor Camera Paused</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      <img
+                        src="/assets/doctor_face_feed.jpg"
+                        alt="Dr. Priya Sundaram - Specialist Oncologist"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    </div>
+                  )}
 
                   {/* Endpoint Overlay - Doctor */}
                   <div style={{
@@ -455,7 +561,8 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    zIndex: 2
                   }}>
                     <Stethoscope size={12} />
                     SPECIALIST DOCTOR ENDPOINT
@@ -471,9 +578,48 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                     borderRadius: '4px',
                     fontSize: '0.65rem',
                     color: '#6EE7B7',
-                    fontWeight: 700
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    zIndex: 2
                   }}>
-                    ● AUDIO 2-WAY HD
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', animation: 'pulse 1s infinite' }} />
+                    TELEMEDICINE HUB
+                  </div>
+
+                  {/* Audio wave pulse and doctor info at bottom */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '8px',
+                    left: '8px',
+                    right: '8px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(4px)',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    color: '#FFFFFF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    zIndex: 2
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>
+                        {session.doctor_name || 'Dr. Priya Sundaram'}
+                      </div>
+                      <div style={{ fontSize: '0.66rem', color: '#93C5FD' }}>
+                        Specialist Oncologist • Hub Online
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                      <span style={{ width: '3px', height: '14px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1s infinite' }} />
+                      <span style={{ width: '3px', height: '20px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1.2s infinite' }} />
+                      <span style={{ width: '3px', height: '10px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 0.8s infinite' }} />
+                      <span style={{ width: '3px', height: '16px', background: '#38BDF8', borderRadius: '2px', animation: 'pulse 1.1s infinite' }} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -486,42 +632,57 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 borderRadius: '12px',
                 overflow: 'hidden'
               }}>
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: videoActive ? 'block' : 'none'
-                  }}
+                <img
+                  src={isDoctorUser ? "/assets/patient_face_feed.jpg" : "/assets/doctor_face_feed.jpg"}
+                  alt="Remote Participant Face"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
 
-                {/* PiP Inset (Doctor) */}
+                {/* PiP Inset (Local Participant) */}
                 <div style={{
                   position: 'absolute',
                   top: '12px',
                   right: '12px',
-                  width: '140px',
+                  width: '150px',
                   aspectRatio: '4/3',
-                  background: 'linear-gradient(145deg, #0A192F 0%, #172554 100%)',
+                  background: '#0B132B',
                   borderRadius: '10px',
                   border: '2px solid #38BDF8',
                   boxShadow: 'var(--shadow-md)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.5rem'
+                  overflow: 'hidden',
+                  zIndex: 10
                 }}>
-                  <Stethoscope size={24} color="#38BDF8" />
-                  <div style={{ fontSize: '0.7rem', color: '#FFFFFF', fontWeight: 700, marginTop: '0.2rem' }}>
-                    Dr. Priya
-                  </div>
-                  <div style={{ fontSize: '0.6rem', color: '#93C5FD' }}>
-                    Oncologist
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: videoActive && cameraPermissionGranted ? 'block' : 'none'
+                    }}
+                  />
+                  {(!videoActive || !cameraPermissionGranted) && (
+                    <img
+                      src={isDoctorUser ? "/assets/doctor_face_feed.jpg" : "/assets/patient_face_feed.jpg"}
+                      alt="Local Face Feed"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  )}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    left: '6px',
+                    background: 'rgba(0,0,0,0.6)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.62rem',
+                    color: '#FFFFFF',
+                    fontWeight: 600
+                  }}>
+                    {isDoctorUser ? 'You (Doctor)' : 'You (PHC)'}
                   </div>
                 </div>
 
@@ -534,9 +695,12 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   padding: '0.35rem 0.6rem',
                   borderRadius: '6px',
                   fontSize: '0.75rem',
-                  color: '#FFFFFF'
+                  color: '#FFFFFF',
+                  zIndex: 2
                 }}>
-                  {session.patient_name} in presence of Medical Staff • {session.phc_name}
+                  {isDoctorUser
+                    ? `${session.patient_name} in presence of Medical Staff • ${session.phc_name}`
+                    : `${session.doctor_name || 'Dr. Priya Sundaram'} • Specialist Oncologist`}
                 </div>
               </div>
             )}

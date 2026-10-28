@@ -28,6 +28,13 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Screen Cam Live Viewfinder
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const liveVideoRef = useRef<HTMLVideoElement>(null);
+  const liveStreamRef = useRef<MediaStream | null>(null);
+
   // Voice Assistance (Speech-to-Text & Text-to-Speech)
   const [isListening, setIsListening] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
@@ -36,6 +43,109 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  // Cleanup screen camera tracks on unmount
+  useEffect(() => {
+    return () => {
+      if (liveStreamRef.current) {
+        liveStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // Bind media stream to video element when live camera opens
+  useEffect(() => {
+    if (showLiveCamera && liveStreamRef.current && liveVideoRef.current) {
+      liveVideoRef.current.srcObject = liveStreamRef.current;
+      liveVideoRef.current.play().catch(console.error);
+    }
+  }, [showLiveCamera]);
+
+  const stopLiveCamera = () => {
+    if (liveStreamRef.current) {
+      liveStreamRef.current.getTracks().forEach((track) => track.stop());
+      liveStreamRef.current = null;
+    }
+    if (liveVideoRef.current) {
+      liveVideoRef.current.srcObject = null;
+    }
+    setShowLiveCamera(false);
+    setCameraError(null);
+  };
+
+  const startLiveCamera = async (facing: 'environment' | 'user' = 'environment') => {
+    setShowPlusMenu(false);
+    stopLiveCamera();
+    setShowLiveCamera(true);
+    setCameraError(null);
+    setCameraFacing(facing);
+
+    try {
+      if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+        throw new Error(isTe ? 'ఈ బ్రౌజర్‌లో కెమెరా అందుబాటులో లేదు' : 'Direct screen camera not supported in this browser.');
+      }
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { ideal: facing },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      liveStreamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        liveVideoRef.current.play().catch(console.error);
+      }
+    } catch (err: any) {
+      console.warn('Live screen camera error:', err);
+      let msg = isTe ? 'కెమెరా తెరవలేకపోయాము.' : 'Could not open device camera.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        msg = isTe
+          ? 'కెమెరా అనుమతి తిరస్కరించబడింది. దయచేసి బ్రౌజర్ సెట్టింగ్స్‌లో అనుమతి ఇవ్వండి.'
+          : 'Camera permission denied. Please allow camera access in your browser.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        msg = isTe ? 'ఈ పరికరంలో కెమెరా కనుగొనబడలేదు.' : 'No camera found on this device.';
+      }
+      setCameraError(msg);
+    }
+  };
+
+  const switchCamera = () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    startLiveCamera(nextFacing);
+  };
+
+  const captureLiveSnapshot = () => {
+    if (!liveVideoRef.current) return;
+    const video = liveVideoRef.current;
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, width, height);
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        const file = new File([blob], `screen_cam_capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        stopLiveCamera();
+        setUploadingAttachment(true);
+        try {
+          const res = await api.uploadImage(file);
+          setAttachedImage(res);
+        } catch (err: any) {
+          alert('Attachment upload failed: ' + err.message);
+        } finally {
+          setUploadingAttachment(false);
+        }
+      }
+    }, 'image/jpeg', 0.95);
+  };
 
   const cleanMessageContent = (content: string) => {
     if (!content) return '';
@@ -499,7 +609,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         }}>
           <button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => startLiveCamera('environment')}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.65rem',
               padding: '0.65rem', borderRadius: '8px', border: 'none',
@@ -511,7 +621,10 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </button>
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              setShowPlusMenu(false);
+              fileInputRef.current?.click();
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: '0.65rem',
               padding: '0.65rem', borderRadius: '8px', border: 'none',
@@ -594,6 +707,164 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           <Send size={18} />
         </button>
       </form>
+
+      {/* Screen Cam Live Viewfinder Modal */}
+      {showLiveCamera && (
+        <div className="live-viewfinder-overlay" style={{ zIndex: 100 }}>
+          <div className="live-viewfinder-box">
+            {/* Header */}
+            <div style={{
+              padding: '0.85rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#0F172A',
+              color: '#FFFFFF'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#EF4444',
+                  animation: 'pulse 1s infinite'
+                }} />
+                <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                  {isTe ? 'లైవ్ స్క్రీన్ కెమెరా' : 'Live Screen Camera Viewfinder'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={stopLiveCamera}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  padding: '0.3rem',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                aria-label="Close viewfinder"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Viewfinder Screen */}
+            <div className="live-viewfinder-screen">
+              {cameraError ? (
+                <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: '#FFFFFF' }}>
+                  <AlertTriangle size={42} color="#EF4444" style={{ margin: '0 auto 0.75rem' }} />
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                    {cameraError}
+                  </div>
+                  <p style={{ fontSize: '0.82rem', color: '#94A3B8', marginBottom: '1.25rem' }}>
+                    {isTe
+                      ? 'మీరు ఫైల్ లేదా ఫోన్ గ్యాలరీ నుండి ఫొటో ఎంచుకోవచ్చు.'
+                      : 'You can still choose an existing image file from your device.'}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-teal"
+                    style={{ margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    onClick={() => {
+                      stopLiveCamera();
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    <ImageIcon size={16} /> {isTe ? 'గ్యాలరీ నుండి ఎంచుకోండి' : 'Choose from Gallery'}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={liveVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="live-viewfinder-video"
+                  />
+                  {/* Oral Region Target Framing Guide */}
+                  <div className="live-viewfinder-guide">
+                    <div className="live-viewfinder-crosshair" />
+                  </div>
+
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    color: '#FFFFFF',
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '20px',
+                    fontSize: '0.74rem',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none'
+                  }}>
+                    {isTe ? 'మచ్చ లేదా పూతను వృత్తంలో కేంద్రీకరించి ఫొటో తీయండి' : 'Center oral sore/patch inside circle & hold steady'}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Controls Bar */}
+            {!cameraError && (
+              <div className="live-viewfinder-controls">
+                <button
+                  type="button"
+                  onClick={switchCamera}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50%',
+                    width: '42px',
+                    height: '42px',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title={isTe ? 'కెమెరా మార్చండి' : 'Switch Camera'}
+                >
+                  <RefreshCw size={18} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={captureLiveSnapshot}
+                  className="shutter-btn"
+                  title={isTe ? 'ఫొటో తీయండి' : 'Capture Oral Photo'}
+                >
+                  <div className="shutter-inner-dot" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={stopLiveCamera}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50%',
+                    width: '42px',
+                    height: '42px',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title={isTe ? 'రద్దు' : 'Cancel'}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
