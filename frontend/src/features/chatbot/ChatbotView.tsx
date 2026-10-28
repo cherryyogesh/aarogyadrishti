@@ -4,7 +4,7 @@ import { translations } from '../../i18n/translations';
 import { LanguageCode, ChatMessage, ImageUploadResponse } from '../../types';
 import {
   Plus, Send, Camera, Image as ImageIcon, X, AlertTriangle,
-  Copy, RefreshCw, ShieldAlert, Sparkles, Check, HelpCircle,
+  Copy, RefreshCw, Sparkles, Check, HelpCircle,
   Mic, MicOff, Volume2, VolumeX, Radio
 } from 'lucide-react';
 
@@ -36,6 +36,18 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const cleanMessageContent = (content: string) => {
+    if (!content) return '';
+    return content
+      .replace(/⚠️?\s*Essential Medical Guardrail:?[\s\S]*?(strictly mandatory\.?|$)/gi, '')
+      .replace(/⚠️?\s*Clinical Safety Guardrail:?[\s\S]*?(strictly mandatory\.?|$)/gi, '')
+      .replace(/⚠️?\s*Crucial Medical Boundary:?[\s\S]*?(mandatory\.?|$)/gi, '')
+      .replace(/⚠️?\s*ముఖ్య గమనిక:?[\s\S]*?(తప్పనిసరి\.?|$)/gi, '')
+      .replace(/⚠️?\s*క్లినికల్ మార్గదర్శకత్వం:?[\s\S]*?(తప్పనిసరి\.?|$)/gi, '')
+      .replace(/⚠️?\s*ముఖ్య వైద్య పరిమితి:?[\s\S]*?(తప్పనిసరి\.?|$)/gi, '')
+      .trim();
+  };
 
   const quickPrompts = isTe ? [
     { label: '💡 నోటి పూత నివారణ చిట్కాలు', text: 'నోటి పూత (Mouth Ulcers) తగ్గడానికి తీసుకోవలసిన జాగ్రత్తలు ఏమిటి?' },
@@ -99,7 +111,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         : 'Hello! I am Aarogya Mitra — your clinical AI health companion. You can ask questions or speak about mouth sores, persistent patches, burning sensations, or strategies to quit tobacco and chutta habits.',
       language: currentLang,
       has_attachment: false,
-      disclaimer: t.chat_disclaimer,
+      disclaimer: '',
       created_at: new Date().toISOString()
     };
     setMessages([welcomeMsg]);
@@ -246,7 +258,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         : 'Hello! I am Aarogya Mitra — your clinical AI health companion. You can ask questions or speak about mouth sores, persistent patches, burning sensations, or strategies to quit tobacco and chutta habits.',
       language: currentLang,
       has_attachment: false,
-      disclaimer: t.chat_disclaimer,
+      disclaimer: '',
       created_at: new Date().toISOString()
     };
     setMessages([welcomeMsg]);
@@ -317,21 +329,13 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         </div>
       </div>
 
-      {/* Mandatory Non-Diagnostic Disclaimer Banner */}
-      <div className="chat-disclaimer-banner">
-        <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#D97706' }} />
-        <span>
-          <strong>{isTe ? 'ముఖ్య వైద్య పరిమితి:' : 'Crucial Medical Boundary:'}</strong>{' '}
-          {isTe
-            ? 'ఆరోగ్య మిత్ర AI ఎట్టి పరిస్థితుల్లోనూ క్యాన్సర్‌ను నిర్ధారించదు. లక్షణాలు 14 రోజుల కంటే ఎక్కువ కొనసాగితే లేదా అనుమానాస్పదంగా ఉంటే PHC డాక్టర్‌ను సంప్రదించడం మరియు బయాప్సీ తప్పనిసరి.'
-            : 'Arogya Mitra AI NEVER diagnoses or confirms cancer. If symptoms last >14 days or appear suspicious, an in-person doctor evaluation and punch biopsy are mandatory.'}
-        </span>
-      </div>
-
       {/* Messages Scroll Viewport */}
       <div className="chat-messages-viewport">
         {messages.map((m) => {
           const isUser = m.role === 'user';
+          const displayedText = cleanMessageContent(m.content);
+          if (!displayedText && !m.attachment_preview_url) return null;
+
           return (
             <div key={m.id} className={`chat-message-row ${isUser ? 'user-row' : 'assistant-row'}`}>
               <div className={`chat-bubble ${isUser ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
@@ -380,28 +384,15 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 )}
 
                 <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                  {m.content}
+                  {displayedText}
                 </div>
-
-                {/* Guardrail callout inside initial assistant message */}
-                {m.id === 0 && (
-                  <div className="chat-guardrail-note">
-                    <ShieldAlert size={15} color="#D97706" style={{ flexShrink: 0, marginTop: '1px' }} />
-                    <div>
-                      <strong>{isTe ? 'క్లినికల్ మార్గదర్శకత్వం:' : 'Clinical Safety Guardrail:'}</strong>{' '}
-                      {isTe
-                        ? 'నేను విద్యా సమాచారాన్ని మాత్రమే అందిస్తాను. క్యాన్సర్‌ను నిర్ధారించను. 2 వారాల కంటే ఎక్కువ ఉండే ఏవైనా పుండ్లు లేదా మచ్చలకు సమీప PHC డాక్టర్‌ను సంప్రదించడం తప్పనిసరి.'
-                        : 'I provide educational guidance and NEVER diagnose cancer. For any persistent patch (>14 days), an in-person doctor evaluation is strictly mandatory.'}
-                    </div>
-                  </div>
-                )}
 
                 {/* Assistant Footer Actions (Voice Readout & Copy) */}
                 {!isUser && (
                   <div className="message-action-bar">
                     <button
                       className={`message-action-btn ${speakingMsgId === m.id ? 'active' : ''}`}
-                      onClick={() => speakText(m.id, m.content)}
+                      onClick={() => speakText(m.id, displayedText)}
                       title={speakingMsgId === m.id ? 'Stop speaking' : 'Listen via voice'}
                     >
                       {speakingMsgId === m.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
@@ -410,7 +401,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
                     <button
                       className="message-action-btn"
-                      onClick={() => handleCopyMessage(m.id, m.content)}
+                      onClick={() => handleCopyMessage(m.id, displayedText)}
                       title="Copy advice text"
                     >
                       {copiedId === m.id ? <Check size={13} color="#059669" /> : <Copy size={13} />}
