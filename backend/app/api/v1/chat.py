@@ -57,9 +57,9 @@ async def send_chat_message(
             image_bytes=None,
             category="mouth_oral",
             clinical_context={
-                "symptoms": text,
+                "symptoms": text if text and text != "Attached photograph for review." else "Oral lesion visual inspection",
                 "duration_days": 14,
-                "body_site": "oral_mucosa"
+                "body_site": "tongue_or_oral_mucosa"
             },
             consent_recorded=True,
             language=payload.language
@@ -71,7 +71,7 @@ async def send_chat_message(
 
             is_te = payload.language == "te"
             image_analysis_report = (
-                f"### 🔬 {'ఆరోగ్య మిత్ర AI ప్రాథమిక ఇమేజ్ పరిశీలన' if is_te else 'Aarogya Mytra AI Preliminary Image Assessment'}\n\n"
+                f"### 🔬 {'ఆరోగ్య మైత్ర AI ప్రాథమిక ఇమేజ్ పరిశీలన' if is_te else 'Aarogya Mytra AI Preliminary Image Assessment'}\n\n"
                 f"**{'కనిపించే లక్షణాలు (Visible Observations)' if is_te else 'Visible Morphological Observations'}:**\n{obs_lines}\n\n"
                 f"**{'సాధ్యమయ్యే ప్రాథమిక కారణాలు (Preliminary Considerations)' if is_te else 'Preliminary Clinical Considerations'}:**\n{expl_lines}\n\n"
                 f"**{'సిఫార్సు చేయబడిన తదుపరి చర్య' if is_te else 'Recommended Next Step'}:** {pipeline_res.get('recommended_next_step')}\n\n"
@@ -81,6 +81,13 @@ async def send_chat_message(
                 f"{citations}\n\n"
                 f"> ⚠️ *{pipeline_res.get('cancer_safety_notice')}*\n"
                 f"> *Preliminary AI-assisted assessment — clinician review pending.*"
+            )
+        elif pipeline_res.get("assessment_status") == "quality_check_failed":
+            is_te = payload.language == "te"
+            image_analysis_report = (
+                f"### ⚠️ {'ఫొటో నాణ్యత పరిమితి (Image Quality Warning)' if is_te else 'Image Quality Warning'}\n\n"
+                f"{pipeline_res.get('guidance_message')}\n\n"
+                f"> {'మంచి వెలుతురులో, కెమెరాను కదలకుండా ప్రభావిత ప్రాంతం స్పష్టంగా కనిపించేలా మరో ఫొటో తీయండి.' if is_te else 'Please retake a steady photo under bright lighting with the lesion clearly framed.'}"
             )
 
     # 2. Retrieve verified medical references for textual query

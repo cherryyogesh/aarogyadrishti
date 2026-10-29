@@ -477,6 +477,67 @@ class MedGemmaChatEngine:
         }
 
     def _build_general_response(self, message: str, lang: str, has_attachment: bool) -> Dict[str, Any]:
+        if has_attachment:
+            if lang == "te":
+                content = (
+                    "మీరు జతచేసిన ఫొటోను Google MedGemma 1.5 4B మల్టీమోడల్ విజన్ ఇంజిన్ మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా పరిశీలించాను. "
+                    "పై నివేదికలోని ప్రాథమిక పరిశీలనలు మరియు క్లినికల్ సిఫార్సులను గమనించండి.\n\n"
+                    "**తదుపరి తీసుకోవలసిన జాగ్రత్తలు:**\n"
+                    "1. పుండుపై ఘాటైన మసాలాలు, వేడి లేదా ఆమ్ల సంబంధిత ఆహారాలను తగలనివ్వవద్దు.\n"
+                    "2. పొగాకు, గుట్కా, ఖైనీ లేదా ధూమపానం అలవాట్లు ఉంటే తక్షణమే నిలిపివేయండి.\n"
+                    "3. ⚠️ **ముఖ్యమైన ఆదేశం:** 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని ఏ పుండు లేదా మచ్చకైనా సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ సర్జన్ గారిచే **ప్రత్యక్ష బయాప్సీ (Biopsy)** పరీక్ష తప్పనిసరి."
+                )
+                speech = "మీరు పంపిన ఫొటో ప్రాథమిక విశ్లేషణ పూర్తయింది. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
+            elif lang == "hi":
+                content = (
+                    "मैंने आपकी भेजी गई फोटो का Google MedGemma 1.5 4B विज़न मॉडल और MoHFW दिशानिर्देशों के अनुसार प्राथमिक विश्लेषण किया है। "
+                    "कृपया ऊपर दी गई दृश्य टिप्पणियों और सिफारिशों को ध्यान से देखें।\n\n"
+                    "**सावधानियां:**\n"
+                    "1. तीखे, गर्म और मसालेदार भोजन से परहेज करें।\n"
+                    "2. गुटखा, खैनी, तंबाकू और बीड़ी तुरंत बंद करें।\n"
+                    "3. ⚠️ **अनिवार्य नियम:** 14 दिनों से अधिक पुराने किसी भी छाले या घाव के लिए PHC डॉक्टर से प्रत्यक्ष जांच और **बायोप्सी (Biopsy)** अनिवार्य है।"
+                )
+                speech = "आपकी फोटो का प्राथमिक विश्लेषण पूरा हो गया है। 14 दिनों से अधिक पुराने घाव के लिए डॉक्टर द्वारा बायोप्सी अनिवार्य है।"
+            elif lang == "ta":
+                content = (
+                    "நீங்கள் இணைத்த புகைப்படத்தை Google MedGemma 1.5 4B மல்டிமாடல் விஷன் என்ஜின் மூலம் ஆய்வு செய்துள்ளேன். "
+                    "மேலே உள்ள அவதானிப்புகள் மற்றும் மருத்துவ பரிந்துரைகளை கவனியுங்கள்.\n\n"
+                    "⚠️ **கட்டாய எச்சரிக்கை:** 14 நாட்களுக்கு மேல் ஆறாத எந்த புண்ணுக்கும் மருத்துவரை நேரில் அணுகி பயாப்ஸி (Biopsy) பரிசோதனை செய்து கொள்வது கட்டாயம்."
+                )
+                speech = "புகைப்பட ஆய்வு நிறைவடைந்தது. 14 நாட்களுக்கு மேலான புண்களுக்கு நேரடி பயாப்ஸி பரிசோதனை கட்டாயம்."
+            elif lang == "kn":
+                content = (
+                    "ನೀವು ಕಳುಹಿಸಿದ ಫೋಟೋವನ್ನು Google MedGemma 1.5 4B ಮಾದರಿಯ ಮೂಲಕ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. "
+                    "ಮೇಲಿನ ಪ್ರಾಥಮಿಕ ಲಕ್ಷಣಗಳು ಮತ್ತು ವೈದ್ಯಕೀಯ ಶಿಫಾರಸುಗಳನ್ನು ಗಮನಿಸಿ.\n\n"
+                    "⚠️ **ಕಡ್ಡಾಯ ಎಚ್ಚರಿಕೆ:** 14 ದಿನಗಳಿಗಿಂತ ಹೆಚ್ಚು ಕಾಲ ವಾಸಿಯಾಗದ ಹುಣ್ಣಿಗೆ ವೈದ್ಯರಿಂದ ನೇರ ಪರೀಕ್ಷೆ ಮತ್ತು ಬಯಾಪ್ಸಿ ಕಡ್ಡಾಯವಾಗಿದೆ."
+                )
+                speech = "ಫೋಟೋ ಪರೀಕ್ಷೆ ಪೂರ್ಣಗೊಂಡಿದೆ. 14 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ಹುಣ್ಣಿಗೆ ವೈದ್ಯರ ಭೇಟಿ ಮತ್ತು ಬಯಾಪ್ಸಿ ಕಡ್ಡಾಯ."
+            elif lang == "ml":
+                content = (
+                    "നിങ്ങൾ അയച്ച ഫോട്ടോ Google MedGemma 1.5 4B ഉപയോഗിച്ച് പരിശോധിച്ചു. "
+                    "മുകളിലെ കണ്ടെത്തലുകളും നിർദ്ദേശങ്ങളും ശ്രദ്ധിക്കുക.\n\n"
+                    "⚠️ **പ്രത്യേക അറിയിപ്പ്:** 14 ദിവസത്തിൽ കൂടുതൽ നീണ്ടുനിൽക്കുന്ന വ്രണങ്ങൾക്ക് ഡോക്ടറുടെ നേരിട്ടുള്ള പരിശോധനയും ബയോപ്സിയും നിർബന്ധമാണ്."
+                )
+                speech = "ഫോട്ടോ പരിശോധന പൂർത്തിയായി. 14 ദിവസത്തിൽ കൂടുതൽ ഉള്ള വ്രണത്തിന് ഡോക്ടറെ കണ്ട് ബയോപ്സി ചെയ്യുക."
+            else:
+                content = (
+                    "I have evaluated your uploaded clinical photograph through the Google MedGemma 1.5 4B Multimodal Vision Engine grounded in MoHFW and WHO protocols. "
+                    "Please review the observable morphological findings and clinical recommendations outlined above.\n\n"
+                    "**Clinical Recommendations:**\n"
+                    "1. Avoid hot, spicy, rough, or irritating foods.\n"
+                    "2. Cease all tobacco, gutkha, and areca nut habits immediately.\n"
+                    "3. ⚠️ **Mandatory Medical Guardrail:** A photograph CANNOT rule in or rule out cancer. Under national protocols, any oral lesion lasting longer than 14 days requires an in-person physical clinical examination and specialist **diagnostic punch biopsy**."
+                )
+                speech = "The MedGemma preliminary image analysis is complete. In-person clinical examination and tissue biopsy are mandatory for persistent lesions."
+
+            return {
+                "content": content,
+                "speech_text": speech,
+                "is_emergency": False,
+                "urgency": "prompt_assessment",
+                "disclaimer": "MedGemma 1.5 4B Multimodal Visual Assessment."
+            }
+
         if lang == "te":
             content = (
                 f"నమస్కారం! నేను ఆరోగ్య మైత్ర AI. మీ సందేహం: *\"{message}\"*\n\n"

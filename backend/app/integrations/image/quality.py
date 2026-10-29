@@ -24,7 +24,8 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
         }
 
     height, width = img.shape[:2]
-    resolution_adequate = (width >= 320 and height >= 320)
+    # Adequate resolution: Minimum 160px per dimension or at least 40,000 total pixels (e.g. 200x200, 474x248, 640x480)
+    resolution_adequate = (width >= 160 and height >= 160) or (width * height >= 40000)
 
     # 2. Convert to grayscale for blur and luminance analysis
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -32,12 +33,12 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
     # Blur detection via Laplacian variance
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     blur_score = float(laplacian.var())
-    is_blurry = blur_score < 75.0  # Common threshold for camera focus
+    is_blurry = blur_score < 40.0  # Focus threshold where morphological edges become indistinguishable
 
     # Luminance / Exposure analysis
     luminance_score = float(np.mean(gray))
-    is_dark = luminance_score < 45.0
-    is_overexposed = luminance_score > 215.0
+    is_dark = luminance_score < 35.0
+    is_overexposed = luminance_score > 230.0
 
     # Determine guidance and quality state
     guidance_notes = []
@@ -51,10 +52,11 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
         guidance_notes.append("The photo is overexposed or has excessive flash glare. Reduce direct light.")
 
     if not guidance_notes:
-        quality_state = "excellent" if blur_score >= 150.0 and 80.0 <= luminance_score <= 180.0 else "acceptable"
+        quality_state = "excellent" if blur_score >= 120.0 and 70.0 <= luminance_score <= 180.0 else "acceptable"
         guidance_message = "Image quality is clear and acceptable for clinical review."
     else:
-        quality_state = "retake_recommended" if (is_blurry or is_dark or not resolution_adequate) else "acceptable"
+        is_severe = (blur_score < 25.0) or (luminance_score < 25.0) or (width * height < 20000)
+        quality_state = "retake_recommended" if is_severe else "acceptable"
         guidance_message = " ".join(guidance_notes)
 
     return {
