@@ -1,7 +1,9 @@
 import re
 import logging
 from typing import Dict, Any, Optional
+import asyncio
 from app.integrations.ai.triage import detect_emergency_symptoms
+from app.integrations.ai.llm_clinical_engine import llm_clinical_engine
 
 logger = logging.getLogger("medgemma_chat_engine")
 
@@ -12,6 +14,36 @@ class MedGemmaChatEngine:
     Telugu, English, Hindi, Tamil, Malayalam, and Kannada.
     Grounded in MoHFW National Oral Health Programme (NOHP), NP-NCD, and WHO protocols.
     """
+
+    async def generate_chat_response_async(
+        self,
+        user_message: str,
+        language: str = "en",
+        has_attachment: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Asynchronously queries the MedGemma Unified Clinical LLM Engine
+        (Google Gemini / Groq / HuggingFace MedGemma / Autonomous Clinical Knowledge).
+        Answers EVERY question with accurate, professional medical knowledge.
+        """
+        text = user_message.lower().strip()
+        lang = (language or "en").lower()
+
+        # 1. Emergency Red-Flag Detection
+        emergency = detect_emergency_symptoms(user_message)
+        if emergency:
+            return self._build_emergency_response(lang)
+
+        # 2. Query MedGemma Unified LLM Clinical Engine
+        try:
+            llm_res = await llm_clinical_engine.generate_response(user_message, lang, has_attachment)
+            if llm_res and llm_res.get("content"):
+                return llm_res
+        except Exception as e:
+            logger.error(f"MedGemma LLM Engine async query error: {e}")
+
+        # Fallback to synchronous rules
+        return self.generate_chat_response(user_message, language, has_attachment)
 
     def generate_chat_response(
         self,
@@ -30,6 +62,19 @@ class MedGemmaChatEngine:
         emergency = detect_emergency_symptoms(user_message)
         if emergency:
             return self._build_emergency_response(lang)
+
+        # 2. Check if Live LLM is connected; run via thread executor
+        status = llm_clinical_engine.get_status()
+        if status.get("is_live_llm_connected") or (len(user_message.strip()) > 5 and user_message.strip() != "Attached photograph for review."):
+            try:
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, llm_clinical_engine.generate_response(user_message, lang, has_attachment))
+                    res = future.result()
+                    if res and res.get("content"):
+                        return res
+            except Exception as e:
+                logger.warning(f"Sync LLM fallback to rules: {e}")
 
         # 2. Ulcer / Mouth Sores Inquiries
         ulcer_keywords = [

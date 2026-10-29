@@ -1,8 +1,13 @@
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Load local and parent .env files
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 class Settings(BaseSettings):
     APP_NAME: str = "Aarogya Drishti"
@@ -28,8 +33,13 @@ class Settings(BaseSettings):
     DLT_SENDER_ID: str = os.getenv("DLT_SENDER_ID", "AARDRI")
     DLT_ENTITY_ID: str = os.getenv("DLT_ENTITY_ID", "")
 
-    # AI Integration
+    # Fast AI LLM & MedGemma Integration
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     HUGGINGFACE_API_KEY: str = os.getenv("HUGGINGFACE_API_KEY", "")
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    FAST_API_KEY: str = os.getenv("FAST_API_KEY", "")
     AI_MODEL_ID: str = os.getenv("AI_MODEL_ID", "meta-llama/Llama-3.2-3B-Instruct")
 
     # Aarogya Mytra AI — Google MedGemma 1.5 4B Vision & Clinical AI

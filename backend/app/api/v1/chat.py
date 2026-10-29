@@ -133,8 +133,8 @@ async def send_chat_message(
     retrieved_refs = medical_rag.retrieve_relevant_references(query=text, symptoms=text, max_results=2)
     rag_citations = medical_rag.format_citations_markdown(retrieved_refs, language=payload.language) if retrieved_refs else ""
 
-    # Generate AI response using MedGemma Clinical Health & Voice Dialogue Engine
-    ai_resp = medgemma_chat_engine.generate_chat_response(
+    # Generate AI response using MedGemma Unified Clinical LLM & Dialogue Engine
+    ai_resp = await medgemma_chat_engine.generate_chat_response_async(
         user_message=text,
         language=payload.language,
         has_attachment=has_attachment

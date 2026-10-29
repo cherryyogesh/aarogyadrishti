@@ -5,7 +5,8 @@ import { LanguageCode, ChatMessage, ImageUploadResponse } from '../../types';
 import {
   Plus, Send, Camera, Image as ImageIcon, X, AlertTriangle,
   Copy, RefreshCw, Sparkles, Check, HelpCircle,
-  Mic, MicOff, Volume2, VolumeX, Radio
+  Mic, MicOff, Volume2, VolumeX, Radio,
+  Key, Zap, ExternalLink
 } from 'lucide-react';
 
 interface Props {
@@ -20,6 +21,14 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 10));
+
+  // Fast AI Key & MedGemma LLM Connection State
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const [keyProvider, setKeyProvider] = useState<'gemini' | 'groq' | 'huggingface' | 'openai'>('gemini');
+  const [keyInput, setKeyInput] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
+  const [keySuccess, setKeySuccess] = useState<string | null>(null);
 
   // Attachment state (+ button)
   const [showPlusMenu, setShowPlusMenu] = useState(false);
@@ -293,6 +302,12 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   }, [currentLang, sessionId, isTe]);
 
   useEffect(() => {
+    api.getAiStatus()
+      .then(res => setAiStatus(res))
+      .catch(err => console.warn('Could not fetch AI status:', err));
+  }, []);
+
+  useEffect(() => {
     api.getGoogleHealthRepoStatus()
       .then(res => setRepoStatus(res))
       .catch(() => setRepoStatus({ status: 'connected', details: { connected: true, submodule_path: 'external/medgemma' } }));
@@ -405,6 +420,27 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       setMessages((prev) => [...prev, fallbackAsstMsg]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!keyInput.trim()) return;
+    setSavingKey(true);
+    setKeySuccess(null);
+    try {
+      const res = await api.saveAiKey(keyProvider, keyInput.trim());
+      setAiStatus(res.status);
+      setKeySuccess(isTe ? 'ఫాస్ట్ API కీ విజయవంతంగా కనెక్ట్ అయింది!' : 'Fast API Key connected successfully!');
+      setTimeout(() => {
+        setShowKeyModal(false);
+        setKeySuccess(null);
+        setKeyInput('');
+      }, 1500);
+    } catch (err: any) {
+      alert('Failed to connect API Key: ' + err.message);
+    } finally {
+      setSavingKey(false);
     }
   };
 
@@ -587,6 +623,33 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                 <span>Google-Health/medgemma ({repoStatus?.details?.commit_hash?.slice(0, 7) || 'a60a660'}) ↗</span>
               </a>
+
+              {/* Fast API Key / LLM Status Button */}
+              <button
+                type="button"
+                onClick={() => setShowKeyModal(true)}
+                style={{
+                  background: aiStatus?.is_live_llm_connected ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
+                  color: aiStatus?.is_live_llm_connected ? '#047857' : '#B45309',
+                  border: `1.5px solid ${aiStatus?.is_live_llm_connected ? '#10B981' : '#F59E0B'}`,
+                  borderRadius: '12px',
+                  padding: '0.15rem 0.55rem',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: 'pointer'
+                }}
+                title="Configure Fast API Key for Google MedGemma / Gemini / Groq LLM"
+              >
+                <Zap size={11} color={aiStatus?.is_live_llm_connected ? '#10B981' : '#D97706'} />
+                <span>
+                  {aiStatus?.is_live_llm_connected
+                    ? `🟢 ${aiStatus.active_provider.toUpperCase()} LLM Active`
+                    : (isTe ? '⚡ ఫాస్ట్ API కీ కనెక్ట్ చేయండి' : '⚡ Connect Fast API Key')}
+                </span>
+              </button>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />
                 {isTe ? 'వాయిస్ + విజన్' : 'Vision + Voice'}
@@ -1086,6 +1149,199 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </div>
         </div>
       )}
+      {/* Fast API Key Connector Modal */}
+      {showKeyModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '14px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '1.4rem',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Key size={20} color="#0D9488" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                  {isTe ? 'మెడ్‌గెమ్మా ఫాస్ట్ API కీ కనెక్ట్ చేయండి' : 'Connect Fast API Key for MedGemma LLM'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKeyModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
+              {isTe
+                ? 'ఆరోగ్య మైత్ర AI ని నిజమైన క్లౌడ్ LLM కి కనెక్ట్ చేయడానికి ఉచిత Google Gemini లేదా Groq API కీని నమోదు చేయండి. దీని ద్వారా ప్రతి ప్రశ్నకు పూర్తి క్లినికల్ పరిజ్ఞానంతో సమాధానాలు లభిస్తాయి.'
+                : 'Connect Aarogya Mytra AI to a fast live LLM cloud model (Google Gemini / MedGemma or Groq). This enables deep real-time clinical intelligence for every question.'}
+            </div>
+
+            {keySuccess && (
+              <div style={{ background: '#DCFCE7', color: '#15803D', padding: '0.6rem 0.8rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.85rem' }}>
+                ✓ {keySuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveKey}>
+              {/* Provider Selection */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                  {isTe ? 'AI ప్రొవైడర్‌ను ఎంచుకోండి:' : 'Select Fast AI Provider:'}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  {[
+                    { id: 'gemini', name: 'Google Gemini (MedGemma Cloud)', badge: 'Recommended • Free' },
+                    { id: 'groq', name: 'Groq LPU (Ultra-Fast)', badge: '500 tok/sec • Free' },
+                    { id: 'huggingface', name: 'Hugging Face (MedGemma 4B)', badge: 'Official Model' },
+                    { id: 'openai', name: 'OpenAI / Custom Endpoint', badge: 'Standard' }
+                  ].map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => setKeyProvider(p.id as any)}
+                      style={{
+                        padding: '0.6rem 0.75rem',
+                        borderRadius: '8px',
+                        border: `1.5px solid ${keyProvider === p.id ? '#0D9488' : '#E2E8F0'}`,
+                        background: keyProvider === p.id ? '#F0FDFA' : '#FAFAFA',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: keyProvider === p.id ? '#0F766E' : '#334155' }}>
+                        {p.name}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.15rem' }}>
+                        {p.badge}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Free Key Helper Link */}
+              <div style={{ background: '#F8FAFC', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1rem', border: '1px dashed #CBD5E1' }}>
+                <div style={{ fontSize: '0.74rem', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>
+                    {keyProvider === 'gemini' && '👉 Free key from Google AI Studio (takes 15 seconds):'}
+                    {keyProvider === 'groq' && '👉 Free ultra-fast key from Groq Console:'}
+                    {keyProvider === 'huggingface' && '👉 HuggingFace User Access Token:'}
+                    {keyProvider === 'openai' && '👉 OpenAI / Custom API Key:'}
+                  </span>
+                  <a
+                    href={
+                      keyProvider === 'gemini'
+                        ? 'https://aistudio.google.com/app/apikey'
+                        : keyProvider === 'groq'
+                        ? 'https://console.groq.com/keys'
+                        : keyProvider === 'huggingface'
+                        ? 'https://huggingface.co/settings/tokens'
+                        : 'https://platform.openai.com/api-keys'
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#0D9488', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                  >
+                    <span>Get Key</span>
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
+              </div>
+
+              {/* API Key Input */}
+              <div style={{ marginBottom: '1.2rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                  {keyProvider.toUpperCase()} API Key:
+                </label>
+                <input
+                  type="password"
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  placeholder={
+                    keyProvider === 'gemini'
+                      ? 'AIzaSy...'
+                      : keyProvider === 'groq'
+                      ? 'gsk_...'
+                      : keyProvider === 'huggingface'
+                      ? 'hf_...'
+                      : 'sk-...'
+                  }
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 0.75rem',
+                    fontSize: '0.85rem',
+                    borderRadius: '8px',
+                    border: '1.5px solid #CBD5E1',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    color: '#475569',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isTe ? 'రద్దు చేయి' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingKey || !keyInput.trim()}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#0D9488',
+                    color: '#FFFFFF',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: savingKey || !keyInput.trim() ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    opacity: savingKey || !keyInput.trim() ? 0.7 : 1
+                  }}
+                >
+                  <Zap size={14} />
+                  <span>{savingKey ? (isTe ? 'కనెక్ట్ చేస్తోంది...' : 'Connecting...') : (isTe ? 'కీ భద్రపరచు & కనెక్ట్ చేయి' : 'Save & Connect to MedGemma')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

@@ -492,6 +492,18 @@ class ApiService {
     const q = new URLSearchParams({ query, body_region: bodyRegion, symptoms });
     return this.request<any>(`/mytra-ai/references?${q.toString()}`);
   }
+
+  // --- Fast AI Keys & LLM Connection ---
+  async getAiStatus(): Promise<any> {
+    return this.request<any>('/config/ai-status');
+  }
+
+  async saveAiKey(provider: string, apiKey: string, modelId?: string): Promise<any> {
+    return this.request<any>('/config/ai-keys', {
+      method: 'POST',
+      body: JSON.stringify({ provider, api_key: apiKey, model_id: modelId }),
+    });
+  }
 }
 
 export const api = new ApiService();
