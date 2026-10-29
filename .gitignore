@@ -18,3 +18,5 @@ Thumbs.db
 *.log
 .env
 *.db-journal
+models/
+backend/models/

@@ -1,18 +1,27 @@
 {
   "short_name": "Aarogya Drishti",
-  "name": "Aarogya Drishti Healthcare Platform",
-  "description": "Multilingual AI-Assisted Community Healthcare Screening & Telemedicine",
+  "name": "Aarogya Drishti (ఆరోగ్య దృష్టి) — Medical Health Platform",
+  "description": "Accessible multilingual community healthcare screening, triage, and telemedicine application for Android smartphones, tablets, and desktops.",
   "icons": [
     {
       "src": "/logo.svg",
       "type": "image/svg+xml",
       "sizes": "192x192 512x512",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48 96x96",
+      "purpose": "any"
     }
   ],
   "start_url": "/",
+  "scope": "/",
   "background_color": "#0A192F",
   "theme_color": "#0A192F",
   "display": "standalone",
-  "orientation": "portrait-primary"
+  "orientation": "portrait-primary",
+  "categories": ["medical", "health", "lifestyle"],
+  "lang": "te"
 }

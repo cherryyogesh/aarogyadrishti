@@ -54,6 +54,31 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const [createdSlip, setCreatedSlip] = useState<ReferralSlip | null>(null);
   const [slipLoading, setSlipLoading] = useState(false);
 
+  // Google MedGemma 1.5 4B AI Assessment State
+  const [mytraAssessment, setMytraAssessment] = useState<any>(session.screening_details?.mytra_assessment || null);
+  const [loadingMytra, setLoadingMytra] = useState(false);
+
+  useEffect(() => {
+    if (!mytraAssessment && session.screening_details?.id) {
+      setLoadingMytra(true);
+      api.getScreeningMytraAssessment(session.screening_details.id)
+        .then(res => {
+          if (res) setMytraAssessment(res);
+        })
+        .catch(err => console.warn('Could not fetch MedGemma assessment for tele-consultation:', err))
+        .finally(() => setLoadingMytra(false));
+    }
+  }, [session.screening_details?.id]);
+
+  const handleCopyAiToNotes = () => {
+    if (!mytraAssessment) return;
+    const obs = (mytraAssessment.visible_observations || []).map((o: string) => `• ${o}`).join('\n');
+    const diffs = (mytraAssessment.possible_explanations || []).map((d: any) => `• ${d.name}: ${d.reasoning || ''}`).join('\n');
+    const trismus = session.screening_details?.mouth_opening_mm ? `Inter-incisal mouth opening: ${session.screening_details.mouth_opening_mm} mm.` : '';
+    const textToInsert = `[Google MedGemma 1.5 4B AI Findings]:\n${trismus ? trismus + '\n' : ''}Visible Observations:\n${obs}\n\nClinical Differentials Considered:\n${diffs}\n\nClinician Evaluation: Correlated during live video examination.`;
+    setClinicalFindings(prev => prev ? `${prev}\n\n${textToInsert}` : textToInsert);
+  };
+
   const [finalizing, setFinalizing] = useState(false);
   const [completed, setCompleted] = useState(false);
 
@@ -1417,7 +1442,143 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                 </div>
               )}
 
-              {session.screening_details.ai_analysis && (
+              {/* Google MedGemma 1.5 4B & MoHFW RAG Clinical Assessment */}
+              {loadingMytra ? (
+                <div style={{ padding: '0.85rem', textAlign: 'center', color: '#0F766E', fontSize: '0.8rem' }}>
+                  <Sparkles size={14} className="spin" style={{ marginRight: '6px' }} />
+                  Loading Google MedGemma 1.5 4B clinical assessment...
+                </div>
+              ) : mytraAssessment ? (
+                <div style={{
+                  background: 'linear-gradient(180deg, #F0FDFA 0%, #FFFFFF 100%)',
+                  border: '1px solid #99F6E4',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginTop: '0.85rem',
+                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.08)'
+                }}>
+                  {/* Card Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={16} color="#0D9488" />
+                      <strong style={{ fontSize: '0.88rem', color: '#0F766E' }}>
+                        Google MedGemma 1.5 4B Clinical Assessment
+                      </strong>
+                      <span style={{ fontSize: '0.68rem', background: '#0D9488', color: '#FFF', padding: '0.12rem 0.45rem', borderRadius: '4px', fontWeight: 700 }}>
+                        LOCAL PRIVATE AI
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyAiToNotes}
+                      style={{
+                        background: '#0F766E',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.3rem 0.65rem',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                      title="Copy MedGemma observations into Doctor Clinical Findings textarea"
+                    >
+                      <Copy size={12} /> Copy Findings to Notes
+                    </button>
+                  </div>
+
+                  {/* Subsite & Metric Badges */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                    {session.screening_details.oral_site && (
+                      <span style={{ fontSize: '0.72rem', background: '#CCFBF1', color: '#115E59', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+                        Site: {session.screening_details.oral_site.replace('_', ' ')}
+                      </span>
+                    )}
+                    {session.screening_details.lesion_type && (
+                      <span style={{ fontSize: '0.72rem', background: '#FEF3C7', color: '#92400E', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 600 }}>
+                        Presentation: {session.screening_details.lesion_type.replace('_', ' ')}
+                      </span>
+                    )}
+                    {session.screening_details.mouth_opening_mm && (
+                      <span style={{
+                        fontSize: '0.72rem',
+                        background: session.screening_details.mouth_opening_mm < 35 ? '#FEE2E2' : '#DCFCE7',
+                        color: session.screening_details.mouth_opening_mm < 35 ? '#991B1B' : '#166534',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: 700
+                      }}>
+                        Mouth Opening: {session.screening_details.mouth_opening_mm} mm {session.screening_details.mouth_opening_mm < 35 ? '(Restricted)' : '(Normal)'}
+                      </span>
+                    )}
+                    {mytraAssessment.urgency && (
+                      <span style={{
+                        fontSize: '0.72rem',
+                        background: mytraAssessment.urgency === 'urgent_care' ? '#FEE2E2' : '#FEF3C7',
+                        color: mytraAssessment.urgency === 'urgent_care' ? '#991B1B' : '#92400E',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}>
+                        Urgency: {mytraAssessment.urgency.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Visible Observations */}
+                  {mytraAssessment.visible_observations && mytraAssessment.visible_observations.length > 0 && (
+                    <div style={{ marginBottom: '0.65rem' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        Section B: Observable Visual Features:
+                      </span>
+                      <ul style={{ margin: '0.3rem 0 0 1rem', padding: 0, fontSize: '0.78rem', color: '#475569', lineHeight: 1.45 }}>
+                        {mytraAssessment.visible_observations.map((obs: string, idx: number) => (
+                          <li key={idx} style={{ marginBottom: '0.2rem' }}>{obs}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Possible Explanations / Differentials */}
+                  {mytraAssessment.possible_explanations && mytraAssessment.possible_explanations.length > 0 && (
+                    <div style={{ marginBottom: '0.65rem' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        Section C: Clinical Differentials & Evidence:
+                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.35rem' }}>
+                        {mytraAssessment.possible_explanations.map((exp: any, idx: number) => (
+                          <div key={idx} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '0.45rem 0.65rem' }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0F766E' }}>
+                              • {exp.name}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '0.15rem', lineHeight: 1.35 }}>
+                              {exp.reasoning}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Safety Guardrail Notice */}
+                  <div style={{
+                    background: '#FFFBEB',
+                    border: '1px solid #FDE68A',
+                    borderRadius: '6px',
+                    padding: '0.45rem 0.65rem',
+                    fontSize: '0.72rem',
+                    color: '#92400E',
+                    marginTop: '0.5rem'
+                  }}>
+                    🛡️ <strong>Clinical Safety Mandate:</strong> This MedGemma analysis is preliminary and non-diagnostic. Photographs cannot confirm or exclude malignancy. Specialist in-person clinical physical examination and formal biopsy are mandatory.
+                  </div>
+                </div>
+              ) : session.screening_details.ai_analysis ? (
                 <div style={{
                   background: '#F0FDFA',
                   border: '1px solid #99F6E4',
@@ -1430,7 +1591,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   <Sparkles size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
                   AI Triage: {session.screening_details.ai_analysis.recommendations}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>

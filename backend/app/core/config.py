@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         extra = "allow"
+        env_file = str(BASE_DIR / ".env")
+        env_file_encoding = "utf-8"
 
 settings = Settings()
 

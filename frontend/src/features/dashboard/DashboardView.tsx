@@ -5,7 +5,7 @@ import { LanguageCode, User, Screening, DoctorQueueItem } from '../../types';
 import {
   Users, Activity, Clock, CheckCircle, PlusCircle, UserCheck,
   Stethoscope, MessageSquare, ArrowRight, AlertTriangle, Shield,
-  FileCheck, FlaskConical
+  FileCheck, FlaskConical, Sparkles, ShieldCheck
 } from 'lucide-react';
 
 interface Props {
@@ -141,6 +141,16 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           <button className="btn btn-secondary" onClick={() => onNavigate('chatbot')}>
             <MessageSquare size={18} />
             {isTe ? 'మిత్ర AI' : 'Mitra AI'}
+          </button>
+
+          <button className="btn btn-secondary" onClick={() => onNavigate('report_explainer')}>
+            <Sparkles size={18} />
+            {isTe ? 'మెడ్‌జెమ్మా AI / రిపోర్ట్' : 'MedGemma AI / Report'}
+          </button>
+
+          <button className="btn btn-secondary" onClick={() => onNavigate('free_demo')} style={{ borderColor: 'var(--teal-primary)' }}>
+            <ShieldCheck size={18} color="var(--teal-primary)" />
+            {isTe ? 'ఉచిత డెమో (ఆఫ్‌లైన్)' : 'Free Demo (Offline)'}
           </button>
         </div>
       </div>

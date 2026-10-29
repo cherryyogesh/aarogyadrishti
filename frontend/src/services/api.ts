@@ -3,7 +3,8 @@ import {
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
   StaffMember, EmployeeRegisterPayload,
-  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload
+  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload,
+  LocalMedGemmaStatus, LocalMedGemmaResult
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -487,6 +488,18 @@ class ApiService {
   async queryMytraReferences(query: string, bodyRegion = '', symptoms = ''): Promise<any> {
     const q = new URLSearchParams({ query, body_region: bodyRegion, symptoms });
     return this.request<any>(`/mytra-ai/references?${q.toString()}`);
+  }
+
+  // --- Local MedGemma 1.5 4B (Zero Cloud / On-Device Engine) ---
+  async getLocalMedGemmaStatus(): Promise<LocalMedGemmaStatus> {
+    return this.request<LocalMedGemmaStatus>('/mytra-ai/local/status');
+  }
+
+  async analyzeLocalMedGemma(formData: FormData): Promise<LocalMedGemmaResult> {
+    return this.request<LocalMedGemmaResult>('/mytra-ai/local/analyze', {
+      method: 'POST',
+      body: formData,
+    });
   }
 }
 

@@ -118,9 +118,257 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": False
         }
 
-    # 3. Common Minor Doubts & Self-Care Guidance
+    # 3. Common Infections & General Health Conditions
 
-    # A. Mouth Ulcers / Canker Sores (నోటి పూత)
+    # A. Fever / Pyrexia / Chills (జ్వరం, చలిజ్వరం, మలేరియా, డెంగ్యూ)
+    if any(k in lower_symptoms for k in ["fever", "temp", "chill", "జ్వరం", "వేడి", "చలి", "bukhar", "taap", "ताप", "बुखार"]):
+        if lang == "te":
+            rec = (
+                "🌡️ **జ్వరం వచ్చినప్పుడు తీసుకోవలసిన తక్షణ జాగ్రత్తలు & ప్రాథమిక సంరక్షణ:**"
+                "\n\n**1. శరీరాన్ని చల్లబరచడం & విశ్రాంతి:**"
+                "\n• సాధారణ నీటితో (మరీ చల్లని నీరు కాకుండా) శుభ్రమైన గుడ్డను తడిపి నుదురు, మెడ మరియు అరచేతులపై అద్దండి (Tepid sponging)."
+                "\n• తేలికపాటి నూలు బట్టలు ధరించండి. దళసరి దుప్పట్లు కప్పుకోకండి."
+                "\n• శరీరానికి తగినంత విశ్రాంతి తప్పనిసరి."
+                "\n\n**2. శరీరంలో నీటిశాతం (హైడ్రేషన్) కాపాడుకోవడం:**"
+                "\n• కాచి చల్లార్చిన నీరు, ఓఆర్ఎస్ (ORS) ద్రావణం, కొబ్బరి నీళ్ళు, లేదా గంజి నీళ్ళు తరచుగా త్రాగించండి."
+                "\n• శరీరంలో నీటిశాతం తగ్గితే జ్వరం తీవ్రత మరియు నీరసం పెరుగుతాయి."
+                "\n\n**3. మందుల వాడకం:**"
+                "\n• అధిక జ్వరం (100°F పైన) మరియు ఒళ్లు నొప్పులు ఉంటే పారాసిటమాల్ (Paracetamol 500mg/650mg పెద్దలకు) ఆహారం తీసుకున్న తర్వాత మాత్రమే వేసుకోవచ్చు. (రోజుకు గరిష్టంగా 3-4 సార్లు మించరాదు)."
+                "\n• డాక్టర్ సూచించకుండా యాంటీబయాటిక్స్ లేదా నొప్పి నివారణ మందులు (NSAIDs) సొంతంగా వాడరాదు."
+                "\n\n**4. పాడేరు & ఏజెన్సీ మండలాల ముఖ్య గమనిక (మలేరియా & డెంగ్యూ పరీక్ష):**"
+                "\n• మన ఏజెన్సీ ప్రాంతంలో జ్వరం వస్తే మలేరియా లేదా డెంగ్యూ అయ్యే అవకాశం ఉంటుంది. మీ గ్రామ ఆశా (ASHA) కార్యకర్త వద్ద రక్త పరీక్ష (Malaria RDT Kit) ఉచితంగా చేయించుకోండి."
+                "\n\n🚨 **ఈ క్రింది ప్రమాదకర లక్షణాలు ఉంటే వెంటనే ఆసుపత్రికి వెళ్ళండి:**"
+                "\n• జ్వరం 2 రోజుల కంటే ఎక్కువ తగ్గకపోవడం."
+                "\n• తీవ్రమైన తలనొప్పి, మెడ బిగుసుకుపోవడం లేదా కళ్ళ వెనుక తీవ్ర నొప్పి."
+                "\n• శ్వాస తీసుకోవడంలో ఇబ్బంది, నిరంతర వాంతులు లేదా ఫిట్స్ రావడం."
+                "\n• చర్మంపై ఎర్రటి మచ్చలు లేదా చిగుళ్ళ నుండి రక్తస్రావం కావడం."
+            )
+        else:
+            rec = (
+                "🌡️ **Fever Management & Clinical Primary Care Guidance:**"
+                "\n\n**1. Cooling & Rest:**"
+                "\n• Apply a clean cloth dampened with room-temperature water to the forehead, neck, and armpits (Tepid sponging). Avoid ice-cold water."
+                "\n• Wear light, breathable cotton clothing; avoid wrapping in heavy blankets."
+                "\n• Ensure complete bed rest."
+                "\n\n**2. Hydration & Fluids:**"
+                "\n• Drink plenty of fluids: boiled and cooled water, ORS (Oral Rehydration Solution), tender coconut water, and light rice kanji with salt."
+                "\n• Maintaining hydration is critical to help the body fight infection and prevent complications."
+                "\n\n**3. Safe Medication:**"
+                "\n• For temperature above 100°F (37.8°C) or body aches, Paracetamol (500mg/650mg for adults after food) may be taken every 6-8 hours (maximum 3-4 doses in 24 hours)."
+                "\n• Do NOT self-medicate with unprescribed antibiotics, Aspirin, or heavy painkillers (NSAIDs)."
+                "\n\n**4. Special ITDA Paderu Agency Notice (Malaria & Dengue Screening):**"
+                "\n• In agency mandals, acute fever with chills or shivering must be screened for Malaria and Dengue. Contact your local ASHA worker for an immediate rapid diagnostic blood test (RDT)."
+                "\n\n🚨 **Emergency Red Flags (Seek Immediate PHC / Hospital Care):**"
+                "\n• Fever persisting beyond 48 hours without improvement."
+                "\n• Stiff neck, extreme lethargy, confusion, or severe headache behind the eyes."
+                "\n• Difficulty breathing, persistent vomiting, or inability to keep fluids down."
+                "\n• Red pinpoint spots on skin, bleeding gums, or dark stools."
+            )
+        return {
+            "urgency": "priority",
+            "visual_observations": "Acute pyrexia / fever query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # B. Cough, Cold, Sore Throat & Upper Respiratory Infection (దగ్గు, జలుబు, గొంతు నొప్పి)
+    if any(k in lower_symptoms for k in ["cough", "cold", "sore throat", "throat", "phlegm", "runny", "sneeze", "దగ్గు", "జలుబు", "గొంతు", "కఫం", "గల్ల", "खांसी", "जुकाम", "गला"]):
+        if lang == "te":
+            rec = (
+                "🫁 **దగ్గు, జలుబు మరియు గొంతు నొప్పికి ఉపశమన మార్గాలు:**"
+                "\n\n**1. ఇంటి నివారణ చిట్కాలు:**"
+                "\n• రోజుకు 2-3 సార్లు గోరువెచ్చని నీటిలో కొద్దిగా ఉప్పు వేసి గొంతులో పుక్కిలించండి (Salt water gargle). ఇది గొంతు మంటను తగ్గిస్తుంది."
+                "\n• ఆవిరి పట్టడం (Steam inhalation): రోజుకు 2 సార్లు సాధారణ నీటి ఆవిరి పీల్చడం ద్వారా ముక్కు దిబ్బడ మరియు కఫం సులభంగా కరుగుతుంది."
+                "\n• అల్లం, తులసి ఆకులు మరిగించిన గోరువెచ్చని నీరు లేదా పసుపు పాలు త్రాగండి."
+                "\n\n**2. జీవనశైలి & రక్షణ:**"
+                "\n• చల్లని నీరు, ఐస్‌క్రీమ్‌లు, మరియు ఫ్రిజ్ ఆహారాలను నివారించండి."
+                "\n• ఇతరులకు సోకకుండా దగ్గినప్పుడు లేదా తుమ్మినప్పుడు చేతిరుమాలు అడ్డం పెట్టుకోండి."
+                "\n\n🚨 **వైద్యుడిని వెంటనే ఎప్పుడు సంప్రదించాలి:**"
+                "\n• శ్వాస తీసుకోవడంలో ఆయాసం లేదా గురక శబ్దం రావడం."
+                "\n• దగ్గుతో పాటు రక్తం పడటం లేదా ఛాతీలో తీవ్ర నొప్పి ఉండటం."
+                "\n• దగ్గు 2 వారాల కంటే ఎక్కువ రోజులు తగ్గకపోతే క్షయ (TB) పరీక్ష కోసం సమీప PHCకి వెళ్ళండి."
+            )
+        else:
+            rec = (
+                "🫁 **Cough, Cold & Sore Throat Primary Care Guidance:**"
+                "\n\n**1. Home Self-Care & Relief:**"
+                "\n• Gargle with warm salt water 2-3 times daily to soothe throat irritation and reduce swelling."
+                "\n• Steam Inhalation: Inhaling steam for 5-10 minutes twice a day relieves nasal congestion and loosens mucus."
+                "\n• Stay well hydrated with warm water, ginger/tulsi tea, or clear soups."
+                "\n\n**2. Protection & Precautions:**"
+                "\n• Avoid refrigerated cold drinks and oily/dusty exposures."
+                "\n• Use a mask or handkerchief when coughing or sneezing to prevent spreading to family members."
+                "\n\n🚨 **When to See a Doctor Immediately:**"
+                "\n• Fast breathing, wheezing, or chest tightness."
+                "\n• Coughing up blood, rust-colored sputum, or high fever with chills."
+                "\n• Any persistent cough lasting more than 2 weeks requires mandatory Sputum testing for Tuberculosis (TB) at your nearest PHC."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Respiratory symptom query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # C. Diarrhea, Vomiting & Food Poisoning (విరేచనాలు, వాంతులు, కడుపు తిప్పడం)
+    if any(k in lower_symptoms for k in ["diarrhea", "vomit", "loose motion", "nausea", "stomach bug", "విరేచనాలు", "వాంతులు", "మోషన్స్", "ఉల్టీ", "दस्त", "उल्टी"]):
+        if lang == "te":
+            rec = (
+                "💧 **విరేచనాలు మరియు వాంతులు అయినప్పుడు ప్రాణాధార సూచనలు:**"
+                "\n\n**1. అత్యంత ముఖ్యం — డీహైడ్రేషన్ (నీటి నష్టం) నివారణ:**"
+                "\n• 1 ప్యాకెట్ ఓఆర్ఎస్ (ORS) పొడిని 1 లీటరు కాచి చల్లార్చిన నీటిలో పూర్తిగా కలిపి ప్రతి విరేచనం తర్వాత ఒక గ్లాసు కొద్దికొద్దిగా త్రాగించండి."
+                "\n• ORS అందుబాటులో లేకపోతే: 1 లీటరు నీటిలో 6 చిన్న చెంచాల చక్కెర + అర చెంచా ఉప్పు కలిపి ఇవ్వండి."
+                "\n• కొబ్బరి నీళ్ళు, పల్చటి మజ్జిగ, లేదా గంజి నీరు చాలా మేలు చేస్తాయి."
+                "\n\n**2. ఆహారం:**"
+                "\n• అన్నం గంజి, అరటిపండు, ఉడకబెట్టిన బంగాళాదుంప, మెత్తటి ఖిచిడీ వంటి తేలికపాటి ఆహారం మాత్రమే తీసుకోండి."
+                "\n• కారం, నూనె, పాలు మరియు మసాలా ఆహారాలను తాత్కాలికంగా ఆపండి."
+                "\n\n🚨 **ఈ ప్రమాద సంకేతాలు కనిపిస్తే వెంటనే PHC/ఆసుపత్రికి వెళ్ళండి:**"
+                "\n• విరేచనాల్లో రక్తం లేదా చీము పడటం."
+                "\n• కళ్ళు గుంటలు పడటం, నాలుక పూర్తిగా ఎండిపోవడం, లేదా 6 గంటల పాటు మూత్రం రాకపోవడం."
+                "\n• తాగిన ప్రతిదీ వాంతి అయిపోతుండటం."
+            )
+        else:
+            rec = (
+                "💧 **Diarrhea & Vomiting Management (Preventing Dehydration):**"
+                "\n\n**1. Priority: Immediate Oral Rehydration (ORS):**"
+                "\n• Mix 1 packet of WHO-formula ORS into 1 litre of clean drinking water. Drink small sips after every loose stool."
+                "\n• If ORS packets are unavailable: Mix 6 level teaspoons of sugar and 1/2 level teaspoon of salt into 1 litre of boiled and cooled water."
+                "\n• Tender coconut water, thin buttermilk, and salted rice water (kanji) are excellent rehydrating fluids."
+                "\n\n**2. Nutrition:**"
+                "\n• Eat bland, easily digestible foods: soft rice, curd rice, boiled potatoes, and bananas."
+                "\n• Avoid oily, spicy, raw, or milk-heavy foods until bowel movements normalize."
+                "\n\n🚨 **Emergency Red Flags (Seek Immediate Medical Care):**"
+                "\n• Blood or black tarry material in stool or vomit."
+                "\n• Severe signs of dehydration: sunken eyes, dry tongue/mouth, no urine output for 6+ hours, extreme lethargy."
+                "\n• Continuous vomiting where fluids cannot be retained."
+            )
+        return {
+            "urgency": "priority",
+            "visual_observations": "Gastrointestinal symptom query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # D. Headache, Body Aches & Fatigue (తలనొప్పి, ఒళ్లు నొప్పులు, నీరసం)
+    if any(k in lower_symptoms for k in ["headache", "body pain", "body ache", "fatigue", "tired", "weakness", "తలనొప్పి", "నొప్పులు", "ఒళ్లు", "నీరసం", "అలసట", "सिरदर्द", "बदन दर्द"]):
+        if lang == "te":
+            rec = (
+                "💆 **తలనొప్పి మరియు ఒళ్లు నొప్పులకు ప్రాథమిక జాగ్రత్తలు:**"
+                "\n\n**1. విశ్రాంతి & ఉపశమనం:**"
+                "\n• నిశ్శబ్దంగా, తక్కువ వెలుతురు ఉన్న గదిలో తగినంత విశ్రాంతి తీసుకోండి."
+                "\n• తగినంత నిద్ర (7-8 గంటలు) ఉండేలా చూసుకోండి. అధిక మొబైల్/టీవీ స్క్రీన్ సమయాన్ని తగ్గించండి."
+                "\n• పుష్కలంగా మంచినీరు త్రాగండి (శరీరంలో నీరు తగ్గడం కూడా తలనొప్పికి ప్రధాన కారణం)."
+                "\n\n**2. మందుల సలహా:**"
+                "\n• తీవ్రమైన నొప్పి ఉంటే సురక్షితమైన పారాసిటమాల్ (Paracetamol 500mg) ఆహారం తీసుకున్న తర్వాత మాత్రమే వేసుకోవచ్చు."
+                "\n• ఖాళీ కడుపుతో తీవ్రమైన నొప్పి మాత్రలు వేసుకోకండి."
+                "\n\n🚨 **వైద్యుడిని వెంటనే ఎప్పుడు సంప్రదించాలి:**"
+                "\n• అకస్మాత్తుగా మెరుపులా తీవ్రమైన తలనొప్పి రావడం (Thunderclap headache)."
+                "\n• తలనొప్పితో పాటు జ్వరం, మెడ బిగుతు, కంటి చూపు మసకబారడం లేదా వాంతులు ఉండటం."
+                "\n• తలకు దెబ్బ తగిలిన తర్వాత తలనొప్పి లేదా మగతగా ఉండటం."
+            )
+        else:
+            rec = (
+                "💆 **Headache, Body Aches & Fatigue Care Instructions:**"
+                "\n\n**1. Rest & Hydration:**"
+                "\n• Rest in a quiet, darkened room away from loud noises and bright phone/computer screens."
+                "\n• Drink 2-3 litres of water throughout the day; mild dehydration is one of the most common causes of headaches and fatigue."
+                "\n• Gentle temple massage and cold/warm compress over the forehead can provide natural relief."
+                "\n\n**2. Safe Medication:**"
+                "\n• For mild to moderate tension headaches or muscular aches, a dose of Paracetamol (500mg) with water after food is safe."
+                "\n• Avoid frequent use of over-the-counter painkillers on an empty stomach."
+                "\n\n🚨 **When to See a Doctor Urgently:**"
+                "\n• Sudden, explosive onset 'worst headache of life'."
+                "\n• Headache accompanied by high fever, stiff neck, vomiting, or visual disturbances."
+                "\n• Weakness or numbness on one side of the face or body."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Cephalea / body ache query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # E. Skin Rashes, Itching & Fungal/Scabies Infections (చర్మ సమస్యలు, దద్దుర్లు, దురద, గజ్జి)
+    if any(k in lower_symptoms for k in ["skin", "rash", "itch", "fungal", "scabies", "ringworm", "allergy", "దురద", "దద్దుర్లు", "గజ్జి", "తామర", "చర్మం", "खुजली", "दाद"]):
+        if lang == "te":
+            rec = (
+                "🩹 **చర్మ సమస్యలు, దురద మరియు దద్దుర్లకు జాగ్రత్తలు:**"
+                "\n\n**1. పరిశుభ్రత & సంరక్షణ:**"
+                "\n• ప్రభావిత చర్మాన్ని ఎల్లప్పుడూ పొడిగా, శుభ్రంగా ఉంచండి. గట్టిగా గోకకండి (గోకితే ఇన్ఫెక్షన్ ఇతర భాగాలకు పాకుతుంది)."
+                "\n• రోజువారీ బట్టలను వేడి నీటితో ఉతికి ఎండలో ఆరవేయండి. ఇతరుల తువ్వాళ్లు, దుస్తులు వాడకండి."
+                "\n• వదులైన కాటన్ బట్టలు ధరించండి."
+                "\n\n**2. తామర లేదా గజ్జి అనుమానం ఉంటే:**"
+                "\n• వేళ్ళ సందుల్లో లేదా నడుము వద్ద రాత్రిపూట తీవ్ర దురద ఉంటే అది గజ్జి (Scabies) కావచ్చు. కుటుంబ సభ్యులందరూ కలిసి PHC మెడికల్ ఆఫీసర్ ఇచ్చిన లోషన్ (Permethrin) వాడాలి."
+                "\n• తామర (Ringworm) ఉంటే క్లోట్రిమజోల్ (Clotrimazole) యాంటీఫంగల్ క్రీమ్ రోజుకు రెండుసార్లు రాయవచ్చు."
+                "\n\n🚨 **వైద్యుడిని వెంటనే ఎప్పుడు సంప్రదించాలి:**"
+                "\n• చర్మం నుండి చీము కారడం లేదా చుట్టూ తీవ్ర ఎరుపు మరియు వాపు ఉండటం."
+                "\n• దద్దుర్లతో పాటు పెదవుల వాపు లేదా శ్వాసలో ఇబ్బంది రావడం (తీవ్ర అలర్జీ సంకేతం - వెంటనే 108 కు కాల్ చేయండి)."
+            )
+        else:
+            rec = (
+                "🩹 **Skin Rashes, Itching & Dermatological Care Instructions:**"
+                "\n\n**1. Cleanliness & Hygiene:**"
+                "\n• Keep the affected area clean and dry. Avoid vigorous scratching to prevent secondary bacterial infection."
+                "\n• Wash bedsheets and towels in hot water and sun-dry thoroughly. Do not share personal clothing."
+                "\n• Wear loose, breathable cotton garments."
+                "\n\n**2. Fungal Infection / Scabies Considerations:**"
+                "\n• For ringworm (circular itchy red borders), an over-the-counter topical antifungal cream like Clotrimazole applied twice daily to clean, dry skin helps."
+                "\n• For severe itching between fingers and waist folds that worsens at night (suspected Scabies), all family members require simultaneous treatment with Permethrin lotion as prescribed by your PHC Medical Officer."
+                "\n\n🚨 **When to Seek Immediate Medical Evaluation:**"
+                "\n• Spreading redness, warmth, or pus discharge (Cellulitis/Abscess)."
+                "\n• Rashes accompanied by swelling of lips/face or breathing tightness (Anaphylaxis - dial 108 immediately)."
+            )
+        return {
+            "urgency": "routine",
+            "visual_observations": "Dermatological symptom query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # F. Stomach Pain, Acidity & Gastritis (కడుపు నొప్పి, ఎసిడిటీ, గ్యాస్)
+    if any(k in lower_symptoms for k in ["stomach pain", "acidity", "gas", "abdominal", "heartburn", "కడుపు నొప్పి", "ఎసిడిటీ", "గ్యాస్", "గుండెల్లో మంట", "पेट दर्द", "गैस"]):
+        if lang == "te":
+            rec = (
+                "🍵 **కడుపు నొప్పి, గ్యాస్ మరియు ఎసిడిటీకి ఉపశమన చర్యలు:**"
+                "\n\n**1. ఆహారపు జాగ్రత్తలు:**"
+                "\n• తక్కువ మోతాదులో సమయానికి ఆహారం తీసుకోండి. ఎక్కువ సమయం ఆకలితో ఉండకండి."
+                "\n• కారంగా, నూనెతో వేయించిన పదార్థాలు, టీ/కాఫీలను కొద్దిరోజులు తగ్గించండి."
+                "\n• చల్లని పాలు, మజ్జిగ, లేదా కొబ్బరి నీళ్ళు ఎసిడిటీ మరియు మంటను తగ్గిస్తాయి."
+                "\n\n**2. అలవాట్లు:**"
+                "\n• పొగాకు, గుట్కా మరియు మద్యపానాన్ని పూర్తిగా నిలిపివేయండి; ఇవి కడుపులో అల్సర్లకు ప్రధాన కారణం."
+                "\n\n🚨 **తీవ్ర ప్రమాద సూచనలు (వెంటనే ఆసుపత్రికి వెళ్ళండి):**"
+                "\n• కడుపులో భరించలేని పదునైన నొప్పి, లేదా కడుపు పలకలా గట్టిపడిపోవడం."
+                "\n• రక్తం లేదా నల్లటి పదార్థం వాంతి కావడం."
+                "\n• నొప్పి వెన్నుభాగం లేదా ఛాతీకి పాకడం."
+            )
+        else:
+            rec = (
+                "🍵 **Stomach Pain, Gastritis & Acidity Care:**"
+                "\n\n**1. Dietary Guidelines:**"
+                "\n• Eat small, frequent, bland meals at regular intervals. Avoid prolonged fasting."
+                "\n• Limit excessively spicy curries, deep-fried snacks, and heavy tea/coffee."
+                "\n• Plain buttermilk, tender coconut water, and cold milk provide natural relief from gastric acid burn."
+                "\n\n**2. Risk Factor Modification:**"
+                "\n• Avoid alcohol, tobacco, and painkiller overuse (NSAIDs like Brufen/Diclofenac) which directly cause stomach ulcers."
+                "\n\n🚨 **Emergency Red Flags (Visit Emergency Department Immediately):**"
+                "\n• Severe, sharp, sudden abdominal pain with a rigid/board-like belly."
+                "\n• Vomiting blood or passing black tarry stools."
+                "\n• Pain radiating to back, chest, or associated with high fever."
+            )
+        return {
+            "urgency": "priority",
+            "visual_observations": "Abdominal / gastritis query addressed.",
+            "recommendations": rec,
+            "disclaimer": disclaimer,
+            "is_emergency": False
+        }
+
+    # G. Mouth Ulcers / Canker Sores (నోటి పూత)
     if any(k in lower_symptoms for k in ["ulcer", "soor", "pootha", "పూత", "పుండు", "aphthous", "sore", "छाले"]):
         if lang == "te":
             rec = (
@@ -150,7 +398,7 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": False
         }
 
-    # B. Burning Sensation with Spicy Food (కారం తిన్నప్పుడు మంట)
+    # H. Burning Sensation with Spicy Food (కారం తిన్నప్పుడు మంట)
     if any(k in lower_symptoms for k in ["burn", "spicy", "manta", "మంట", "కారం", "mirchi", "जलन"]):
         if lang == "te":
             rec = (
@@ -177,7 +425,7 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": False
         }
 
-    # C. Quitting Tobacco, Gutkha, or Reverse Smoking (చుట్ట / పొగాకు మానేయడం)
+    # I. Quitting Tobacco, Gutkha, or Reverse Smoking (చుట్ట / పొగాకు మానేయడం)
     if any(k in lower_symptoms for k in ["chutta", "tobacco", "quit", "gutkha", "khaini", "చుట్ట", "పొగాకు", "గుట్కా", "తమలపాకు"]):
         if lang == "te":
             rec = (
@@ -206,7 +454,7 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": False
         }
 
-    # D. Bleeding Gums or Toothache (చిగుళ్ల రక్తస్రావం / పంటి నొప్పి)
+    # J. Bleeding Gums or Toothache (చిగుళ్ల రక్తస్రావం / పంటి నొప్పి)
     if any(k in lower_symptoms for k in ["gum", "bleed", "tooth", "teeth", "రక్తం", "చిగురు", "పన్ను", "నొప్పి"]):
         if lang == "te":
             rec = (
@@ -234,27 +482,25 @@ def generate_safe_triage_guidance(category: str, symptoms: str, language: str = 
             "is_emergency": False
         }
 
-    # E. General Fallback Guidance
+    # K. General Fallback Guidance
     if lang == "te":
         rec = (
-            "మీరు అడిగిన ఆరోగ్య సమాచారానికి సంబంధించి ప్రాథమిక జాగ్రత్తలు:"
-            "\n• నోటి పరిశుభ్రతను పాటించండి మరియు రోజుకు రెండుసార్లు గోరువెచ్చని నీటితో నోటిని శుభ్రం చేసుకోండి."
-            "\n• పొగాకు, ధూమపానం, చుట్ట మరియు గుట్కా ఉత్పత్తులను నివారించండి."
-            "\n• చిన్న చిన్న పుండ్లు సాధారణంగా 7-10 రోజుల్లో వాటంతట అవే తగ్గుతాయి."
-            "\n• ఏవైనా మచ్చలు, పుండ్లు లేదా వాపులు 14 రోజుల కంటే ఎక్కువ సమయం కొనసాగితే PHC డాక్టర్‌ను సంప్రదించండి."
+            "మీరు అడిగిన ఆరోగ్య సమాచారానికి సంబంధించి ప్రాథమిక సూచనలు:"
+            "\n• పుష్కలంగా కాచి చల్లార్చిన నీటిని త్రాగండి మరియు వ్యక్తిగత పరిశుభ్రత పాటించండి."
+            "\n• సమయానికి పౌష్టికాహారం తీసుకోండి మరియు పొగాకు/మద్యపానానికి దూరంగా ఉండండి."
+            "\n• ఏవైనా లక్షణాలు (జ్వరం, పుండ్లు, నొప్పి లేదా వాపు) తగ్గకుండా ఉంటే లేదా తీవ్రమైతే ఆలస్యం చేయకుండా సమీప PHC వైద్యాధికారిని సంప్రదించండి."
         )
     else:
         rec = (
-            "General Oral & Community Health Guidance:"
-            "\n• Maintain consistent oral hygiene with gentle brushing and warm water rinses."
-            "\n• Completely avoid tobacco, gutkha, paan masala, and reverse smoking."
-            "\n• Minor oral irritations usually heal within 7 to 10 days on their own."
-            "\n• General Clinical Rule: Any oral patch, persistent ulcer, or swelling lasting beyond 14 days should be evaluated in person by a PHC Medical Officer."
+            "General Community Health & Primary Care Guidance:"
+            "\n• Stay well hydrated with safe drinking water and maintain good personal hygiene."
+            "\n• Follow a balanced diet and avoid harmful habits such as tobacco, gutkha, and alcohol."
+            "\n• If symptoms (fever, sores, pain, or swelling) persist without improvement, please visit your local Primary Health Centre (PHC) for an in-person clinical checkup."
         )
 
     return {
         "urgency": "routine",
-        "visual_observations": "General community health question addressed.",
+        "visual_observations": "General health inquiry addressed.",
         "recommendations": rec,
         "disclaimer": disclaimer,
         "is_emergency": False

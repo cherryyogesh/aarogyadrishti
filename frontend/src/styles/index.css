@@ -1127,7 +1127,73 @@ body {
     padding: 0.65rem 0.5rem;
     font-size: 0.8rem;
   }
+
+  /* Accessible Touch Targets for 4G Budget Phones */
+  button, select, input[type="text"], input[type="tel"], input[type="password"] {
+    min-height: 44px;
+    font-size: 16px; /* Prevents auto-zoom on iOS & Android WebKit */
+  }
 }
+
+/* Accessible Mobile Touch Optimizations */
+@media (pointer: coarse) {
+  .btn, .menu-item, .bottom-nav-item {
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+}
+
+/* Upload Progress & Compression Badges */
+.upload-progress-container {
+  width: 100%;
+  background-color: #E2E8F0;
+  border-radius: var(--radius-full);
+  height: 8px;
+  overflow: hidden;
+  margin: 0.75rem 0;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-primary), var(--cyan-accent));
+  transition: width 0.3s ease;
+}
+
+.compression-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.network-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.network-pill.online {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.network-pill.offline {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
 
 /* ==========================================================================
    PHOTO CAPTURE MODAL & LIVE VIEWFINDER

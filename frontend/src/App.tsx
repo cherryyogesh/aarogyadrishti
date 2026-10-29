@@ -17,12 +17,14 @@ import { DistrictReportsView } from './features/reports/DistrictReportsView';
 import { AuditLogView } from './features/audit/AuditLogView';
 import { InvestigationsView } from './features/investigations/InvestigationsView';
 import { ReferralsView } from './features/referrals/ReferralsView';
+import { MedicalReportExplainerView } from './features/mytra/MedicalReportExplainerView';
+import { FreeDemoScreeningView } from './features/demo/FreeDemoScreeningView';
 import { AarogyaLogo } from './components/AarogyaLogo';
 
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
   MessageSquare, BarChart3, Shield, LogOut, Menu,
-  X, Globe, UserCheck, FlaskConical, FileCheck
+  X, Globe, UserCheck, FlaskConical, FileCheck, Sparkles, ShieldCheck, Wifi
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -31,6 +33,19 @@ export const App: React.FC = () => {
   const [authChecking, setAuthChecking] = useState(true);
   const [activeRoute, setActiveRoute] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  // Monitor network status for 4G mobile connectivity
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Cross-screen state: Pre-selected screening for appointment booking
   const [preSelectedScreening, setPreSelectedScreening] = useState<Screening | null>(null);
@@ -379,6 +394,24 @@ export const App: React.FC = () => {
             <MessageSquare size={18} />
             {t.nav_chatbot}
           </button>
+
+          {/* Local Google MedGemma 1.5 4B Report Explainer & AI */}
+          <button
+            className={`menu-item ${activeRoute === 'report_explainer' ? 'active' : ''}`}
+            onClick={() => navigateTo('report_explainer')}
+          >
+            <Sparkles size={18} />
+            {t.nav_report_explainer}
+          </button>
+
+          {/* Free Community Demo Mode (Rule-Based Offline Triage) */}
+          <button
+            className={`menu-item ${activeRoute === 'free_demo' ? 'active' : ''}`}
+            onClick={() => navigateTo('free_demo')}
+          >
+            <ShieldCheck size={18} />
+            {t.nav_free_demo}
+          </button>
         </nav>
 
         {/* Sidebar Footer with Role Designation (No Individual Names) */}
@@ -430,12 +463,19 @@ export const App: React.FC = () => {
                activeRoute === 'otp' ? t.nav_otp_checkin :
                activeRoute === 'queue' ? t.nav_doctor_queue :
                activeRoute === 'chatbot' ? t.nav_chatbot :
+               activeRoute === 'report_explainer' ? t.nav_report_explainer :
+               activeRoute === 'free_demo' ? t.nav_free_demo :
                activeRoute === 'reports' ? t.nav_reports :
                activeRoute === 'audit' ? t.nav_audit : t.app_title}
             </h2>
           </div>
 
           <div className="header-right">
+            {/* 4G / Wi-Fi Network Connectivity Status Pill */}
+            <div className={`network-pill ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online (4G / Wi-Fi)' : 'Offline (Local Cache Active)'}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: isOnline ? '#16A34A' : '#DC2626' }} />
+              {isOnline ? (currentLang === 'te' ? 'ఆన్‌లైన్ 4G' : 'Online 4G') : (currentLang === 'te' ? 'ఆఫ్‌లైన్ మోడ్' : 'Offline Mode')}
+            </div>
             {/* Language Selector */}
             <div className="lang-select-pill">
               <Globe size={15} color="var(--teal-primary)" />
@@ -578,6 +618,20 @@ export const App: React.FC = () => {
             <ReferralsView
               currentUser={currentUser}
               currentLang={currentLang}
+            />
+          )}
+
+          {activeRoute === 'report_explainer' && (
+            <MedicalReportExplainerView
+              currentLang={currentLang}
+              user={currentUser}
+            />
+          )}
+
+          {activeRoute === 'free_demo' && (
+            <FreeDemoScreeningView
+              currentLang={currentLang}
+              onNavigateToScreening={() => navigateTo('screening')}
             />
           )}
         </main>

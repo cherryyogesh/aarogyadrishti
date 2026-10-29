@@ -76,19 +76,20 @@ class MedicalImageAnalysisPipeline:
             "guidance_message": "Quality verified from memory buffer."
         }
 
-        quality_status = "adequate" if quality_results.get("quality_state") in ["acceptable", "excellent"] else "inadequate"
+        is_poor = quality_results.get("quality_state") == "poor"
+        quality_status = "inadequate" if is_poor else "adequate"
         quality_limitations = []
         if quality_results.get("is_blurry"):
-            quality_limitations.append("Image is blurry (Laplacian variance below clinical focus threshold).")
+            quality_limitations.append("Image has mild motion blur. Hold camera steady when capturing.")
         if quality_results.get("is_dark"):
-            quality_limitations.append("Image is underexposed or captured in low lighting.")
+            quality_limitations.append("Image lighting is low or shadowed.")
         if quality_results.get("is_overexposed"):
             quality_limitations.append("Excessive direct lighting or flash glare.")
         if not quality_results.get("resolution_adequate"):
-            quality_limitations.append("Image resolution is below minimum 320x320 threshold.")
+            quality_limitations.append("Cropped or compressed image resolution.")
 
-        # If quality is severely inadequate, halt and request a new photograph
-        if quality_status == "inadequate":
+        # Only halt if image is completely unreadable or zero-sized
+        if is_poor and quality_results.get("blur_score", 0.0) < 5.0 and not quality_results.get("resolution_adequate"):
             audit_trail.append({"stage": 2, "status": "FAILED_QUALITY", "quality": quality_results})
             is_te = language == "te"
             msg = (

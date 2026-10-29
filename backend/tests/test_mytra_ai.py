@@ -168,3 +168,61 @@ def test_mytra_ai_endpoints(client: TestClient, chw_token: str, doctor_token: st
     ref_resp = client.get("/api/v1/mytra-ai/references?query=leukoplakia&body_region=mouth_oral")
     assert ref_resp.status_code == 200
     assert ref_resp.json()["references_count"] > 0
+
+    # 4. Local MedGemma status endpoint (Zero External APIs)
+    status_resp = client.get("/api/v1/mytra-ai/local/status", headers=headers)
+    assert status_resp.status_code == 200
+    status_data = status_resp.json()
+    assert "Google MedGemma 1.5 4B" in status_data["model_name"]
+    assert status_data["is_local_only"] is True
+    assert status_data["external_api_calls"] is False
+    assert "step1" in status_data["access_requirements"]
+    assert "step2" in status_data["access_requirements"]
+
+    # 5. Local MedGemma inference - Report Explanation
+    report_resp = client.post(
+        "/api/v1/mytra-ai/local/analyze",
+        headers=headers,
+        data={
+            "question": "Explain this biopsy report showing squamous cell hyperplasia",
+            "task_type": "report_explanation",
+            "category": "mouth_oral",
+            "language": "en"
+        }
+    )
+    assert report_resp.status_code == 200
+    report_data = report_resp.json()
+    assert report_data["task_type"] == "report_explanation"
+    assert report_data["is_local_only"] is True
+    assert report_data["external_api_calls"] is False
+    assert len(report_data["observations"]) > 0
+    assert "disclaimer" in report_data
+    assert "NOT constitute a confirmed medical diagnosis" in report_data["disclaimer"]
+    assert report_data["summary_en"] != ""
+    assert report_data["summary_te"] != ""
+
+    # 6. Local MedGemma inference - Multimodal lesion analysis with image upload
+    test_img_path = create_test_image(blurry=False)
+    with open(test_img_path, "rb") as f:
+        img_resp = client.post(
+            "/api/v1/mytra-ai/local/analyze",
+            headers=headers,
+            data={
+                "question": "Evaluate this white lesion on the left buccal mucosa with burning sensation",
+                "task_type": "lesion_assessment",
+                "category": "mouth_oral",
+                "body_site": "Left Buccal Mucosa",
+                "language": "te"
+            },
+            files={"file": ("lesion_test.jpg", f, "image/jpeg")}
+        )
+    if os.path.exists(test_img_path):
+        os.remove(test_img_path)
+
+    assert img_resp.status_code == 200
+    img_data = img_resp.json()
+    assert img_data["task_type"] == "lesion_assessment"
+    assert img_data["is_local_only"] is True
+    assert len(img_data["observations"]) > 0
+    assert len(img_data["differentials"]) > 0
+    assert "నిర్ధారిత వైద్య నిర్ధారణ" in img_data["disclaimer"]  # Telugu disclaimer

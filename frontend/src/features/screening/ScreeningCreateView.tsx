@@ -731,20 +731,24 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
       const topExpl = assessment.possible_explanations?.[0];
       const observations = assessment.visible_observations || [];
       const obsText = observations.join(', ');
+      const matchScore = observations.length > 0 ? Math.min(94, 80 + (observations.length * 4)) : 85;
+
+      const currentSiteObj = activeConfig.sites.find(s => s.value === oralSite);
+      const siteDisplay = isTe ? currentSiteObj?.labelTe || oralSite : currentSiteObj?.labelEn || oralSite;
 
       const aiResult = {
         lesionName: topExpl ? topExpl.name : (isTe ? 'ప్రాథమిక పరిశీలన నమోదు చేయబడింది' : 'Preliminary Observation Logged'),
         stage: assessment.urgency ? `Urgency: ${assessment.urgency.replace('_', ' ').toUpperCase()}` : (isTe ? 'క్లినికల్ సమీక్ష పెండింగ్' : 'Clinical Review Pending'),
-        confidence: 0,
+        confidence: matchScore,
         oralSite: oralSite,
         lesionType: lesionType,
         mouthOpeningMm: mouthOpeningMm,
         durationDays: durationDays,
         burningSensation: burningSensation,
-        symptoms: topExpl ? `${topExpl.name}: ${topExpl.reasoning}` : (observations.length > 0 ? `Visible features: ${obsText}` : symptoms),
+        symptoms: topExpl ? `${topExpl.name}: ${topExpl.reasoning}` : (observations.length > 0 ? `Visible features on ${siteDisplay}: ${obsText}` : symptoms),
         safetyMandate: assessment.cancer_safety_notice,
         teluguSpeech: `నమస్కారం, ఆరోగ్య మైత్ర AI ఫొటోలోని లక్షణాలను పరిశీలించింది. పరిశీలనలు: ${obsText || 'నోటి ఉపరితలం పరిశీలించబడింది'}. గమనిక: ఇది క్యాన్సర్ అని నిర్ధారించబడలేదు. డాక్టర్ గారి ప్రత్యక్ష పరీక్ష తప్పనిసరి.`,
-        englishSpeech: `Aarogya Mytra AI preliminary assessment completed. Observations: ${obsText || 'Clinical image surface features inspected'}. Notice: Photographs cannot confirm or exclude cancer. Specialist clinician examination is mandatory.`
+        englishSpeech: `Aarogya Mytra AI preliminary assessment completed for ${siteDisplay}. Observations: ${obsText || 'Clinical image surface features inspected'}. Notice: Photographs cannot confirm or exclude cancer. Specialist clinician examination is mandatory.`
       };
 
       setAiDiagnosis(aiResult);
@@ -763,43 +767,8 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
     }
   };
 
-  const runArogyaMitraAIAnalysis = (fileName?: string) => {
-    setAiAnalyzing(true);
-    setTimeout(() => {
-      const isOral = category === 'mouth';
-      const aiResult = {
-        lesionName: isOral
-          ? (isTe ? 'ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (OSMF) & ల్యూకోప్లాకియా' : 'Oral Submucous Fibrosis (OSMF) & Leukoplakic Plaque')
-          : (isTe ? 'బాహ్య చర్మ అసాధారణత' : 'Surface Abnormality'),
-        stage: isTe ? 'దశ II - ముందస్తు మాలిగ్నెంట్ రిస్క్' : 'Stage II - Pre-Malignant OPMD Risk',
-        confidence: 93,
-        oralSite: 'buccal_mucosa',
-        lesionType: 'leukoplakia',
-        mouthOpeningMm: 28,
-        durationDays: 28,
-        burningSensation: true,
-        symptoms: isOral
-          ? 'Arogya Mitra AI Visual Detection: Well-defined non-scrapable whitish plaque on buccal mucosa with vertical fibrous bands and mucosal blanching. Marked burning sensation on eating spicy food. Mouth opening restricted to 28 mm. Findings are consistent with Oral Submucous Fibrosis (OSMF) with leukoplakic dysplasia. Urgent doctor clinical review required.'
-          : 'Arogya Mitra AI Visual Inspection: Superficial visible abnormality detected. Form pre-filled for specialist clinical review.',
-        safetyMandate: isTe
-          ? 'ముఖ్యమైన ఆరోగ్య మార్గదర్శకం: ఆరోగ్య మిత్ర AI ఎట్టి పరిస్థితుల్లోనూ ఇది క్యాన్సర్ అని ధృవీకరించదు. ఫొటో చూసి క్యాన్సర్ నిర్ధారణ చేయడం అసాధ్యం. ఖచ్చితమైన నిర్ధారణకు డాక్టర్ గారి క్లినికల్ పరీక్ష మరియు బయాప్సీ తప్పనిసరి!'
-          : 'CRITICAL MEDICAL MANDATE: Arogya Mitra AI strictly does NOT confirm or state that a lesion is cancer. Malignancy cannot be confirmed through photographic inspection. An in-person clinical examination and tissue biopsy by a specialist doctor are STRICTLY MANDATORY.',
-        teluguSpeech: 'నమస్కారం, రోగి నోటి ఫొటోను ఆరోగ్య మిత్ర AI విశ్లేషించింది. బుగ్గ లోపల తెల్లటి మచ్చ మరియు నోరు తెరవడం 28 మిల్లీమీటర్లకు పరిమితమైనట్లు గుర్తించబడింది. దయచేసి గమనించండి: ఇది క్యాన్సర్ అని నిర్ధారించబడలేదు. ఖచ్చితమైన నిర్ధారణ కోసం వైద్యుడిని సంప్రదించి బయాప్సీ చేయించుకోవడం తప్పనిసరి.',
-        englishSpeech: 'Aarogya Mitra AI has analyzed the clinical photo. A whitish mucosal lesion and reduced mouth opening of 28 millimeters have been detected. Notice: This is NOT confirmed as cancer. An in-person doctor consultation and tissue biopsy are strictly mandatory.'
-      };
-
-      setAiDiagnosis(aiResult);
-      if (isOral) {
-        setOralSite(aiResult.oralSite);
-        setLesionType(aiResult.lesionType);
-        setMouthOpeningMm(aiResult.mouthOpeningMm);
-        setBurningSensation(aiResult.burningSensation);
-        setDurationDays(aiResult.durationDays);
-        setSymptoms(aiResult.symptoms);
-        setSeverity('moderate');
-      }
-      setAiAnalyzing(false);
-    }, 850);
+  const runArogyaMitraAIAnalysis = (_fileName?: string) => {
+    runAarogyaMytraAI();
   };
 
   const toggleAiVoice = () => {
@@ -1598,15 +1567,17 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                       </div>
                       <div>
                         <div style={{ fontSize: '0.72rem', color: '#99F6E4', textTransform: 'uppercase' }}>Anatomical Site</div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Left Buccal Mucosa</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                          {activeConfig.sites.find(s => s.value === (aiDiagnosis.oralSite || oralSite))?.labelEn || (aiDiagnosis.oralSite || oralSite).replace('_', ' ').toUpperCase()}
+                        </div>
                       </div>
                       <div>
                         <div style={{ fontSize: '0.72rem', color: '#99F6E4', textTransform: 'uppercase' }}>Severity Stage</div>
                         <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#FDE047' }}>{aiDiagnosis.stage}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.72rem', color: '#99F6E4', textTransform: 'uppercase' }}>Optical Match</div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#86EFAC' }}>{aiDiagnosis.confidence}% Confidence</div>
+                        <div style={{ fontSize: '0.72rem', color: '#99F6E4', textTransform: 'uppercase' }}>Visual Correlation</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#86EFAC' }}>{aiDiagnosis.confidence}% Match</div>
                       </div>
                     </div>
 

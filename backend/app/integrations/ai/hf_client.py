@@ -39,6 +39,29 @@ class HuggingFaceClient:
                 "is_emergency": True
             }
 
+        # 1. Primary Engine: Local Google MedGemma 1.5 4B Clinical Engine (100% on-device private CPU execution)
+        try:
+            from app.integrations.ai.local_medgemma_engine import local_medgemma
+            medgemma_res = await local_medgemma.execute_local_inference(
+                question=prompt,
+                category=category,
+                language=language,
+                task_type="clinical_qa"
+            )
+            if medgemma_res.get("success"):
+                content = medgemma_res.get("summary_te") if language == "te" else medgemma_res.get("summary_en")
+                if content:
+                    return {
+                        "content": content,
+                        "disclaimer": medgemma_res.get("disclaimer", ""),
+                        "urgency": medgemma_res.get("urgency", "routine_review"),
+                        "is_real_inference": True,
+                        "provider": "local_medgemma_1.5_4b",
+                        "is_emergency": False
+                    }
+        except Exception as e:
+            logger.warning(f"Local MedGemma clinical QA notice: {e}")
+
         system_prompt = (
             "You are Arogya Mitra AI, an expert clinical healthcare assistant for tribal and community health in Andhra Pradesh. "
             "You have comprehensive medical knowledge on oral medicine, mucosal lesions, leukoplakia, OSMF, canker sores, and skin conditions. "

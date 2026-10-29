@@ -147,25 +147,37 @@ def accept_patient_case(
     screening_info = None
     if apt.screening:
         s = apt.screening
+        mytra_assessment_data = None
+        if s.mytra_assessments:
+            mytra_assessment_data = s.mytra_assessments[-1].structured_response
         screening_info = {
             "id": s.id,
             "reference_id": s.reference_id,
             "category": s.category.value if hasattr(s.category, "value") else str(s.category),
+            "oral_site": s.oral_site.value if hasattr(s.oral_site, "value") else str(s.oral_site),
+            "lesion_type": s.lesion_type.value if hasattr(s.lesion_type, "value") else str(s.lesion_type),
+            "mouth_opening_mm": s.mouth_opening_mm,
             "symptoms": s.symptoms,
             "duration_days": s.duration_days,
             "severity": s.severity,
+            "bleeding": s.bleeding,
+            "burning_sensation": s.burning_sensation,
             "images": [
                 {
                     "preview_url": f"/api/v1/images/{img.id}/file",
                     "enhanced_url": f"/api/v1/images/{img.id}/enhanced" if img.processing_results and img.processing_results.enhanced_path else None,
-                    "quality_state": img.processing_results.quality_state if img.processing_results else "acceptable"
+                    "quality_state": img.processing_results.quality_state if img.processing_results else "acceptable",
+                    "blur_score": img.processing_results.blur_score if img.processing_results else None,
+                    "luminance_score": img.processing_results.luminance_score if img.processing_results else None,
+                    "guidance_message": img.processing_results.guidance_message if img.processing_results else None
                 } for img in s.images
             ],
             "ai_analysis": {
                 "observations": s.ai_analyses[-1].visual_observations,
                 "urgency": s.ai_analyses[-1].triage_urgency,
                 "recommendations": s.ai_analyses[-1].recommendations
-            } if s.ai_analyses else None
+            } if s.ai_analyses else None,
+            "mytra_assessment": mytra_assessment_data
         }
 
     return ConsultationAcceptResponse(

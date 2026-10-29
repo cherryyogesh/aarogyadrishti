@@ -466,3 +466,68 @@ export interface ConfigStatus {
     max_upload_mb: number;
   };
 }
+
+export interface LocalMedGemmaStatus {
+  model_name: string;
+  model_version: string;
+  architecture: string;
+  license: string;
+  is_local_only: boolean;
+  external_api_calls: boolean;
+  weights_directory: string;
+  weights_present: boolean;
+  detected_weight_files: Array<{ name: string; size_mb: number }>;
+  execution_device: string;
+  host_os: string;
+  free_disk_gb: number;
+  access_requirements: {
+    step1: string;
+    step2: string;
+    step3: string;
+  };
+}
+
+export interface LocalMedGemmaResult {
+  success: boolean;
+  task_type: string;
+  is_local_only: boolean;
+  external_api_calls: boolean;
+  execution_device: string;
+  model_provenance: {
+    name: string;
+    version: string;
+    weights_source: string;
+    license: string;
+    offline_execution: boolean;
+    duration_ms: number;
+  };
+  image_quality?: {
+    status: string;
+    blur_score?: number;
+    luminance_score?: number;
+    guidance?: string;
+  };
+  observations: string[];
+  visible_observations: string[];
+  differentials: Array<{
+    name: string;
+    likelihood: string;
+    clinical_notes: string;
+    notes_te?: string;
+  }>;
+  extracted_parameters: Array<{
+    parameter: string;
+    finding: string;
+    normal_reference: string;
+  }>;
+  summary_en: string;
+  summary_te: string;
+  recommended_next_step: string;
+  urgency: 'routine_review' | 'prompt_assessment' | 'urgent_care';
+  evidence_citations: string;
+  disclaimer: string;
+  disclaimer_en: string;
+  disclaimer_te: string;
+  timestamp: string;
+}
+

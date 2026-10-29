@@ -24,38 +24,42 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
         }
 
     height, width = img.shape[:2]
-    resolution_adequate = (width >= 320 and height >= 320)
+    # Accept standard cropped mobile photos while filtering unreadable icons
+    resolution_adequate = (width >= 80 and height >= 80)
 
     # 2. Convert to grayscale for blur and luminance analysis
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Blur detection via Laplacian variance
+    # Blur detection via Laplacian variance (calibrated for mobile smartphone cameras)
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     blur_score = float(laplacian.var())
-    is_blurry = blur_score < 75.0  # Common threshold for camera focus
+    is_blurry = blur_score < 25.0  # Pragmatic threshold for mobile camera compression
 
-    # Luminance / Exposure analysis
+    # Luminance / Exposure analysis (calibrated for oral cavity lighting)
     luminance_score = float(np.mean(gray))
-    is_dark = luminance_score < 45.0
-    is_overexposed = luminance_score > 215.0
+    is_dark = luminance_score < 25.0
+    is_overexposed = luminance_score > 238.0
 
     # Determine guidance and quality state
     guidance_notes = []
     if not resolution_adequate:
         guidance_notes.append("Image resolution is low. Please capture closer to the affected area.")
     if is_blurry:
-        guidance_notes.append("The image is blurry; please hold the camera steady and retake.")
+        guidance_notes.append("The image has mild motion blur. Hold camera steady when capturing.")
     if is_dark:
-        guidance_notes.append("The photo is too dark. Increase lighting or use a flashlight.")
+        guidance_notes.append("The photo lighting is low. Use torch or daylight for clearer view.")
     if is_overexposed:
-        guidance_notes.append("The photo is overexposed or has excessive flash glare. Reduce direct light.")
+        guidance_notes.append("The photo has direct flash glare. Capture without direct harsh flash.")
 
-    if not guidance_notes:
-        quality_state = "excellent" if blur_score >= 150.0 and 80.0 <= luminance_score <= 180.0 else "acceptable"
-        guidance_message = "Image quality is clear and acceptable for clinical review."
+    if not resolution_adequate or blur_score < 10.0:
+        quality_state = "poor"
+        guidance_message = "Image quality is very low or unreadable. " + " ".join(guidance_notes)
+    elif is_blurry or is_dark or is_overexposed:
+        quality_state = "acceptable"
+        guidance_message = "Image acceptable for preliminary evaluation. " + " ".join(guidance_notes)
     else:
-        quality_state = "retake_recommended" if (is_blurry or is_dark or not resolution_adequate) else "acceptable"
-        guidance_message = " ".join(guidance_notes)
+        quality_state = "excellent" if blur_score >= 100.0 and 70.0 <= luminance_score <= 190.0 else "acceptable"
+        guidance_message = "Image quality is clear and verified for clinical review."
 
     return {
         "is_blurry": is_blurry,

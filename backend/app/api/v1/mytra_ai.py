@@ -1,9 +1,13 @@
+import os
 import uuid
+import shutil
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.entities import (
     ScreeningImage, Screening, Patient, User, UserRole,
@@ -17,6 +21,9 @@ from app.integrations.ai.analysis_pipeline import analysis_pipeline
 from app.integrations.ai.image_scope_registry import scope_registry
 from app.integrations.ai.medical_rag import medical_rag
 from app.integrations.ai.medgemma_provider import medgemma_provider
+from app.integrations.ai.local_medgemma_engine import (
+    local_medgemma, MANDATORY_LOCAL_DISCLAIMER_EN, MANDATORY_LOCAL_DISCLAIMER_TE
+)
 from app.api.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/mytra-ai", tags=["Aarogya Mytra AI"])
@@ -263,4 +270,81 @@ def review_mytra_assessment(
         "notes": assessment.clinician_notes,
         "amendments": amendments
     }
+
+
+# ==============================================================================
+# SECURE LOCAL-ONLY MEDGEMMA 1.5 4B ENDPOINTS (ZERO EXTERNAL API CALLS)
+# ==============================================================================
+
+@router.get("/local/status")
+def get_local_medgemma_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check operational status of local Google MedGemma 1.5 4B engine:
+    - Verifies local weight files on disk
+    - Detects execution device (CPU / RAM)
+    - Validates license compliance (Google HAIDF Community License)
+    - Confirms zero external API calls
+    """
+    return local_medgemma.get_local_model_status()
+
+
+@router.post("/local/analyze")
+async def analyze_with_local_medgemma(
+    file: Optional[UploadFile] = File(None),
+    question: str = Form(""),
+    category: str = Form("mouth_oral"),
+    body_site: Optional[str] = Form(None),
+    task_type: str = Form("lesion_assessment"),  # 'lesion_assessment', 'report_explanation', 'clinical_qa'
+    language: str = Form("en"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Secure Local MedGemma 1.5 4B Inference:
+    - Accepts optional image (lesion photo or medical report document) and medical question
+    - Executes 100% on local hardware (zero cloud APIs, zero external network requests)
+    - Generates bilingual explanations (English & Telugu)
+    - Includes experimental non-diagnostic disclaimers and safety guidance
+    """
+    saved_filepath = None
+    if file and file.filename:
+        ext = Path(file.filename).suffix.lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp", ".pdf"]:
+            ext = ".jpg"
+        unique_filename = f"local_medgemma_{uuid.uuid4().hex}{ext}"
+        saved_filepath = os.path.join(settings.STORAGE_DIR, unique_filename)
+        try:
+            with open(saved_filepath, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save uploaded file locally: {e}")
+
+    # Execute local inference engine
+    result = await local_medgemma.execute_local_inference(
+        image_path=saved_filepath,
+        question=question,
+        category=category,
+        body_site=body_site,
+        task_type=task_type,
+        language=language
+    )
+
+    # Record privacy-preserving local audit log
+    try:
+        audit = AuditEvent(
+            user_id=current_user.id,
+            action="LOCAL_MEDGEMMA_INFERENCE",
+            entity_type="LocalMedGemmaEngine",
+            entity_id=unique_filename if saved_filepath else "qa_query",
+            details=f"Task: {task_type}, Question: {question[:60]}, Language: {language}, Local Only: True"
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        pass
+
+    return result
+
 
