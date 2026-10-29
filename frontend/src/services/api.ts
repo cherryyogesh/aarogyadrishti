@@ -2,7 +2,8 @@ import {
   User, Patient, Screening, Appointment, DoctorQueueItem,
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
-  StaffMember, EmployeeRegisterPayload
+  StaffMember, EmployeeRegisterPayload,
+  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -103,6 +104,10 @@ class ApiService {
     preferred_language: string;
     address?: string;
     village_town?: string;
+    habitation?: string;
+    gram_panchayat?: string;
+    mandal?: string;
+    district?: string;
     phc_id: number;
     consent_granted?: boolean;
     consent_notes?: string;
@@ -306,7 +311,7 @@ class ApiService {
     return this.request<ConfigStatus>('/config/status');
   }
 
-  // --- Module G: Biopsy & Pathology Investigations ---
+  // --- Biopsy & Pathology Investigations ---
   async listInvestigations(params?: { patient_id?: number; state?: string }): Promise<Investigation[]> {
     let url = '/investigations?';
     if (params?.patient_id) url += `patient_id=${params.patient_id}&`;
@@ -343,7 +348,7 @@ class ApiService {
     });
   }
 
-  // --- Module I: Tribal Patient Navigation ---
+  // --- Tribal Patient Navigation ---
   async listNavigationTasks(params?: { status?: string; mandal?: string }): Promise<NavigationTask[]> {
     let url = '/navigation?';
     if (params?.status) url += `status_filter=${params.status}&`;
@@ -377,7 +382,43 @@ class ApiService {
     });
   }
 
-  // --- Module F: Hospital Referrals & Slips ---
+  async recordAIFollowupCall(id: number, payload: {
+    duration_suffering_days: number;
+    severity_stage: string;
+    ai_call_transcript: string;
+    mouth_opening_difficulty?: boolean;
+    habit_status?: string;
+    whatsapp_photos_requested?: boolean;
+    whatsapp_photo_url?: string;
+  }): Promise<NavigationTask> {
+    return this.request<NavigationTask>(`/navigation/${id}/ai-call`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async recordWhatsAppPhoto(id: number, photoUrl: string): Promise<NavigationTask> {
+    return this.request<NavigationTask>(`/navigation/${id}/whatsapp-photo?whatsapp_photo_url=${encodeURIComponent(photoUrl)}`, {
+      method: 'POST',
+    });
+  }
+
+  async doctorReviewLead(id: number, payload: {
+    doctor_review_notes: string;
+    clinical_decision: string;
+  }): Promise<NavigationTask> {
+    return this.request<NavigationTask>(`/navigation/${id}/doctor-review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getPrintableLeadSummary(id: number): Promise<any> {
+    return this.request<any>(`/navigation/${id}/printable-summary`);
+  }
+
+
+  // --- Hospital Referrals & Referral Slips ---
   async listReferrals(patient_id?: number): Promise<ReferralSlip[]> {
     const url = patient_id ? `/referrals?patient_id=${patient_id}` : '/referrals';
     return this.request<ReferralSlip[]>(url);
@@ -410,6 +451,42 @@ class ApiService {
     return this.request<ReferralSlip>(`/referrals/${id}/attendance?attendance_confirmed=${attendance_confirmed}`, {
       method: 'PATCH',
     });
+  }
+
+  // --- Aarogya Mytra AI (Google MedGemma 1.5 4B & Evidence RAG) ---
+  async analyzeMedicalImage(payload: MytraAnalysisRequest): Promise<MytraAnalysisResponse> {
+    return this.request<MytraAnalysisResponse>('/mytra-ai/analyze', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMytraAssessment(assessmentId: string): Promise<MytraAnalysisResponse> {
+    return this.request<MytraAnalysisResponse>(`/mytra-ai/assessments/${assessmentId}`);
+  }
+
+  async getScreeningMytraAssessment(screeningId: number): Promise<MytraAnalysisResponse | null> {
+    return this.request<MytraAnalysisResponse | null>(`/screenings/${screeningId}/mytra-assessment`);
+  }
+
+  async reviewMytraAssessment(assessmentId: string, payload: ClinicianReviewAmendPayload): Promise<any> {
+    return this.request<any>(`/mytra-ai/assessments/${assessmentId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMytraHealth(): Promise<any> {
+    return this.request<any>('/mytra-ai/health');
+  }
+
+  async getMytraScopeRegistry(): Promise<any> {
+    return this.request<any>('/mytra-ai/scope-registry');
+  }
+
+  async queryMytraReferences(query: string, bodyRegion = '', symptoms = ''): Promise<any> {
+    const q = new URLSearchParams({ query, body_region: bodyRegion, symptoms });
+    return this.request<any>(`/mytra-ai/references?${q.toString()}`);
   }
 }
 

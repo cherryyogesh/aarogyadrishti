@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
 import { LanguageCode, DistrictAnalytics, User, StaffMember } from '../../types';
+import { ASR_DISTRICT_MANDALS, matchMandal } from '../../constants/mandals';
 import {
   BarChart3, Activity, Clock, UserCheck, MessageSquare, Shield,
-  Stethoscope, Building2, Users, Compass, Search, Filter, Phone,
+  Stethoscope, Building2, Users, Search, Filter, Phone,
   CheckCircle2, AlertCircle, FileText
 } from 'lucide-react';
 
@@ -62,7 +63,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       (s.mandal && s.mandal.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesRole = roleFilter === 'all' || s.role === roleFilter;
-    const matchesMandal = mandalFilter === 'all' || s.mandal === mandalFilter;
+    const matchesMandal = mandalFilter === 'all' || matchMandal(s.mandal, mandalFilter);
 
     return matchesSearch && matchesRole && matchesMandal;
   });
@@ -74,7 +75,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       case 'phc_staff':
         return { label: isTe ? 'పీహెచ్‌సీ స్టాఫ్ / MO' : 'PHC Staff / MO', bg: '#DCFCE7', color: '#15803D' };
       case 'doctor':
-        return { label: isTe ? 'స్పెషలిస్ట్ డాక్టర్' : 'Specialist Doctor', bg: '#F3E8FF', color: '#7E22CE' };
+        return { label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors', bg: '#F3E8FF', color: '#7E22CE' };
       case 'navigator':
         return { label: isTe ? 'పేషెంట్ నేవిగేటర్' : 'Patient Navigator', bg: '#FEF3C7', color: '#B45309' };
       case 'admin':
@@ -149,20 +150,6 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             </div>
           </div>
         </div>
-
-        {/* Total Patient Navigators */}
-        <div className="metric-card" style={{ borderLeft: '4px solid #B45309' }}>
-          <div className="metric-icon-wrap" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
-            <Compass size={26} />
-          </div>
-          <div>
-            <div className="metric-val" style={{ color: '#B45309' }}>{analytics.total_navigators ?? staffRoster.filter(s => s.role === 'navigator').length}</div>
-            <div className="metric-label">{t.dmho_total_navigators || (isTe ? 'పేషెంట్ నేవిగేటర్లు' : 'Patient Navigators')}</div>
-            <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
-              {isTe ? '108 ఫీడర్ అంబులెన్స్ & గిరిజన రోగుల సహాయం' : '108 Feeder ambulance & hospital escort'}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 2. INTERACTIVE HEALTHCARE WORKFORCE DIRECTORY & STAFF ROSTER */}
@@ -208,13 +195,12 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
                 color: '#334155'
               }}
             >
-              <option value="all">{isTe ? 'అన్ని మండలాలు (All Mandals)' : 'All Mandals'}</option>
-              <option value="G. Madugula">G. Madugula</option>
-              <option value="Paderu">Paderu</option>
-              <option value="Araku Valley">Araku Valley</option>
-              <option value="Chintapalli">Chintapalli</option>
-              <option value="Dumbriguda">Dumbriguda</option>
-              <option value="Ananthagiri">Ananthagiri</option>
+              <option value="all">{isTe ? 'అన్ని మండలాలు (All 11 Mandals)' : 'All 11 Mandals'}</option>
+              {ASR_DISTRICT_MANDALS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {isTe ? `${m.nameTe} (${m.name})` : m.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -226,7 +212,6 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             { id: 'chw', label: isTe ? 'ఆశా కార్యకర్తలు (ASHA)' : 'ASHA / CHWs' },
             { id: 'phc_staff', label: isTe ? 'పీహెచ్‌సీ సిబ్బంది (PHC Staff)' : 'PHC Staff' },
             { id: 'doctor', label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors & Specialists' },
-            { id: 'navigator', label: isTe ? 'నేవిగేటర్లు (Navigators)' : 'Navigators' },
             { id: 'admin', label: isTe ? 'DMHO అధికారులు' : 'District Admin' }
           ].map((tab) => (
             <button
@@ -356,34 +341,36 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           {isTe ? 'మండలాల వారీగా PHC కేంద్రాలు, ఆశా సిబ్బంది & స్క్రీనింగ్ వివరాలు' : 'Mandal-Wise PHC Centres, ASHA Workers & Screening Coverage'}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-          {['G. Madugula', 'Paderu', 'Araku Valley', 'Chintapalli', 'Dumbriguda', 'Ananthagiri'].map((mandal) => {
-            const mandalData = analytics.workforce_by_mandal?.[mandal] || {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+          {ASR_DISTRICT_MANDALS.map((mItem) => {
+            const mandalData = analytics.workforce_by_mandal?.[mItem.id] ||
+              analytics.workforce_by_mandal?.[mItem.name] ||
+              analytics.workforce_by_mandal?.[mItem.aliases[0]] || {
               phcs: 1,
-              asha_workers: mandal === 'G. Madugula' ? 2 : 1,
-              doctors: mandal === 'G. Madugula' || mandal === 'Paderu' ? 2 : 1,
-              screenings: analytics.screenings_by_mandal?.[mandal] || 0
+              asha_workers: mItem.id.includes('Madugula') ? 2 : 1,
+              doctors: mItem.id.includes('Madugula') || mItem.id === 'Paderu' ? 2 : 1,
+              screenings: analytics.screenings_by_mandal?.[mItem.id] || analytics.screenings_by_mandal?.[mItem.name] || analytics.screenings_by_mandal?.[mItem.aliases[0]] || 0
             };
 
             return (
               <div
-                key={mandal}
+                key={mItem.id}
                 style={{
-                  background: mandal === 'G. Madugula' ? '#F0FDFA' : '#F8FAFC',
-                  border: `1.5px solid ${mandal === 'G. Madugula' ? '#0D9488' : '#E2E8F0'}`,
+                  background: mItem.id.includes('Madugula') ? '#F0FDFA' : '#F8FAFC',
+                  border: `1.5px solid ${mItem.id.includes('Madugula') ? '#0D9488' : '#E2E8F0'}`,
                   padding: '1.1rem',
                   borderRadius: '12px'
                 }}
               >
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0F172A', marginBottom: '0.4rem' }}>
-                  {mandal}
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0F172A', marginBottom: '0.4rem' }}>
+                  {isTe ? mItem.nameTe : mItem.name}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.6 }}>
-                  <div>🏥 <strong>1</strong> {isTe ? 'పీహెచ్‌సీ కేంద్రం' : 'PHC Centre'}</div>
+                  <div>🏥 <strong>{mandalData.phcs ?? 1}</strong> {isTe ? 'పీహెచ్‌సీ కేంద్రం' : 'PHC Centre'}</div>
                   <div>👩‍⚕️ <strong>{mandalData.asha_workers ?? 1}</strong> {isTe ? 'ఆశా వర్కర్లు' : 'ASHA Workers'}</div>
                   <div>🩺 <strong>{mandalData.doctors ?? 1}</strong> {isTe ? 'వైద్యులు' : 'Doctors'}</div>
                   <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed #CBD5E1', color: '#0D9488', fontWeight: 700 }}>
-                    📋 {analytics.screenings_by_mandal?.[mandal] || 0} {isTe ? 'స్క్రీనింగ్‌లు' : 'Screenings'}
+                    📋 {mandalData.screenings ?? 0} {isTe ? 'స్క్రీనింగ్‌లు' : 'Screenings'}
                   </div>
                 </div>
               </div>
@@ -463,14 +450,14 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div className="metric-val" style={{ color: '#0284C7' }}>
               {(analytics.biopsies_completed ?? 1)} / {(analytics.biopsies_pending ?? 0) + (analytics.biopsies_completed ?? 1)}
             </div>
-            <div className="metric-label">{isTe ? 'బయాప్సీ పరీక్షల పురోగతి (పూర్తయినవి / సూచించినవి)' : 'Biopsies Completed vs Advised (Module G)'}</div>
+            <div className="metric-label">{isTe ? 'బయాప్సీ పరీక్షల పురోగతి (పూర్తయినవి / సూచించినవి)' : 'Biopsies Completed vs Advised'}</div>
           </div>
         </div>
 
         <div className="metric-card" style={{ borderLeft: '4px solid #7C3AED' }}>
           <div>
             <div className="metric-val" style={{ color: '#7C3AED' }}>{analytics.referrals_count ?? 1}</div>
-            <div className="metric-label">{isTe ? 'జిల్లా ఆసుపత్రికి రిఫరల్ స్లిప్‌లు (Module F)' : 'Specialist Referrals Issued (Module F)'}</div>
+            <div className="metric-label">{isTe ? 'జిల్లా ఆసుపత్రికి రిఫరల్ స్లిప్‌లు' : 'Specialist Referrals Issued'}</div>
           </div>
         </div>
       </div>

@@ -17,3 +17,4 @@ frontend/node_modules/
 Thumbs.db
 *.log
 .env
+*.db-journal

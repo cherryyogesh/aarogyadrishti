@@ -5,7 +5,7 @@ import { LanguageCode, User, Screening, DoctorQueueItem } from '../../types';
 import {
   Users, Activity, Clock, CheckCircle, PlusCircle, UserCheck,
   Stethoscope, MessageSquare, ArrowRight, AlertTriangle, Shield,
-  FileCheck, FlaskConical, Compass
+  FileCheck, FlaskConical
 } from 'lucide-react';
 
 interface Props {
@@ -89,9 +89,9 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
                 <PlusCircle size={18} />
                 {t.nav_screening}
               </button>
-              <button className="btn btn-secondary" onClick={() => onNavigate('navigation')}>
-                <Compass size={18} />
-                {t.nav_navigation}
+              <button className="btn btn-secondary" onClick={() => onNavigate('patients')}>
+                <Users size={18} />
+                {t.nav_patients}
               </button>
             </>
           )}
@@ -123,13 +123,6 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
                 {t.nav_investigations}
               </button>
             </>
-          )}
-
-          {user.role === 'navigator' && (
-            <button className="btn btn-primary" onClick={() => onNavigate('navigation')}>
-              <Compass size={18} />
-              {t.nav_navigation}
-            </button>
           )}
 
           {user.role === 'admin' && (

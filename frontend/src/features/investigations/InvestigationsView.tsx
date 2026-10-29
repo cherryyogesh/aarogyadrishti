@@ -109,7 +109,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
 
   return (
     <div className="investigations-container" style={{ width: '100%' }}>
-      {/* Module Banner */}
+      {/* Diagnostics Banner */}
       <div style={{
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         color: '#fff',
@@ -131,7 +131,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
             }}>
-              {isTe ? 'మాడ్యూల్ G • ITDA పాడేరు హెల్త్‌కేర్ వ్యవస్థ' : 'Module G • ITDA Paderu Healthcare System'}
+              {isTe ? 'ITDA పాడేరు హెల్త్‌కేర్ వ్యవస్థ' : 'ITDA Paderu Healthcare System'}
             </span>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 700 }}>
               {isTe ? 'బయాప్సీ & హిస్టోపాథాలజీ ట్రాకింగ్' : 'Biopsy & Lab Investigations Tracking'}

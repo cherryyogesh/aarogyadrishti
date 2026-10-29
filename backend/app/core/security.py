@@ -3,20 +3,22 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
+            return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
+        return plain_password == hashed_password
     except Exception:
-        # Fallback to direct sha256 comparison for test seeds if bcrypt fails on some systems
+        # Fallback to direct comparison for test seeds if bcrypt fails on some systems
         return plain_password == hashed_password
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    pwd_bytes = password.encode("utf-8")[:72]
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 def create_access_token(subject: str | Any, role: str, expires_delta: Optional[timedelta] = None) -> str:
     if expires_delta:

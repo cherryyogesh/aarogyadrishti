@@ -27,21 +27,42 @@ def get_district_analytics(
         key = cat.value if hasattr(cat, 'value') else str(cat)
         category_counts[key] = count
 
-    # Screenings by mandal (ITDA Paderu Agency)
+    # Screenings by mandal (All 11 Mandals of Alluri Sitharama Raju District)
     mandal_counts = {
-        "G. Madugula": 0,
-        "Paderu": 0,
+        "Ananthagiri": 0,
         "Araku Valley": 0,
-        "Chintapalli": 0,
+        "Chintapalle": 0,
         "Dumbriguda": 0,
-        "Ananthagiri": 0
+        "G. Madugula (Ganagaraju Madugula)": 0,
+        "Gudem Kotha Veedhi (G.K. Veedhi)": 0,
+        "Hukumpeta": 0,
+        "Koyyuru": 0,
+        "Munchingi Puttu": 0,
+        "Paderu": 0,
+        "Peda Bayalu": 0
     }
+
+    alias_map = {
+        "g. madugula": "G. Madugula (Ganagaraju Madugula)",
+        "ganagaraju madugula": "G. Madugula (Ganagaraju Madugula)",
+        "chintapalli": "Chintapalle",
+        "gudem kotha veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
+        "g.k. veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
+        "gk veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
+        "munchingiputtu": "Munchingi Puttu",
+        "pedabayalu": "Peda Bayalu",
+    }
+
     mandal_rows = db.query(Patient.mandal, func.count(Screening.id))\
         .join(Screening, Screening.patient_id == Patient.id)\
         .group_by(Patient.mandal).all()
     for mandal, count in mandal_rows:
         if mandal:
-            mandal_counts[mandal] = count
+            standardized = alias_map.get(mandal.lower().strip(), mandal)
+            if standardized in mandal_counts:
+                mandal_counts[standardized] += count
+            else:
+                mandal_counts[mandal] = count
 
     # Precancer and Malignancy tracking
     precancers = db.query(Investigation).filter(

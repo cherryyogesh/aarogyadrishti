@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Float, Index
+    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Float, Index, JSON
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -21,6 +21,43 @@ class OralSite(str, enum.Enum):
     GINGIVA = "gingiva"                   # Gums / Alveolar ridge
     LIP = "lip"                           # Labial mucosa / Vermilion border
     RETROMOLAR = "retromolar_trigone"     # Behind wisdom teeth
+    # Nose & ENT Sites
+    NASAL_BRIDGE = "nasal_bridge"
+    ALAR_MARGIN = "alar_margin"
+    NASAL_SEPTUM = "nasal_septum"
+    ANTERIOR_TURBINATE = "anterior_turbinate"
+    NASOLABIAL_FOLD = "nasolabial_fold"
+    # Eye & Ocular Surface
+    CORNEA_LIMBUS = "cornea_limbus"
+    BULBAR_CONJUNCTIVA = "bulbar_conjunctiva"
+    EYELID_MARGIN = "eyelid_margin"
+    INNER_OUTER_CANTHUS = "inner_outer_canthus"
+    LACRIMAL_SAC = "lacrimal_sac"
+    # Ear & Auricular Sites
+    HELIX_ANTIHELIX = "helix_antihelix"
+    EAR_LOBULE = "ear_lobule"
+    EXTERNAL_AUDITORY_CANAL = "external_auditory_canal"
+    RETROAURICULAR_CREASE = "retroauricular_crease"
+    CONCHAL_BOWL = "conchal_bowl"
+    # Skin & Cutaneous Sites
+    FACE_HEAD_NECK = "face_head_neck"
+    UPPER_LIMBS = "upper_limbs"
+    TRUNK_BACK = "trunk_back"
+    LOWER_LIMBS = "lower_limbs"
+    ACRAL_PALMS_SOLES = "acral_palms_soles"
+    SKINFOLDS = "skinfolds"
+    # Wound & Ulcer Sites
+    PLANTAR_FOOT_HALLUX = "plantar_foot_hallux"
+    MALLEOLUS_LOWER_LEG = "malleolus_lower_leg"
+    SACRUM_BUTTOCKS = "sacrum_buttocks"
+    SURGICAL_DEHISCENCE = "surgical_dehiscence"
+    TRAUMA_EXTREMITY = "trauma_extremity"
+    # Other & Lymph Node Sites
+    CERVICAL_LYMPH_NODES = "cervical_lymph_nodes"
+    AXILLARY_NODES = "axillary_nodes"
+    INGUINAL_NODES = "inguinal_nodes"
+    ANTERIOR_NECK_THYROID = "anterior_neck_thyroid"
+    SUBCUTANEOUS_SOFT_TISSUE = "subcutaneous_soft_tissue"
     OTHER = "other_oral_cavity"
 
 class LesionType(str, enum.Enum):
@@ -31,6 +68,47 @@ class LesionType(str, enum.Enum):
     PERSISTENT_ULCER = "persistent_ulcer"     # Non-healing ulcer > 2-3 weeks
     GROWTH_MASS = "growth_mass"               # Exophytic vegetative growth
     LICHEN_PLANUS = "lichen_planus"           # Wickham striae / reticular pattern
+    # Nose
+    BLEEDING_ULCER = "bleeding_ulcer"
+    NASAL_POLYP = "nasal_polyp"
+    CRUSTED_PLAQUE = "crusted_plaque"
+    SEPTAL_PERFORATION = "septal_perforation"
+    PEARLY_NODULE_BCC = "pearly_nodule_bcc"
+    VESTIBULITIS = "vestibulitis"
+    # Eye
+    PTERYGIUM = "pterygium"
+    PINGUECULA = "pinguecula"
+    MARGINAL_ULCER = "marginal_ulcer"
+    CORNEAL_INFILTRATE = "corneal_infiltrate"
+    OSSN_NEOPLASIA = "ossn_neoplasia"
+    CHALAZION_MASS = "chalazion_mass"
+    # Ear
+    SCALC_ULCER = "scalc_ulcer"
+    CSOM_DISCHARGE = "csom_discharge"
+    HEMATOMA_SEROMA = "hematoma_seroma"
+    PIGMENTED_MACULE = "pigmented_macule"
+    OTOMYCOSIS = "otomycosis"
+    KELOID_FIBROMA = "keloid_fibroma"
+    # Skin
+    MELANOMA_ABCDE = "melanoma_abcde"
+    BCC_PEARLY = "bcc_pearly"
+    SCC_INDURATED = "scc_indurated"
+    ACTINIC_KERATOSIS = "actinic_keratosis"
+    PSORIASIS_ECZEMA = "psoriasis_eczema"
+    HYPOPIGMENTED_PATCH = "hypopigmented_patch"
+    # Wounds
+    GRANULATION_RED = "granulation_red"
+    YELLOW_SLOUGH = "yellow_slough"
+    BLACK_ESCHAR_GANGRENE = "black_eschar_gangrene"
+    MACERATED_EDGE = "macerated_edge"
+    DEEP_BONE_PROBING = "deep_bone_probing"
+    CELLULITIC_WOUND = "cellulitic_wound"
+    # Other
+    HARD_FIXED_MASS = "hard_fixed_mass"
+    SOFT_MOBILE_LIPOMA = "soft_mobile_lipoma"
+    TENDER_LYMPHADENOPATHY = "tender_lymphadenopathy"
+    CYSTIC_SWELLING = "cystic_swelling"
+    THYROID_NODULE = "thyroid_nodule"
     OTHER = "other_abnormality"
 
 class ScreeningStatus(str, enum.Enum):
@@ -195,6 +273,7 @@ class Screening(Base):
     creator = relationship("User", back_populates="screenings_created", foreign_keys=[created_by_user_id])
     images = relationship("ScreeningImage", back_populates="screening", cascade="all, delete-orphan")
     ai_analyses = relationship("AIAnalysis", back_populates="screening", cascade="all, delete-orphan")
+    mytra_assessments = relationship("MytraAIAssessment", back_populates="screening", cascade="all, delete-orphan")
     clinical_reviews = relationship("ClinicalReview", back_populates="screening", cascade="all, delete-orphan")
     appointments = relationship("Appointment", back_populates="screening")
     investigations = relationship("Investigation", back_populates="screening")
@@ -256,6 +335,41 @@ class AIAnalysis(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     screening = relationship("Screening", back_populates="ai_analyses")
+
+class MytraAIAssessment(Base):
+    __tablename__ = "mytra_ai_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    assessment_id = Column(String(64), unique=True, index=True, nullable=False)
+    screening_id = Column(Integer, ForeignKey("screenings.id", ondelete="CASCADE"), nullable=True)
+    image_id = Column(Integer, ForeignKey("screening_images.id", ondelete="SET NULL"), nullable=True)
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"), nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    image_category = Column(String(50), nullable=False, default="mouth_oral")
+    assessment_status = Column(String(50), default="preliminary")  # preliminary, quality_check_failed, unsupported_category, clinician_reviewed
+    clinician_review_status = Column(String(50), default="pending")  # pending, approved, amended, rejected
+    urgency = Column(String(50), default="routine_review")  # routine_review, prompt_assessment, urgent_care
+    urgency_reason = Column(Text, nullable=True)
+
+    # Core JSON payload conforming to Master Prompt Section 7
+    structured_response = Column(JSON, nullable=False)
+    audit_trail_json = Column(JSON, nullable=True)
+
+    # Clinician review metadata
+    reviewed_by_doctor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    clinician_notes = Column(Text, nullable=True)
+    clinician_decision = Column(String(50), nullable=True)  # approved, amended, rejected
+    clinician_amendments = Column(JSON, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    screening = relationship("Screening", back_populates="mytra_assessments")
+    image = relationship("ScreeningImage")
+    patient = relationship("Patient")
+    creator = relationship("User", foreign_keys=[created_by_user_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by_doctor_id])
 
 class ClinicalReview(Base):
     __tablename__ = "clinical_reviews"
@@ -380,10 +494,23 @@ class NavigationTask(Base):
     feeder_ambulance_notified = Column(Boolean, default=False) # Tribal feeder ambulance (108)
     missed_visit_reason = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    screening_id = Column(Integer, ForeignKey("screenings.id", ondelete="SET NULL"), nullable=True)
+    ai_call_status = Column(String(50), default="pending")  # pending, in_progress, completed
+    ai_call_transcript = Column(Text, nullable=True)
+    duration_suffering_days = Column(Integer, nullable=True)
+    severity_stage = Column(String(100), nullable=True)
+    whatsapp_photo_url = Column(String(500), nullable=True)
+    doctor_reviewed = Column(Boolean, default=False)
+    doctor_review_notes = Column(Text, nullable=True)
+    doctor_reviewed_at = Column(DateTime, nullable=True)
+    dispatched_to_phc = Column(Boolean, default=True)
+    dispatched_to_doctor = Column(Boolean, default=True)
+    dispatched_to_dmho = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     patient = relationship("Patient", back_populates="navigation_tasks")
     navigator = relationship("User", foreign_keys=[assigned_navigator_id])
+    screening = relationship("Screening")
 
 class Consultation(Base):
     __tablename__ = "consultations"

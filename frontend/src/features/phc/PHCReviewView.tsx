@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
-import { LanguageCode, Screening, User } from '../../types';
+import { LanguageCode, Screening, User, MytraAnalysisResponse } from '../../types';
+import { MytraAssessmentView } from '../mytra/MytraAssessmentView';
 import {
   ClipboardCheck, Calendar, Sparkles, AlertCircle, X, Check,
   Camera, FileText, ArrowRight
@@ -19,6 +20,8 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
   const [loading, setLoading] = useState(true);
   const [selectedCase, setSelectedCase] = useState<Screening | null>(null);
   const [doctorAgreesWithAi, setDoctorAgreesWithAi] = useState<boolean>(true);
+  const [mytraAssessment, setMytraAssessment] = useState<MytraAnalysisResponse | null>(null);
+  const [loadingAssessment, setLoadingAssessment] = useState<boolean>(false);
 
   // Review Form
   const [reviewDecision, setReviewDecision] = useState('consultation_booked');
@@ -43,11 +46,21 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
     fetchCases();
   }, []);
 
-  const handleOpenReview = (scr: Screening) => {
+  const handleOpenReview = async (scr: Screening) => {
     setSelectedCase(scr);
     setClinicalNotes('');
     setActionPlan('');
     setSuccessMsg(null);
+    setMytraAssessment(null);
+    setLoadingAssessment(true);
+    try {
+      const assessment = await api.getScreeningMytraAssessment(scr.id);
+      setMytraAssessment(assessment);
+    } catch (e) {
+      // If no pre-existing assessment was recorded, it will be null
+    } finally {
+      setLoadingAssessment(false);
+    }
   };
 
   const handleSaveReview = async (e: React.FormEvent) => {
@@ -274,6 +287,30 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
               </div>
             )}
 
+            {/* Aarogya Mytra AI Preliminary Clinical Assessment & Verified MoHFW Evidence */}
+            {loadingAssessment && (
+              <div style={{ padding: '1rem', background: '#F0FDFA', borderRadius: '8px', color: '#0F766E', marginBottom: '1.25rem', textAlign: 'center' }}>
+                <Sparkles size={18} style={{ display: 'inline', marginRight: '6px' }} />
+                Loading Aarogya Mytra AI Assessment & Verified Medical References...
+              </div>
+            )}
+
+            {mytraAssessment && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <MytraAssessmentView
+                  assessment={mytraAssessment}
+                  user={user}
+                  currentLang={currentLang}
+                  showClinicianReviewForm={true}
+                  onReviewed={(updated) => {
+                    setMytraAssessment(updated);
+                    setSuccessMsg('Aarogya Mytra AI clinical review saved with provenance.');
+                    fetchCases();
+                  }}
+                />
+              </div>
+            )}
+
             {/* AI Preliminary Guidance with Strict Nonclinical Disclaimer */}
             {selectedCase.ai_analysis && (
               <div style={{
@@ -361,7 +398,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                       state: 'advised',
                       diagnosis_category: 'precancer_leukoplakia'
                     });
-                    alert(`✓ Module G: Incisional Biopsy ordered for ${selectedCase.patient_name}!`);
+                    alert(`✓ Incisional Biopsy ordered for ${selectedCase.patient_name}!`);
                   } catch (e: any) {
                     alert('Biopsy order error: ' + e.message);
                   }
@@ -377,7 +414,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                   cursor: 'pointer'
                 }}
               >
-                🧪 Order Biopsy (Module G)
+                🧪 Order Biopsy
               </button>
 
               <button
@@ -391,7 +428,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                       urgency: 'priority',
                       reason_for_referral: `Suspected Oral Potentially Malignant Disorder (${selectedCase.lesion_type || 'Leukoplakia'}) on ${selectedCase.oral_site || 'Left Buccal Mucosa'}.`
                     });
-                    alert(`✓ Module F: Hospital Referral Slip generated for ${selectedCase.patient_name}!`);
+                    alert(`✓ Hospital Referral Slip generated for ${selectedCase.patient_name}!`);
                   } catch (e: any) {
                     alert('Referral error: ' + e.message);
                   }
@@ -407,7 +444,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                   cursor: 'pointer'
                 }}
               >
-                🏥 Generate Referral Slip (Module F)
+                🏥 Generate Referral Slip
               </button>
             </div>
 
@@ -426,7 +463,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                     {currentLang === 'te' ? 'స్పెషలిస్ట్ కన్సల్టేషన్ సిఫార్సు (Doctor Consultation Recommended)' : 'Doctor Consultation Recommended'}
                   </option>
                   <option value="biopsy_advised">
-                    {currentLang === 'te' ? 'ఇన్సిషనల్ బయాప్సీ సిఫార్సు (Biopsy Advised - Module G)' : 'Incisional/Punch Biopsy Advised (Module G)'}
+                    {currentLang === 'te' ? 'ఇన్సిషనల్ బయాప్సీ సిఫార్సు (Biopsy Advised)' : 'Incisional/Punch Biopsy Advised'}
                   </option>
                   <option value="repeat_photo">
                     {currentLang === 'te' ? 'మళ్లీ స్పష్టమైన ఫొటో పంపమని కోరండి (Repeat Photo Requested)' : 'Request Repeat Photograph (Image Unclear)'}
@@ -435,7 +472,7 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                     {currentLang === 'te' ? 'స్థానిక పరిశీలన & స్వీయ జాగ్రత్తలు (Safe for Local Observation)' : 'Safe for Local Observation (Self-care Guidance)'}
                   </option>
                   <option value="referral_made">
-                    {currentLang === 'te' ? 'జిల్లా ఆసుపత్రికి అధికారిక రిఫరల్ (Direct Referral - Module F)' : 'Direct Referral to District Hospital (Module F)'}
+                    {currentLang === 'te' ? 'జిల్లా ఆసుపత్రికి అధికారిక రిఫరల్ (Direct Referral)' : 'Direct Referral to District Hospital'}
                   </option>
                 </select>
               </div>
