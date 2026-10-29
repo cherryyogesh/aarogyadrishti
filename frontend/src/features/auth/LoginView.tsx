@@ -67,18 +67,6 @@ const DEMO_ACCOUNTS = [
     color: '#7E22CE'
   },
   {
-    role: 'navigator',
-    email: 'navigator@aarogya.gov.in',
-    phone: '9848011004',
-    pass: 'NavPass@2026',
-    labelEn: 'Patient Navigator (Tribal Care Escort)',
-    labelTe: 'పేషెంట్ నావిగేటర్ (Patient Navigator)',
-    subtitleEn: '108 Feeder Ambulance transport & adherence coordination',
-    subtitleTe: '108 ఫీడర్ అంబులెన్స్ రవాణా & హాస్పిటల్ సహాయం',
-    icon: FileText,
-    color: '#B45309'
-  },
-  {
     role: 'admin',
     email: 'admin@aarogya.gov.in',
     phone: '9848011005',
@@ -134,10 +122,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
       if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
         setRegPhcName('District Hospital Paderu / Specialist Medical Centre');
       }
-    } else if (newRole === 'navigator') {
-      if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
-        setRegPhcName('ITDA Tribal Patient Navigation Cell, Paderu');
-      }
     } else if (newRole === 'admin') {
       if (!regPhcName || regPhcName.includes('Primary Health Centre')) {
         setRegPhcName('District Medical & Health Office (DM&HO), Alluri Sitharama Raju');
@@ -156,13 +140,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
           placeholder: isTe ? 'ఉదా: డిస్ట్రిక్ట్ హాస్పిటల్ పాడేరు / ఏరియా హాస్పిటల్ / స్పెషాలిటీ క్లినిక్' : 'e.g. District Hospital Paderu / Area Hospital / Specialist Medical Centre',
           hint: isTe ? 'వైద్యులు సంప్రదింపులు అందించే ఆసుపత్రి లేదా క్లినిక్ (నోరు, కన్ను, చెవి, చర్మం తదితర విభాగాలు)' : 'Hospital, Area Hospital, or Clinic where you practice (Mouth, Ear, Eyes, Skin, etc.)',
           icon: '🏥'
-        };
-      case 'navigator':
-        return {
-          label: isTe ? 'కేటాయించిన ఆసుపత్రి / 108 రవాణా సమన్వయ కేంద్రం' : 'Assigned Hospital / Transport Coordination Hub (108 Agency)',
-          placeholder: isTe ? 'ఉదా: ITDA ఏజెన్సీ హబ్ పాడేరు / ఏరియా హాస్పిటల్ ట్రాన్స్‌పోర్ట్ సెల్' : 'e.g. ITDA Agency Hub Paderu / Area Hospital Transport Cell',
-          hint: isTe ? 'గిరిజన రోగుల రవాణా సహాయం & 108 ఫీడర్ అంబులెన్స్ కేంద్రం' : 'Base hospital or 108 tribal feeder transport coordination hub',
-          icon: '🚑'
         };
       case 'admin':
         return {
@@ -554,7 +531,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     <option value="chw">{isTe ? 'ఆశా / విలేజ్ హెల్త్ వర్కర్ (ASHA / CHW)' : 'ASHA / Village Health Worker (CHW)'}</option>
                     <option value="phc_staff">{isTe ? 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్ (PHC Staff / MO)' : 'PHC Staff / Medical Officer (MO)'}</option>
                     <option value="doctor">{isTe ? 'వైద్యులు (Doctors)' : 'Doctors'}</option>
-                    <option value="navigator">{isTe ? 'పేషెంట్ నావిగేటర్ (Patient Navigator)' : 'Patient Navigator (Tribal Care)'}</option>
                     <option value="admin">{isTe ? 'DMHO (డిస్ట్రిక్ట్ మెడికల్ & హెల్త్ ఆఫీసర్)' : 'DMHO (District Medical & Health Officer)'}</option>
                   </select>
                 </div>

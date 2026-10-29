@@ -5,7 +5,7 @@ import { LanguageCode, DistrictAnalytics, User, StaffMember } from '../../types'
 import { ASR_DISTRICT_MANDALS, matchMandal } from '../../constants/mandals';
 import {
   BarChart3, Activity, Clock, UserCheck, MessageSquare, Shield,
-  Stethoscope, Building2, Users, Compass, Search, Filter, Phone,
+  Stethoscope, Building2, Users, Search, Filter, Phone,
   CheckCircle2, AlertCircle, FileText
 } from 'lucide-react';
 
@@ -150,20 +150,6 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             </div>
           </div>
         </div>
-
-        {/* Total Patient Navigators */}
-        <div className="metric-card" style={{ borderLeft: '4px solid #B45309' }}>
-          <div className="metric-icon-wrap" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
-            <Compass size={26} />
-          </div>
-          <div>
-            <div className="metric-val" style={{ color: '#B45309' }}>{analytics.total_navigators ?? staffRoster.filter(s => s.role === 'navigator').length}</div>
-            <div className="metric-label">{t.dmho_total_navigators || (isTe ? 'పేషెంట్ నేవిగేటర్లు' : 'Patient Navigators')}</div>
-            <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
-              {isTe ? '108 ఫీడర్ అంబులెన్స్ & గిరిజన రోగుల సహాయం' : '108 Feeder ambulance & hospital escort'}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* 2. INTERACTIVE HEALTHCARE WORKFORCE DIRECTORY & STAFF ROSTER */}
@@ -226,7 +212,6 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             { id: 'chw', label: isTe ? 'ఆశా కార్యకర్తలు (ASHA)' : 'ASHA / CHWs' },
             { id: 'phc_staff', label: isTe ? 'పీహెచ్‌సీ సిబ్బంది (PHC Staff)' : 'PHC Staff' },
             { id: 'doctor', label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors & Specialists' },
-            { id: 'navigator', label: isTe ? 'నేవిగేటర్లు (Navigators)' : 'Navigators' },
             { id: 'admin', label: isTe ? 'DMHO అధికారులు' : 'District Admin' }
           ].map((tab) => (
             <button

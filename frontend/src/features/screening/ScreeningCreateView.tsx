@@ -5,14 +5,13 @@ import { LanguageCode, Patient, User, ImageUploadResponse } from '../../types';
 import {
   Camera, Upload, AlertCircle, CheckCircle, Sparkles, RefreshCw,
   Send, ShieldAlert, Eye, Info, CheckCircle2, X, FolderOpen, SwitchCamera, ArrowRight,
-  Volume2, VolumeX, PhoneCall, Stethoscope, Compass, FileCheck
+  Volume2, VolumeX, PhoneCall, Stethoscope, FileCheck
 } from 'lucide-react';
 
 interface Props {
   currentLang: LanguageCode;
   user: User;
   onScreeningCreated?: (screeningId: number) => void;
-  onNavigateToLead?: () => void;
 }
 
 const CATEGORIES = [
@@ -481,7 +480,7 @@ export const CLINICAL_CONFIGS: Record<string, ClinicalCategoryConfig> = {
   }
 };
 
-export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScreeningCreated, onNavigateToLead }) => {
+export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScreeningCreated }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -924,7 +923,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
           {/* Next Steps in Lead Continuum */}
           <div style={{ marginTop: '1.25rem', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1rem' }}>
             <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1E293B', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Compass size={16} color="var(--teal-primary)" />
+              <Sparkles size={16} color="var(--teal-primary)" />
               {isTe ? 'ఆరోగ్య మిత్ర లీడ్ తదుపరి దశలు (Care Continuum Steps):' : 'Arogya Mitra Lead Progression Steps:'}
             </div>
             <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.82rem', color: '#475569', lineHeight: 1.6 }}>
@@ -937,29 +936,6 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          {onNavigateToLead && (
-            <button
-              className="btn"
-              style={{
-                background: 'linear-gradient(135deg, #0F766E 0%, #0D9488 100%)',
-                color: '#FFFFFF',
-                padding: '0.75rem 1.5rem',
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-              onClick={onNavigateToLead}
-            >
-              <Compass size={18} />
-              {isTe ? 'ఆరోగ్య మిత్ర లీడ్ ట్రాకర్‌ను తెరవండి' : 'Open Arogya Mitra Lead Tracker'}
-            </button>
-          )}
-
           <button
             className="btn btn-secondary"
             style={{ padding: '0.75rem 1.5rem', fontSize: '0.95rem', fontWeight: 600 }}

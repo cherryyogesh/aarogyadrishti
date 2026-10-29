@@ -273,7 +273,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 🖨️ View & Print Slip
               </button>
 
-              {!ref.attendance_confirmed && (currentUser.role === 'doctor' || currentUser.role === 'navigator' || currentUser.role === 'phc_staff') && (
+              {!ref.attendance_confirmed && (currentUser.role === 'doctor' || currentUser.role === 'phc_staff') && (
                 <button
                   onClick={() => handleConfirmAttendance(ref.id)}
                   style={{

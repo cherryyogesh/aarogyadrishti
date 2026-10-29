@@ -16,14 +16,13 @@ import { ChatbotView } from './features/chatbot/ChatbotView';
 import { DistrictReportsView } from './features/reports/DistrictReportsView';
 import { AuditLogView } from './features/audit/AuditLogView';
 import { InvestigationsView } from './features/investigations/InvestigationsView';
-import { NavigationView } from './features/navigation/NavigationView';
 import { ReferralsView } from './features/referrals/ReferralsView';
 import { AarogyaLogo } from './components/AarogyaLogo';
 
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
   MessageSquare, BarChart3, Shield, LogOut, Menu,
-  X, Globe, UserCheck, FlaskConical, Compass, FileCheck
+  X, Globe, UserCheck, FlaskConical, FileCheck
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -61,7 +60,6 @@ export const App: React.FC = () => {
           if (user.role === 'doctor') setActiveRoute('queue');
           else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
           else if (user.role === 'admin') setActiveRoute('reports');
-          else if (user.role === 'navigator') setActiveRoute('navigation');
           else setActiveRoute('screening');
         } catch (e) {
           api.setToken(null);
@@ -89,13 +87,11 @@ export const App: React.FC = () => {
       if (role === 'chw') return 'ఆశా కార్యకర్త';
       if (role === 'phc_staff') return 'PHC స్టాఫ్';
       if (role === 'doctor') return 'డాక్టర్';
-      if (role === 'navigator') return 'నేవిగేటర్';
       return 'DMHO అధికారి';
     }
     if (role === 'chw') return 'ASHA / CHW';
     if (role === 'phc_staff') return 'PHC Staff / MO';
     if (role === 'doctor') return 'Doctor / Specialist';
-    if (role === 'navigator') return 'Patient Navigator';
     return 'DMHO Admin';
   };
 
@@ -137,7 +133,6 @@ export const App: React.FC = () => {
           if (user.role === 'doctor') setActiveRoute('queue');
           else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
           else if (user.role === 'admin') setActiveRoute('reports');
-          else if (user.role === 'navigator') setActiveRoute('navigation');
           else setActiveRoute('screening');
         }}
       />
@@ -170,7 +165,6 @@ export const App: React.FC = () => {
   const isCHW = currentUser.role === 'chw';
   const isPHC = currentUser.role === 'phc_staff';
   const isDoctor = currentUser.role === 'doctor';
-  const isNavigator = currentUser.role === 'navigator';
   const isAdmin = currentUser.role === 'admin';
 
   return (
@@ -243,13 +237,6 @@ export const App: React.FC = () => {
               >
                 <Users size={18} />
                 {t.nav_patients}
-              </button>
-              <button
-                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
-                onClick={() => navigateTo('navigation')}
-              >
-                <Compass size={18} />
-                {t.nav_navigation}
               </button>
             </>
           )}
@@ -343,41 +330,7 @@ export const App: React.FC = () => {
             </>
           )}
 
-          {/* 4. PATIENT NAVIGATOR SPECIFIC MENU */}
-          {isNavigator && (
-            <>
-              <button
-                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
-                onClick={() => navigateTo('navigation')}
-              >
-                <Compass size={18} />
-                {t.nav_navigation}
-              </button>
-              <button
-                className={`menu-item ${activeRoute === 'appointments' ? 'active' : ''}`}
-                onClick={() => navigateTo('appointments')}
-              >
-                <Calendar size={18} />
-                {t.nav_appointments}
-              </button>
-              <button
-                className={`menu-item ${activeRoute === 'referrals' ? 'active' : ''}`}
-                onClick={() => navigateTo('referrals')}
-              >
-                <FileCheck size={18} />
-                {t.nav_referrals}
-              </button>
-              <button
-                className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
-                onClick={() => navigateTo('patients')}
-              >
-                <Users size={18} />
-                {t.nav_patients}
-              </button>
-            </>
-          )}
-
-          {/* 5. DMHO (DISTRICT ADMIN) SPECIFIC MENU */}
+          {/* 4. DMHO (DISTRICT ADMIN) SPECIFIC MENU */}
           {isAdmin && (
             <>
               <button
@@ -409,13 +362,6 @@ export const App: React.FC = () => {
                 {t.nav_referrals}
               </button>
               <button
-                className={`menu-item ${activeRoute === 'navigation' ? 'active' : ''}`}
-                onClick={() => navigateTo('navigation')}
-              >
-                <Compass size={18} />
-                {t.nav_navigation}
-              </button>
-              <button
                 className={`menu-item ${activeRoute === 'patients' ? 'active' : ''}`}
                 onClick={() => navigateTo('patients')}
               >
@@ -443,8 +389,7 @@ export const App: React.FC = () => {
             }}>
               {isDoctor ? <Stethoscope size={16} /> :
                isPHC ? <UserCheck size={16} /> :
-               isAdmin ? <Shield size={16} /> :
-               isNavigator ? <Compass size={16} /> : <FileText size={16} />}
+               isAdmin ? <Shield size={16} /> : <FileText size={16} />}
             </div>
             <div className="user-info-text">
               <h4>{cleanUserName || currentUser.full_name}</h4>
@@ -481,7 +426,6 @@ export const App: React.FC = () => {
                activeRoute === 'phc_cases' ? t.nav_phc_cases :
                activeRoute === 'investigations' ? t.nav_investigations :
                activeRoute === 'referrals' ? t.nav_referrals :
-               activeRoute === 'navigation' ? t.nav_navigation :
                activeRoute === 'appointments' ? t.nav_appointments :
                activeRoute === 'otp' ? t.nav_otp_checkin :
                activeRoute === 'queue' ? t.nav_doctor_queue :
@@ -556,7 +500,6 @@ export const App: React.FC = () => {
               currentLang={currentLang}
               user={currentUser}
               onScreeningCreated={() => setActiveRoute('dashboard')}
-              onNavigateToLead={() => setActiveRoute('navigation')}
             />
           )}
 
@@ -633,13 +576,6 @@ export const App: React.FC = () => {
 
           {activeRoute === 'referrals' && (
             <ReferralsView
-              currentUser={currentUser}
-              currentLang={currentLang}
-            />
-          )}
-
-          {activeRoute === 'navigation' && (
-            <NavigationView
               currentUser={currentUser}
               currentLang={currentLang}
             />
