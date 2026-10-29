@@ -33,3 +33,4 @@ elif [ "$choice" = "3" ]; then
     echo "Probing http://localhost:11434/api/version ..."
     curl -s http://localhost:11434/api/version || echo "Port 11434 not listening."
 fi
+
