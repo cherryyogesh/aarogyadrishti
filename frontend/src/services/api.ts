@@ -2,7 +2,8 @@ import {
   User, Patient, Screening, Appointment, DoctorQueueItem,
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
-  StaffMember, EmployeeRegisterPayload
+  StaffMember, EmployeeRegisterPayload,
+  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -450,6 +451,42 @@ class ApiService {
     return this.request<ReferralSlip>(`/referrals/${id}/attendance?attendance_confirmed=${attendance_confirmed}`, {
       method: 'PATCH',
     });
+  }
+
+  // --- Aarogya Mytra AI (Google MedGemma 1.5 4B & Evidence RAG) ---
+  async analyzeMedicalImage(payload: MytraAnalysisRequest): Promise<MytraAnalysisResponse> {
+    return this.request<MytraAnalysisResponse>('/mytra-ai/analyze', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMytraAssessment(assessmentId: string): Promise<MytraAnalysisResponse> {
+    return this.request<MytraAnalysisResponse>(`/mytra-ai/assessments/${assessmentId}`);
+  }
+
+  async getScreeningMytraAssessment(screeningId: number): Promise<MytraAnalysisResponse | null> {
+    return this.request<MytraAnalysisResponse | null>(`/screenings/${screeningId}/mytra-assessment`);
+  }
+
+  async reviewMytraAssessment(assessmentId: string, payload: ClinicianReviewAmendPayload): Promise<any> {
+    return this.request<any>(`/mytra-ai/assessments/${assessmentId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMytraHealth(): Promise<any> {
+    return this.request<any>('/mytra-ai/health');
+  }
+
+  async getMytraScopeRegistry(): Promise<any> {
+    return this.request<any>('/mytra-ai/scope-registry');
+  }
+
+  async queryMytraReferences(query: string, bodyRegion = '', symptoms = ''): Promise<any> {
+    const q = new URLSearchParams({ query, body_region: bodyRegion, symptoms });
+    return this.request<any>(`/mytra-ai/references?${q.toString()}`);
   }
 }
 

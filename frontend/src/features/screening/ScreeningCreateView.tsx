@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
-import { LanguageCode, Patient, User, ImageUploadResponse } from '../../types';
+import { LanguageCode, Patient, User, ImageUploadResponse, MytraAnalysisResponse } from '../../types';
+import { MytraAssessmentView } from '../mytra/MytraAssessmentView';
 import {
   Camera, Upload, AlertCircle, CheckCircle, Sparkles, RefreshCw,
   Send, ShieldAlert, Eye, Info, CheckCircle2, X, FolderOpen, SwitchCamera, ArrowRight,
@@ -496,6 +497,8 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
   const [symptoms, setSymptoms] = useState('Persistent non-scrapable white patch on left inner cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks.');
   const [durationDays, setDurationDays] = useState(21);
   const [severity, setSeverity] = useState('moderate');
+  const [mytraAssessment, setMytraAssessment] = useState<MytraAnalysisResponse | null>(null);
+  const [currentRawFile, setCurrentRawFile] = useState<File | null>(null);
 
   const activeConfig = CLINICAL_CONFIGS[category] || CLINICAL_CONFIGS.mouth;
 
@@ -691,6 +694,75 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
     }, 'image/jpeg', 0.95);
   };
 
+  const mapCategoryToScope = (cat: string): string => {
+    switch (cat) {
+      case 'mouth': return 'mouth_oral';
+      case 'skin': return 'skin_lesion';
+      case 'eye': return 'eye_anterior';
+      case 'ear': return 'ear_auricular';
+      case 'wounds': return 'wound_ulcer';
+      default: return 'mouth_oral';
+    }
+  };
+
+  const runAarogyaMytraAI = async (imageIdToUse?: number) => {
+    const targetImageId = imageIdToUse || (uploadedImage ? uploadedImage.image_id : null);
+    if (!targetImageId) return;
+
+    setAiAnalyzing(true);
+    try {
+      const assessment = await api.analyzeMedicalImage({
+        image_id: targetImageId,
+        patient_id: selectedPatientId ? Number(selectedPatientId) : undefined,
+        category: mapCategoryToScope(category),
+        body_site: oralSite,
+        main_concern: symptoms || `${category} visual screening`,
+        symptoms: symptoms || `${category} visual screening inspection`,
+        duration_days: Number(durationDays) || 0,
+        mouth_opening_mm: category === 'mouth' ? Number(mouthOpeningMm) : undefined,
+        pain_score: Number(painScore) || 0,
+        bleeding: Boolean(bleeding),
+        burning_sensation: Boolean(burningSensation),
+        patient_consent_recorded: true,
+        language: currentLang
+      });
+      setMytraAssessment(assessment);
+
+      const topExpl = assessment.possible_explanations?.[0];
+      const observations = assessment.visible_observations || [];
+      const obsText = observations.join(', ');
+
+      const aiResult = {
+        lesionName: topExpl ? topExpl.name : (isTe ? 'ప్రాథమిక పరిశీలన నమోదు చేయబడింది' : 'Preliminary Observation Logged'),
+        stage: assessment.urgency ? `Urgency: ${assessment.urgency.replace('_', ' ').toUpperCase()}` : (isTe ? 'క్లినికల్ సమీక్ష పెండింగ్' : 'Clinical Review Pending'),
+        confidence: 0,
+        oralSite: oralSite,
+        lesionType: lesionType,
+        mouthOpeningMm: mouthOpeningMm,
+        durationDays: durationDays,
+        burningSensation: burningSensation,
+        symptoms: topExpl ? `${topExpl.name}: ${topExpl.reasoning}` : (observations.length > 0 ? `Visible features: ${obsText}` : symptoms),
+        safetyMandate: assessment.cancer_safety_notice,
+        teluguSpeech: `నమస్కారం, ఆరోగ్య మైత్ర AI ఫొటోలోని లక్షణాలను పరిశీలించింది. పరిశీలనలు: ${obsText || 'నోటి ఉపరితలం పరిశీలించబడింది'}. గమనిక: ఇది క్యాన్సర్ అని నిర్ధారించబడలేదు. డాక్టర్ గారి ప్రత్యక్ష పరీక్ష తప్పనిసరి.`,
+        englishSpeech: `Aarogya Mytra AI preliminary assessment completed. Observations: ${obsText || 'Clinical image surface features inspected'}. Notice: Photographs cannot confirm or exclude cancer. Specialist clinician examination is mandatory.`
+      };
+
+      setAiDiagnosis(aiResult);
+
+      if (assessment.urgency === 'urgent_care') {
+        setSeverity('severe');
+      } else if (assessment.urgency === 'routine_review') {
+        setSeverity('mild');
+      } else {
+        setSeverity('moderate');
+      }
+    } catch (err: any) {
+      console.warn('Mytra AI Analysis error:', err);
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
   const runArogyaMitraAIAnalysis = (fileName?: string) => {
     setAiAnalyzing(true);
     setTimeout(() => {
@@ -753,10 +825,11 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
     setErrorMsg(null);
     setEnhancedUrl(null);
     setShowPhotoSourceModal(false);
+    setCurrentRawFile(file);
     try {
       const res = await api.uploadImage(file);
       setUploadedImage(res);
-      runArogyaMitraAIAnalysis(file.name);
+      runAarogyaMytraAI(res.image_id);
     } catch (err: any) {
       setErrorMsg(err.message || 'Image upload failed');
     } finally {
@@ -944,6 +1017,8 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               setUploadedImage(null);
               setEnhancedUrl(null);
               setAiDiagnosis(null);
+              setMytraAssessment(null);
+              setCurrentRawFile(null);
               setSymptoms('');
             }}
           >
@@ -1388,7 +1463,57 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                 )}
               </div>
 
-              {/* Arogya Mitra AI Intelligent Oral Analysis & Form Pre-Fill Panel */}
+              {/* Aarogya Mytra AI MedGemma 1.5 4B & Evidence RAG Integrated Assessment */}
+              {mytraAssessment ? (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'linear-gradient(135deg, #042F2E 0%, #115E59 100%)',
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '12px 12px 0 0',
+                    color: '#FFFFFF'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Sparkles size={20} color="#2DD4BF" />
+                      <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+                        Aarogya Mytra AI: Sections A–G Complete Assessment
+                      </span>
+                      <span style={{ fontSize: '0.72rem', background: '#0D9488', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 700 }}>
+                        MedGemma 1.5 4B + MoHFW RAG
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => runAarogyaMytraAI()}
+                      disabled={aiAnalyzing}
+                      style={{
+                        background: '#0F766E',
+                        color: '#FFFFFF',
+                        border: '1px solid #2DD4BF',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {aiAnalyzing ? 'Re-evaluating...' : '⚡ Re-analyze with Mytra AI'}
+                    </button>
+                  </div>
+
+                  <MytraAssessmentView
+                    assessment={mytraAssessment}
+                    user={user}
+                    currentLang={currentLang}
+                    showClinicianReviewForm={false}
+                  />
+                </div>
+              ) : null}
+
+              {/* Legacy summary & speech controls panel */}
               <div style={{
                 marginTop: '1.25rem',
                 background: 'linear-gradient(135deg, #042F2E 0%, #115E59 100%)',

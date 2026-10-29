@@ -217,8 +217,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       session_id: sessionId,
       role: 'assistant',
       content: isTe
-        ? 'నమస్కారం! నేను ఆరోగ్య మిత్ర (Aarogya Mitra) — మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పూత, తెల్లటి లేదా ఎర్రటి మచ్చలు, కారం తిన్నప్పుడు మంట లేదా పొగాకు/చుట్ట అలవాటు మానుకోవడంపై సందేహాలను మీరు ఇక్కడ అడగవచ్చు లేదా మాట్లాడవచ్చు.'
-        : 'Hello! I am Aarogya Mitra — your clinical AI health companion. You can ask questions or speak about mouth sores, persistent patches, burning sensations, or strategies to quit tobacco and chutta habits.',
+        ? 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.'
+        : 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.',
       language: currentLang,
       has_attachment: false,
       disclaimer: '',
@@ -364,8 +364,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       session_id: sessionId,
       role: 'assistant',
       content: isTe
-        ? 'నమస్కారం! నేను ఆరోగ్య మిత్ర (Aarogya Mitra) — మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పూత, తెల్లటి లేదా ఎర్రటి మచ్చలు, కారం తిన్నప్పుడు మంట లేదా పొగాకు/చుట్ట అలవాటు మానుకోవడంపై సందేహాలను మీరు ఇక్కడ అడగవచ్చు లేదా మాట్లాడవచ్చు.'
-        : 'Hello! I am Aarogya Mitra — your clinical AI health companion. You can ask questions or speak about mouth sores, persistent patches, burning sensations, or strategies to quit tobacco and chutta habits.',
+        ? 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.'
+        : 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.',
       language: currentLang,
       has_attachment: false,
       disclaimer: '',
@@ -402,15 +402,18 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                {isTe ? 'ఆరోగ్య మిత్ర AI అసిస్టెంట్' : 'Arogya Mitra AI Assistant'}
+                {isTe ? 'ఆరోగ్య మైత్ర AI అసిస్టెంట్' : 'Aarogya Mytra AI'}
               </h3>
+              <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700 }}>
+                Google MedGemma 1.5 4B
+              </span>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />
-                {isTe ? 'వాయిస్ + చాట్' : 'Voice + Chatbot'}
+                {isTe ? 'వాయిస్ + విజన్' : 'Vision + Voice'}
               </span>
             </div>
             <p style={{ fontSize: '0.76rem', color: '#64748B', margin: '2px 0 0' }}>
-              {isTe ? 'నోటి & ముఖ ఆరోగ్య సలహాదారు • సురక్షిత క్లినికల్ ట్రయేజ్' : 'Multilingual Clinical Doubts, Self-Care & Habit Cessation'}
+              {isTe ? 'మల్టీమోడల్ మెడికల్ విజన్ & MoHFW ఎవిడెన్స్ ఆధారిత ఆరోగ్య సహాయకుడు' : 'Multimodal Medical Vision & Evidence-Grounded Clinical Health Assistant'}
             </p>
           </div>
         </div>

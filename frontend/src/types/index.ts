@@ -360,6 +360,83 @@ export interface AuditEvent {
   timestamp: string;
 }
 
+// ----------------- AAROGYA MYTRA AI TYPES (MedGemma 1.5 4B & Evidence RAG) -----------------
+export interface ImageQualityDetail {
+  status: 'adequate' | 'inadequate' | 'unknown';
+  blur_score?: number | null;
+  luminance_score?: number | null;
+  limitations: string[];
+}
+
+export interface ObservationExplanation {
+  name: string;
+  reasoning: string;
+  supporting_observations: string[];
+  limitations: string[];
+}
+
+export interface MedicalReferenceDetail {
+  reference_id: string;
+  title: string;
+  publisher: string;
+  publication_date: string;
+  version: string;
+  source_url: string;
+  section: string;
+  review_status: string;
+  last_checked: string;
+  direct_excerpt: string;
+  key_clinical_rules: string[];
+}
+
+export interface MytraAnalysisRequest {
+  image_id: number;
+  patient_id?: number;
+  screening_id?: number;
+  category: string;
+  body_site?: string;
+  main_concern?: string;
+  symptoms: string;
+  duration_days: number;
+  evolution?: string;
+  mouth_opening_mm?: number;
+  pain_score?: number;
+  bleeding?: boolean;
+  burning_sensation?: boolean;
+  patient_consent_recorded: boolean;
+  language: string;
+}
+
+export interface MytraAnalysisResponse {
+  assessment_id: string;
+  assessment_status: 'preliminary' | 'quality_check_failed' | 'unsupported_category' | 'clinician_reviewed' | 'analysis_failed';
+  image_category: string;
+  image_quality: ImageQualityDetail;
+  visible_observations: string[];
+  possible_explanations: ObservationExplanation[];
+  missing_information: string[];
+  red_flags: string[];
+  recommended_next_step: string;
+  urgency: 'routine_review' | 'prompt_assessment' | 'urgent_care';
+  urgency_reason: string;
+  medical_references: MedicalReferenceDetail[];
+  cancer_safety_notice: string;
+  model_name: string;
+  model_version: string;
+  created_at: string;
+  clinician_review_status: 'pending' | 'approved' | 'amended' | 'rejected';
+  guidance_message?: string | null;
+  audit_trail?: any[];
+}
+
+export interface ClinicianReviewAmendPayload {
+  decision: 'approved' | 'amended' | 'rejected';
+  clinician_notes: string;
+  amended_observations?: string[];
+  action_plan?: string;
+  disagree_reason?: string;
+}
+
 export interface ConfigStatus {
   app_name: string;
   environment: string;

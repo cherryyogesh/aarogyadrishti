@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
@@ -495,3 +495,74 @@ class AuditEventResponse(BaseModel):
     details: Optional[str] = None
     ip_address: Optional[str] = None
     timestamp: datetime
+
+# ----------------- AAROGYA MYTRA AI SCHEMAS (MedGemma 1.5 4B & Evidence RAG) -----------------
+class ImageQualityDetail(BaseModel):
+    status: str = "adequate"  # adequate, inadequate, unknown
+    blur_score: Optional[float] = None
+    luminance_score: Optional[float] = None
+    limitations: List[str] = []
+
+class ObservationExplanation(BaseModel):
+    name: str
+    reasoning: str
+    supporting_observations: List[str] = []
+    limitations: List[str] = []
+
+class MedicalReferenceDetail(BaseModel):
+    reference_id: str
+    title: str
+    publisher: str
+    publication_date: str = "2021"
+    version: str = "v1.0"
+    source_url: str = ""
+    section: str = ""
+    review_status: str = "official_national_guideline"
+    last_checked: str = "2026-01-01"
+    direct_excerpt: str = ""
+    key_clinical_rules: List[str] = []
+
+class MytraAnalysisRequest(BaseModel):
+    image_id: int
+    patient_id: Optional[int] = None
+    screening_id: Optional[int] = None
+    category: str = "mouth_oral"
+    body_site: Optional[str] = "buccal_mucosa"
+    main_concern: Optional[str] = None
+    symptoms: str = "Mucosal variation noted"
+    duration_days: int = 14
+    evolution: Optional[str] = "stable"  # improving, stable, worsening, fluctuating
+    mouth_opening_mm: Optional[float] = None
+    pain_score: int = 0
+    bleeding: bool = False
+    burning_sensation: bool = True
+    patient_consent_recorded: bool = True
+    language: str = "en"
+
+class MytraAnalysisResponse(BaseModel):
+    assessment_id: str
+    assessment_status: str = "preliminary"  # preliminary, quality_check_failed, unsupported_category, clinician_reviewed, analysis_failed
+    image_category: str
+    image_quality: ImageQualityDetail
+    visible_observations: List[str] = []
+    possible_explanations: List[ObservationExplanation] = []
+    missing_information: List[str] = []
+    red_flags: List[str] = []
+    recommended_next_step: str
+    urgency: str = "routine_review"  # routine_review, prompt_assessment, urgent_care
+    urgency_reason: str
+    medical_references: List[MedicalReferenceDetail] = []
+    cancer_safety_notice: str = ""
+    model_name: str
+    model_version: str
+    created_at: str
+    clinician_review_status: str = "pending"  # pending, approved, amended, rejected
+    guidance_message: Optional[str] = None
+    audit_trail: Optional[List[Dict[str, Any]]] = None
+
+class ClinicianReviewAmendPayload(BaseModel):
+    decision: str  # approved, amended, rejected
+    clinician_notes: str
+    amended_observations: Optional[List[str]] = None
+    action_plan: Optional[str] = None
+    disagree_reason: Optional[str] = None

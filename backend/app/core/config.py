@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     HUGGINGFACE_API_KEY: str = os.getenv("HUGGINGFACE_API_KEY", "")
     AI_MODEL_ID: str = os.getenv("AI_MODEL_ID", "meta-llama/Llama-3.2-3B-Instruct")
 
+    # Aarogya Mytra AI — Google MedGemma 1.5 4B Vision & Clinical AI
+    MYTRA_AI_ENABLED: bool = True
+    MEDGEMMA_PROVIDER_TYPE: str = os.getenv("MEDGEMMA_PROVIDER_TYPE", "auto")  # local, managed, auto, mock_test, none
+    MEDGEMMA_ENDPOINT_URL: str = os.getenv("MEDGEMMA_ENDPOINT_URL", "")
+    MEDGEMMA_API_KEY: str = os.getenv("MEDGEMMA_API_KEY", "")
+    MEDGEMMA_MODEL_ID: str = os.getenv("MEDGEMMA_MODEL_ID", "google/medgemma-1.5-4b-it")
+    MEDGEMMA_TIMEOUT_SECONDS: int = int(os.getenv("MEDGEMMA_TIMEOUT_SECONDS", "30"))
+
     # Telemedicine WebRTC
     STUN_SERVER_URL: str = os.getenv("STUN_SERVER_URL", "stun:stun.l.google.com:19302")
     TURN_SERVER_URL: str = os.getenv("TURN_SERVER_URL", "")

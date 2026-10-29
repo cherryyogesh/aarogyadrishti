@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
-import { LanguageCode, Screening, User } from '../../types';
+import { LanguageCode, Screening, User, MytraAnalysisResponse } from '../../types';
+import { MytraAssessmentView } from '../mytra/MytraAssessmentView';
 import {
   ClipboardCheck, Calendar, Sparkles, AlertCircle, X, Check,
   Camera, FileText, ArrowRight
@@ -19,6 +20,8 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
   const [loading, setLoading] = useState(true);
   const [selectedCase, setSelectedCase] = useState<Screening | null>(null);
   const [doctorAgreesWithAi, setDoctorAgreesWithAi] = useState<boolean>(true);
+  const [mytraAssessment, setMytraAssessment] = useState<MytraAnalysisResponse | null>(null);
+  const [loadingAssessment, setLoadingAssessment] = useState<boolean>(false);
 
   // Review Form
   const [reviewDecision, setReviewDecision] = useState('consultation_booked');
@@ -43,11 +46,21 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
     fetchCases();
   }, []);
 
-  const handleOpenReview = (scr: Screening) => {
+  const handleOpenReview = async (scr: Screening) => {
     setSelectedCase(scr);
     setClinicalNotes('');
     setActionPlan('');
     setSuccessMsg(null);
+    setMytraAssessment(null);
+    setLoadingAssessment(true);
+    try {
+      const assessment = await api.getScreeningMytraAssessment(scr.id);
+      setMytraAssessment(assessment);
+    } catch (e) {
+      // If no pre-existing assessment was recorded, it will be null
+    } finally {
+      setLoadingAssessment(false);
+    }
   };
 
   const handleSaveReview = async (e: React.FormEvent) => {
@@ -271,6 +284,30 @@ export const PHCReviewView: React.FC<Props> = ({ currentLang, user, onNavigateTo
                       : (currentLang === 'te' ? 'కాదు' : 'No')}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Aarogya Mytra AI Preliminary Clinical Assessment & Verified MoHFW Evidence */}
+            {loadingAssessment && (
+              <div style={{ padding: '1rem', background: '#F0FDFA', borderRadius: '8px', color: '#0F766E', marginBottom: '1.25rem', textAlign: 'center' }}>
+                <Sparkles size={18} style={{ display: 'inline', marginRight: '6px' }} />
+                Loading Aarogya Mytra AI Assessment & Verified Medical References...
+              </div>
+            )}
+
+            {mytraAssessment && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <MytraAssessmentView
+                  assessment={mytraAssessment}
+                  user={user}
+                  currentLang={currentLang}
+                  showClinicianReviewForm={true}
+                  onReviewed={(updated) => {
+                    setMytraAssessment(updated);
+                    setSuccessMsg('Aarogya Mytra AI clinical review saved with provenance.');
+                    fetchCases();
+                  }}
+                />
               </div>
             )}
 

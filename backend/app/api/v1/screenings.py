@@ -7,16 +7,18 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import mask_phone_number
 from app.models.entities import (
-    Screening, ScreeningImage, ImageProcessingResult, AIAnalysis,
+    Screening, ScreeningImage, ImageProcessingResult, AIAnalysis, MytraAIAssessment,
     Patient, PHC, User, UserRole, ScreeningStatus, OralSite, LesionType,
     NotificationLog, AuditEvent, NavigationTask, NavigationStatus
 )
 from app.schemas.all_schemas import (
     ScreeningCreate, ScreeningResponse, ScreeningImageResponse,
-    AIAnalysisResponse, ClinicalReviewResponse
+    AIAnalysisResponse, ClinicalReviewResponse, MytraAnalysisResponse,
+    ImageQualityDetail, ObservationExplanation, MedicalReferenceDetail
 )
 from app.integrations.sms.adapter import sms_adapter, format_screening_sms
 from app.integrations.ai.hf_client import hf_client
+from app.integrations.ai.analysis_pipeline import analysis_pipeline
 from app.api.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/screenings", tags=["Oral Screenings"])
@@ -127,6 +129,42 @@ async def create_screening(
         is_real_inference=ai_result.get("is_real_inference", False)
     )
     db.add(ai_analysis)
+
+    # Aarogya Mytra AI 12-Stage Evidence-Grounded Analysis Execution
+    if payload.image_id and img_rec:
+        mytra_res = await analysis_pipeline.execute_pipeline(
+            image_path=img_rec.stored_path,
+            image_bytes=None,
+            category="mouth_oral",
+            clinical_context={
+                "symptoms": payload.symptoms,
+                "duration_days": payload.duration_days,
+                "body_site": oral_site_enum.value,
+                "mouth_opening_mm": payload.mouth_opening_mm,
+                "pain_score": payload.pain_score,
+                "bleeding": payload.bleeding,
+                "burning_sensation": payload.burning_sensation,
+                "patient_id": patient.id,
+                "screening_id": screening.id
+            },
+            consent_recorded=True,
+            language=patient.preferred_language or "te"
+        )
+        mytra_assessment = MytraAIAssessment(
+            assessment_id=f"MYTRA-{uuid.uuid4().hex[:12].upper()}",
+            screening_id=screening.id,
+            image_id=img_rec.id,
+            patient_id=patient.id,
+            created_by_user_id=current_user.id,
+            image_category="mouth_oral",
+            assessment_status=mytra_res.get("assessment_status", "preliminary"),
+            clinician_review_status="pending",
+            urgency=mytra_res.get("urgency", "routine_review"),
+            urgency_reason=mytra_res.get("urgency_reason", ""),
+            structured_response=mytra_res,
+            audit_trail_json=mytra_res.get("audit_trail", [])
+        )
+        db.add(mytra_assessment)
 
     # Queue SMS confirmation to patient
     sms_content = format_screening_sms(ref_id, patient_name=patient.full_name)
@@ -401,4 +439,47 @@ def get_screening_detail(id: int, db: Session = Depends(get_db), current_user: U
         images=imgs,
         ai_analysis=ai_resp,
         clinical_reviews=reviews
+    )
+
+@router.get("/{id}/mytra-assessment", response_model=Optional[MytraAnalysisResponse])
+def get_screening_mytra_assessment(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retrieve evidence-grounded Aarogya Mytra AI assessment associated with this screening.
+    """
+    screening = db.query(Screening).filter(Screening.id == id).first()
+    if not screening:
+        raise HTTPException(status_code=404, detail="Screening not found.")
+
+    mytra = db.query(MytraAIAssessment).filter(
+        MytraAIAssessment.screening_id == id
+    ).order_by(MytraAIAssessment.created_at.desc()).first()
+
+    if not mytra:
+        return None
+
+    res = mytra.structured_response or {}
+    return MytraAnalysisResponse(
+        assessment_id=mytra.assessment_id,
+        assessment_status=mytra.assessment_status,
+        image_category=mytra.image_category,
+        image_quality=ImageQualityDetail(**res.get("image_quality", {})),
+        visible_observations=res.get("visible_observations", []),
+        possible_explanations=[ObservationExplanation(**e) for e in res.get("possible_explanations", [])],
+        missing_information=res.get("missing_information", []),
+        red_flags=res.get("red_flags", []),
+        recommended_next_step=res.get("recommended_next_step", ""),
+        urgency=mytra.urgency,
+        urgency_reason=mytra.urgency_reason or res.get("urgency_reason", ""),
+        medical_references=[MedicalReferenceDetail(**r) for r in res.get("medical_references", [])],
+        cancer_safety_notice=res.get("cancer_safety_notice", ""),
+        model_name=res.get("model_name", "MedGemma"),
+        model_version=res.get("model_version", "1.5-4b-it"),
+        created_at=mytra.created_at.isoformat(),
+        clinician_review_status=mytra.clinician_review_status,
+        guidance_message=res.get("guidance_message"),
+        audit_trail=mytra.audit_trail_json
     )

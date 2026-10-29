@@ -5,7 +5,7 @@ from app.core.database import engine, Base
 from app.api.v1 import (
     auth, patients, screenings, images, phc, appointments,
     otp, doctor, consultations, chat, reports, audit, config_status,
-    investigations, navigation, referrals, signaling
+    investigations, navigation, referrals, signaling, mytra_ai
 )
 
 from sqlalchemy import text
@@ -58,6 +58,7 @@ app.include_router(investigations.router, prefix=settings.API_V1_STR)
 app.include_router(navigation.router, prefix=settings.API_V1_STR)
 app.include_router(referrals.router, prefix=settings.API_V1_STR)
 app.include_router(signaling.router, prefix=settings.API_V1_STR)
+app.include_router(mytra_ai.router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["Health"])
 def health_check():

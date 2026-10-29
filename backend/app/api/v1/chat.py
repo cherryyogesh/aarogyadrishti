@@ -7,6 +7,9 @@ from app.models.entities import ChatMessage, ScreeningImage
 from app.schemas.all_schemas import ChatMessagePayload, ChatMessageResponse
 from app.integrations.ai.hf_client import hf_client
 from app.integrations.ai.triage import detect_emergency_symptoms, check_cancer_claim_guard
+from app.integrations.ai.medical_rag import medical_rag
+from app.integrations.ai.clinical_safety import clinical_safety
+from app.integrations.ai.analysis_pipeline import analysis_pipeline
 
 router = APIRouter(prefix="/chat", tags=["Medical AI Chatbot"])
 
@@ -45,6 +48,44 @@ async def send_chat_message(
     db.add(user_msg)
     db.flush()
 
+    # 1. If an image is attached, execute the 12-stage medical vision pipeline
+    image_analysis_report = None
+    if has_attachment and attachment_path:
+        pipeline_res = await analysis_pipeline.execute_pipeline(
+            image_path=attachment_path,
+            image_bytes=None,
+            category="mouth_oral",
+            clinical_context={
+                "symptoms": text,
+                "duration_days": 14,
+                "body_site": "oral_mucosa"
+            },
+            consent_recorded=True,
+            language=payload.language
+        )
+        if pipeline_res.get("assessment_status") == "preliminary":
+            obs_lines = "\n".join([f"• {obs}" for obs in pipeline_res.get("visible_observations", [])])
+            expl_lines = "\n".join([f"• **{e['name']}**: {e['reasoning']}" for e in pipeline_res.get("possible_explanations", [])])
+            citations = medical_rag.format_citations_markdown(pipeline_res.get("medical_references", []), language=payload.language)
+
+            is_te = payload.language == "te"
+            image_analysis_report = (
+                f"### 🔬 {'ఆరోగ్య మిత్ర AI ప్రాథమిక ఇమేజ్ పరిశీలన' if is_te else 'Aarogya Mytra AI Preliminary Image Assessment'}\n\n"
+                f"**{'కనిపించే లక్షణాలు (Visible Observations)' if is_te else 'Visible Morphological Observations'}:**\n{obs_lines}\n\n"
+                f"**{'సాధ్యమయ్యే ప్రాథమిక కారణాలు (Preliminary Considerations)' if is_te else 'Preliminary Clinical Considerations'}:**\n{expl_lines}\n\n"
+                f"**{'సిఫార్సు చేయబడిన తదుపరి చర్య' if is_te else 'Recommended Next Step'}:** {pipeline_res.get('recommended_next_step')}\n\n"
+                f"**{'అత్యవసర స్థాయి' if is_te else 'Urgency Level'}:** `{pipeline_res.get('urgency').upper()}` — {pipeline_res.get('urgency_reason')}\n\n"
+                f"---\n"
+                f"### 📚 {'ప్రామాణిక వైద్య మార్గదర్శకాలు (Verified Clinical Guidelines)' if is_te else 'Verified Clinical Guidelines & Evidence'}\n"
+                f"{citations}\n\n"
+                f"> ⚠️ *{pipeline_res.get('cancer_safety_notice')}*\n"
+                f"> *Preliminary AI-assisted assessment — clinician review pending.*"
+            )
+
+    # 2. Retrieve verified medical references for textual query
+    retrieved_refs = medical_rag.retrieve_relevant_references(query=text, symptoms=text, max_results=2)
+    rag_citations = medical_rag.format_citations_markdown(retrieved_refs, language=payload.language) if retrieved_refs else ""
+
     # Generate AI response with medical guardrails
     ai_resp = await hf_client.generate_response(
         prompt=text,
@@ -57,11 +98,17 @@ async def send_chat_message(
     if ai_resp.get("is_emergency"):
         warning_flag = "EMERGENCY_RED_FLAG"
 
+    final_content = ai_resp.get("content", "")
+    if image_analysis_report:
+        final_content = f"{image_analysis_report}\n\n---\n**{'రోగి సందేహ నివృత్తి' if payload.language == 'te' else 'Clinical Communication Guidance'}:**\n{final_content}"
+    elif rag_citations and not ai_resp.get("is_emergency"):
+        final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if payload.language == 'te' else 'Verified Clinical Guidelines'}\n{rag_citations}"
+
     # Save assistant message
     asst_msg = ChatMessage(
         session_id=session_id,
         role="assistant",
-        content=ai_resp.get("content", ""),
+        content=final_content,
         language=payload.language,
         has_attachment=False
     )

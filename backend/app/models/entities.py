@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Float, Index
+    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Float, Index, JSON
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -273,6 +273,7 @@ class Screening(Base):
     creator = relationship("User", back_populates="screenings_created", foreign_keys=[created_by_user_id])
     images = relationship("ScreeningImage", back_populates="screening", cascade="all, delete-orphan")
     ai_analyses = relationship("AIAnalysis", back_populates="screening", cascade="all, delete-orphan")
+    mytra_assessments = relationship("MytraAIAssessment", back_populates="screening", cascade="all, delete-orphan")
     clinical_reviews = relationship("ClinicalReview", back_populates="screening", cascade="all, delete-orphan")
     appointments = relationship("Appointment", back_populates="screening")
     investigations = relationship("Investigation", back_populates="screening")
@@ -334,6 +335,41 @@ class AIAnalysis(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     screening = relationship("Screening", back_populates="ai_analyses")
+
+class MytraAIAssessment(Base):
+    __tablename__ = "mytra_ai_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    assessment_id = Column(String(64), unique=True, index=True, nullable=False)
+    screening_id = Column(Integer, ForeignKey("screenings.id", ondelete="CASCADE"), nullable=True)
+    image_id = Column(Integer, ForeignKey("screening_images.id", ondelete="SET NULL"), nullable=True)
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"), nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    image_category = Column(String(50), nullable=False, default="mouth_oral")
+    assessment_status = Column(String(50), default="preliminary")  # preliminary, quality_check_failed, unsupported_category, clinician_reviewed
+    clinician_review_status = Column(String(50), default="pending")  # pending, approved, amended, rejected
+    urgency = Column(String(50), default="routine_review")  # routine_review, prompt_assessment, urgent_care
+    urgency_reason = Column(Text, nullable=True)
+
+    # Core JSON payload conforming to Master Prompt Section 7
+    structured_response = Column(JSON, nullable=False)
+    audit_trail_json = Column(JSON, nullable=True)
+
+    # Clinician review metadata
+    reviewed_by_doctor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    clinician_notes = Column(Text, nullable=True)
+    clinician_decision = Column(String(50), nullable=True)  # approved, amended, rejected
+    clinician_amendments = Column(JSON, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    screening = relationship("Screening", back_populates="mytra_assessments")
+    image = relationship("ScreeningImage")
+    patient = relationship("Patient")
+    creator = relationship("User", foreign_keys=[created_by_user_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by_doctor_id])
 
 class ClinicalReview(Base):
     __tablename__ = "clinical_reviews"
