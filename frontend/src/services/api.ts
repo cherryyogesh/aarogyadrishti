@@ -480,6 +480,10 @@ class ApiService {
     return this.request<any>('/mytra-ai/health');
   }
 
+  async getGoogleHealthRepoStatus(): Promise<any> {
+    return this.request<any>('/mytra-ai/google-health-repo');
+  }
+
   async getMytraScopeRegistry(): Promise<any> {
     return this.request<any>('/mytra-ai/scope-registry');
   }

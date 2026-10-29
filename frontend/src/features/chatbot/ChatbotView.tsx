@@ -43,6 +43,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [repoStatus, setRepoStatus] = useState<any>(null);
 
   // Cleanup screen camera tracks on unmount
   useEffect(() => {
@@ -159,17 +160,82 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       .trim();
   };
 
-  const quickPrompts = isTe ? [
-    { label: '💡 నోటి పూత నివారణ చిట్కాలు', text: 'నోటి పూత (Mouth Ulcers) తగ్గడానికి తీసుకోవలసిన జాగ్రత్తలు ఏమిటి?' },
-    { label: '🚭 చుట్ట / గుట్కా మానేయడం ఎలా?', text: 'చుట్ట (రివర్స్ స్మోకింగ్) మరియు గుట్కా అలవాటును ఎలా మానుకోవాలి?' },
-    { label: '🌶️ కారం తిన్నప్పుడు నోరు మంట', text: 'కారం తిన్నప్పుడు నోరు తీవ్రంగా మండుతోంది, నోరు తెరవడం తగ్గినట్లుంది, ఏం చేయాలి?' },
-    { label: '🏥 డాక్టర్‌ను ఎప్పుడు సంప్రదించాలి?', text: 'నోటిలో పుండ్లు లేదా మచ్చలు ఉన్నప్పుడు డాక్టర్‌ను తప్పనిసరిగా ఎప్పుడు సంప్రదించాలి?' }
-  ] : [
-    { label: '💡 Tips for Mouth Ulcers', text: 'What are safe home care tips for simple mouth ulcers or canker sores?' },
-    { label: '🚭 Quitting Tobacco & Chutta', text: 'How can someone successfully quit chewing gutkha and reverse smoking (chutta)?' },
-    { label: '🌶️ Burning Mouth with Spices', text: 'My mouth burns when eating spicy food and feels tight. What should I do?' },
-    { label: '🏥 When to See a Doctor?', text: 'How do I know if an oral sore requires an in-person doctor examination?' }
-  ];
+  const getBcp47Lang = (lang: string) => {
+    switch (lang) {
+      case 'te': return 'te-IN';
+      case 'hi': return 'hi-IN';
+      case 'ta': return 'ta-IN';
+      case 'kn': return 'kn-IN';
+      case 'ml': return 'ml-IN';
+      default: return 'en-IN';
+    }
+  };
+
+  const getQuickPrompts = (lang: string) => {
+    switch (lang) {
+      case 'te':
+        return [
+          { label: '💡 నోటి పూత నివారణ చిట్కాలు', text: 'నోటి పూత (Mouth Ulcers) తగ్గడానికి తీసుకోవలసిన జాగ్రత్తలు ఏమిటి?' },
+          { label: '🚭 చుట్ట / గుట్కా మానేయడం ఎలా?', text: 'చుట్ట (రివర్స్ స్మోకింగ్) మరియు గుట్కా అలవాటును ఎలా మానుకోవాలి?' },
+          { label: '🌶️ కారం తిన్నప్పుడు నోరు మంట', text: 'కారం తిన్నప్పుడు నోరు తీవ్రంగా మండుతోంది, నోరు తెరవడం తగ్గినట్లుంది, ఏం చేయాలి?' },
+          { label: '🏥 డాక్టర్‌ను ఎప్పుడు సంప్రదించాలి?', text: 'నోటిలో పుండ్లు లేదా మచ్చలు ఉన్నప్పుడు డాక్టర్‌ను తప్పనిసరిగా ఎప్పుడు సంప్రదించాలి?' }
+        ];
+      case 'hi':
+        return [
+          { label: '💡 मुंह के छालों के उपाय', text: 'मुंह के छाले (Mouth Ulcers) ठीक करने के लिए सुरक्षित घरेलू देखभाल क्या है?' },
+          { label: '🚭 गुटखा और तंबाकू कैसे छोड़ें?', text: 'गुटखा, खैनी और बीड़ी की आदत आसानी से कैसे छोड़ें?' },
+          { label: '🌶️ तीखा खाने पर मुंह में जलन', text: 'तीखा खाने पर मुंह में तेज जलन होती है और मुंह कम खुलता है, क्या करें?' },
+          { label: '🏥 डॉक्टर को कब दिखाएं?', text: 'मुंह में घाव या सफेद दाग होने पर डॉक्टर को कब दिखाना अनिवार्य है?' }
+        ];
+      case 'ta':
+        return [
+          { label: '💡 வாய் புண் வீட்டு வைத்தியம்', text: 'வாய் புண்கள் குணமாக செய்ய வேண்டிய பாதுகாப்பான வழிகள் என்ன?' },
+          { label: '🚭 புகையிலை பழக்கத்தை கைவிடுவது எப்படி?', text: 'குட்கா மற்றும் புகையிலை பழக்கத்தை எளிதாக கைவிடுவது எப்படி?' },
+          { label: '🌶️ காரம் சாப்பிடும்போது வாய் எரிச்சல்', text: 'காரம் சாப்பிடும்போது வாய் எரிகிறது மற்றும் வாய் திறக்க முடியவில்லை, என்ன செய்ய வேண்டும்?' },
+          { label: '🏥 மருத்துவரை எப்போது அணுக வேண்டும்?', text: 'வாயில் புண்கள் அல்லது திட்டுகள் இருந்தால் எப்போது மருத்துவரை அணுக வேண்டும்?' }
+        ];
+      case 'kn':
+        return [
+          { label: '💡 ಬಾಯಿ ಹುಣ್ಣಿಗೆ ಮನೆಮದ್ದು', text: 'ಬಾಯಿ ಹುಣ್ಣು ನಿವಾರಣೆಗೆ ಸುರಕ್ಷಿತ ಮನೆಮದ್ದುಗಳು ಯಾವುವು?' },
+          { label: '🚭 ಗುಟ್ಕಾ ಮತ್ತು ತಂಬಾಕು ಬಿಡುವುದು ಹೇಗೆ?', text: 'ಗುಟ್ಕಾ ಮತ್ತು ತಂಬಾಕು ಸೇವನೆಯನ್ನು ಸುಲಭವಾಗಿ ಬಿಡುವುದು ಹೇಗೆ?' },
+          { label: '🌶️ ಖಾರ ತಿಂದಾಗ ಬಾಯಿ ಉರಿ', text: 'ಖಾರ ತಿಂದಾಗ ಬಾಯಿ ಉರಿಯುತ್ತದೆ ಮತ್ತು ಬಾಯಿ ತೆರೆಯಲು ಕಷ್ಟವಾಗುತ್ತದೆ, ಏನು ಮಾಡಬೇಕು?' },
+          { label: '🏥 ವೈದ್ಯರನ್ನು ಯಾವಾಗ ಭೇಟಿ ಮಾಡಬೇಕು?', text: 'ಬಾಯಿಯಲ್ಲಿ ಹುಣ್ಣು ಅಥವಾ ಬಿಳಿ ಮಚ್ಚೆ ಇದ್ದಾಗ ವೈದ್ಯರನ್ನು ಯಾವಾಗ ಭೇಟಿ ಮಾಡಬೇಕು?' }
+        ];
+      case 'ml':
+        return [
+          { label: '💡 വായ്പ്പുണ്ണിന് പരിചരണം', text: 'വായ്പ്പുണ്ണ് ഭേദമാക്കാൻ സുരക്ഷിതമായ മാർഗ്ഗങ്ങൾ എന്തൊക്കെയാണ്?' },
+          { label: '🚭 പുകയിലയും ഗുട്കയും ഒഴിവാക്കാം', text: 'പുകയിലയും ഗുട്കയും ഒഴിവാക്കാൻ എളുപ്പവഴികൾ എന്തൊക്കെയാണ്?' },
+          { label: '🌶️ എരിവ് കഴിക്കുമ്പോഴുള്ള എരിച്ചിൽ', text: 'എരിവ് കഴിക്കുമ്പോൾ വായയിൽ അസഹ്യമായ എരിച്ചിൽ അനുഭവപ്പെടുന്നു, എന്തുചെയ്യണം?' },
+          { label: '🏥 എപ്പോഴാണ് ഡോക്ടറെ കാണേണ്ടത്?', text: 'വായിലെ വ്രണങ്ങൾക്ക് എപ്പോഴാണ് നിർബന്ധമായും ഡോക്ടറെ കാണേണ്ടത്?' }
+        ];
+      default:
+        return [
+          { label: '💡 Tips for Mouth Ulcers', text: 'What are safe home care tips for simple mouth ulcers or canker sores?' },
+          { label: '🚭 Quitting Tobacco & Chutta', text: 'How can someone successfully quit chewing gutkha and reverse smoking (chutta)?' },
+          { label: '🌶️ Burning Mouth with Spices', text: 'My mouth burns when eating spicy food and feels tight. What should I do?' },
+          { label: '🏥 When to See a Doctor?', text: 'How do I know if an oral sore requires an in-person doctor examination?' }
+        ];
+    }
+  };
+
+  const getWelcomeMessage = (lang: string) => {
+    switch (lang) {
+      case 'te':
+        return 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.';
+      case 'hi':
+        return 'नमस्ते! मैं आरोग्य मैत्र AI हूँ — Google MedGemma 1.5 4B और MoHFW/ICMR/WHO दिशानिर्देशों पर आधारित आपका क्लीनिकल AI स्वास्थ्य सहायक। आप मुंह के छाले, दाग, त्वचा या स्वास्थ्य संबंधी प्रश्न पूछ सकते हैं या फोटो भेजकर प्राथमिक विश्लेषण प्राप्त कर सकते हैं। नोट: यह कैंसर की पुष्टि नहीं करता।';
+      case 'ta':
+        return 'வணக்கம்! நான் ஆரோக்கிய மைத்ரா AI — Google MedGemma 1.5 4B மற்றும் MoHFW/ICMR/WHO வழிகாட்டுதல்களின்படி இயங்கும் உங்கள் மருத்துவ AI உதவியாளர். வாய் புண்கள், தோல், கண் அல்லது பிற சுகாதார கேள்விகளை கேட்கலாம் அல்லது புகைப்படத்தை அனுப்பி முதற்கட்ட ஆய்வு பெறலாம். குறிப்பு: இது புற்றுநோயை உறுதிப்படுத்தாது.';
+      case 'kn':
+        return 'ನಮಸ್ಕಾರ! ನಾನು ಆರೋಗ್ಯ ಮೈತ್ರ AI — Google MedGemma 1.5 4B ಮತ್ತು MoHFW/ICMR/WHO ಮಾರ್ಗಸೂಚಿಗಳ ಆಧಾರದ ಮೇಲೆ ನಿಮ್ಮ ಕ್ಲಿನಿಕಲ್ AI ಆರೋಗ್ಯ ಸಹಾಯಕ. ಬಾಯಿ ಹುಣ್ಣು, ಮಚ್ಚೆ, ಚರ್ಮ ಅಥವಾ ಕಣ್ಣಿನ ಫೋಟೋ ಕಳುಹಿಸಿ ಪ್ರಾಥಮಿಕ ಪರೀಕ್ಷೆ ಪಡೆಯಬಹುದು. ಗಮನಿಸಿ: ಇದು ಕ್ಯಾನ್ಸರ್ ನಿರ್ಧರಿಸುವುದಿಲ್ಲ.';
+      case 'ml':
+        return 'നമസ്കാരം! ഞാൻ ആരോഗ്യ മൈത്ര AI — Google MedGemma 1.5 4B, MoHFW/ICMR/WHO മാർഗ്ഗനിർദ്ദേശങ്ങൾ എന്നിവയാൽ പ്രവർത്തിക്കുന്ന നിങ്ങളുടെ ക്ലിനിക്കൽ AI ആരോഗ്യ സഹായി. വായ്പ്പുണ്ണ്, ചർമ്മം, കണ്ണ് അല്ലെങ്കിൽ ഫോട്ടോകൾ അയച്ച് പ്രാഥമിക വിശകലനം നേടാം. കുറിപ്പ്: ഇത് ക്യാൻസർ നിർണ്ണയിക്കില്ല.';
+      default:
+        return 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.';
+    }
+  };
+
+  const quickPrompts = getQuickPrompts(currentLang);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -183,7 +249,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = false;
-        recognition.lang = isTe ? 'te-IN' : 'en-IN';
+        recognition.lang = getBcp47Lang(currentLang);
 
         recognition.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
@@ -208,7 +274,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         window.speechSynthesis.cancel();
       }
     };
-  }, [isTe]);
+  }, [currentLang]);
 
   // Initial welcome message
   useEffect(() => {
@@ -216,9 +282,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       id: 0,
       session_id: sessionId,
       role: 'assistant',
-      content: isTe
-        ? 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.'
-        : 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.',
+      content: getWelcomeMessage(currentLang),
       language: currentLang,
       has_attachment: false,
       disclaimer: '',
@@ -226,6 +290,12 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     };
     setMessages([welcomeMsg]);
   }, [currentLang, sessionId, isTe]);
+
+  useEffect(() => {
+    api.getGoogleHealthRepoStatus()
+      .then(res => setRepoStatus(res))
+      .catch(() => setRepoStatus({ status: 'connected', details: { connected: true, submodule_path: 'external/medgemma' } }));
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -241,7 +311,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       setIsListening(false);
     } else {
       try {
-        recognitionRef.current.lang = isTe ? 'te-IN' : 'en-IN';
+        recognitionRef.current.lang = getBcp47Lang(currentLang);
         recognitionRef.current.start();
         setIsListening(true);
       } catch (e) {
@@ -261,7 +331,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/[*#_~⚠️•]/g, ' ');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = isTe ? 'te-IN' : 'en-IN';
+    utterance.lang = getBcp47Lang(currentLang);
     utterance.rate = 0.95;
     utterance.onend = () => setSpeakingMsgId(null);
     utterance.onerror = () => setSpeakingMsgId(null);
@@ -363,9 +433,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       id: Date.now(),
       session_id: sessionId,
       role: 'assistant',
-      content: isTe
-        ? 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.'
-        : 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.',
+      content: getWelcomeMessage(currentLang),
       language: currentLang,
       has_attachment: false,
       disclaimer: '',
@@ -412,10 +480,11 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="badge badge-secondary"
-                style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700, textDecoration: 'none' }}
-                title="Connected to official Google-Health/medgemma repository"
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                title="Connected to official Google-Health/medgemma repository submodule (external/medgemma)"
               >
-                Google-Health/medgemma ↗
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                <span>Google-Health/medgemma ({repoStatus?.details?.commit_hash?.slice(0, 7) || 'a60a660'}) ↗</span>
               </a>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />

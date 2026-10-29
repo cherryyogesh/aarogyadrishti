@@ -810,9 +810,25 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
       return;
     }
     window.speechSynthesis.cancel();
-    const textToSpeak = isTe ? aiDiagnosis.teluguSpeech : aiDiagnosis.englishSpeech;
+    const getBcp47 = (lang: string) => {
+      switch (lang) {
+        case 'te': return 'te-IN';
+        case 'hi': return 'hi-IN';
+        case 'ta': return 'ta-IN';
+        case 'kn': return 'kn-IN';
+        case 'ml': return 'ml-IN';
+        default: return 'en-IN';
+      }
+    };
+    let textToSpeak = aiDiagnosis.englishSpeech;
+    if (currentLang === 'te') textToSpeak = aiDiagnosis.teluguSpeech;
+    else if (currentLang === 'hi') textToSpeak = (aiDiagnosis as any).hindiSpeech || aiDiagnosis.englishSpeech;
+    else if (currentLang === 'ta') textToSpeak = (aiDiagnosis as any).tamilSpeech || aiDiagnosis.englishSpeech;
+    else if (currentLang === 'kn') textToSpeak = (aiDiagnosis as any).kannadaSpeech || aiDiagnosis.englishSpeech;
+    else if (currentLang === 'ml') textToSpeak = (aiDiagnosis as any).malayalamSpeech || aiDiagnosis.englishSpeech;
+
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = isTe ? 'te-IN' : 'en-IN';
+    utterance.lang = getBcp47(currentLang);
     utterance.rate = 0.95;
     utterance.onend = () => setIsAiSpeaking(false);
     utterance.onerror = () => setIsAiSpeaking(false);
