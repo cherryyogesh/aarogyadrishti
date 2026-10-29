@@ -504,6 +504,28 @@ class ApiService {
       body: JSON.stringify({ provider, api_key: apiKey, model_id: modelId }),
     });
   }
+
+  async saveAiEndpoint(endpointUrl: string, modelId?: string, apiKey?: string): Promise<any> {
+    return this.request<any>('/config/ai-endpoint', {
+      method: 'POST',
+      body: JSON.stringify({
+        endpoint_url: endpointUrl,
+        model_id: modelId || 'google/medgemma-1.5-4b-it',
+        api_key: apiKey || ''
+      }),
+    });
+  }
+
+  async probeAiEndpoint(endpointUrl: string): Promise<any> {
+    return this.request<any>(`/config/probe-endpoint?url=${encodeURIComponent(endpointUrl)}`);
+  }
+
+  async activateLocalMedGemma(): Promise<any> {
+    return this.request<any>('/config/ai-keys', {
+      method: 'POST',
+      body: JSON.stringify({ provider: 'medgemma_local', api_key: '' }),
+    });
+  }
 }
 
 export const api = new ApiService();

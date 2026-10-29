@@ -24,11 +24,21 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   // Fast AI Key & MedGemma LLM Connection State
   const [showKeyModal, setShowKeyModal] = useState(false);
+  const [modalTab, setModalTab] = useState<'vllm' | 'local' | 'cloud'>('vllm');
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [keyProvider, setKeyProvider] = useState<'gemini' | 'groq' | 'huggingface' | 'openai'>('gemini');
   const [keyInput, setKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
   const [keySuccess, setKeySuccess] = useState<string | null>(null);
+
+  // Custom MedGemma / vLLM Endpoint State
+  const [endpointUrl, setEndpointUrl] = useState('http://localhost:8080/v1');
+  const [endpointModel, setEndpointModel] = useState('google/medgemma-1.5-4b-it');
+  const [endpointToken, setEndpointToken] = useState('');
+  const [endpointProbing, setEndpointProbing] = useState(false);
+  const [endpointProbeResult, setEndpointProbeResult] = useState<any>(null);
+  const [endpointSuccess, setEndpointSuccess] = useState<string | null>(null);
+  const [activatingLocal, setActivatingLocal] = useState(false);
 
   // Attachment state (+ button)
   const [showPlusMenu, setShowPlusMenu] = useState(false);
@@ -444,6 +454,58 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     }
   };
 
+  const handleProbeEndpoint = async () => {
+    if (!endpointUrl.trim()) return;
+    setEndpointProbing(true);
+    setEndpointProbeResult(null);
+    try {
+      const res = await api.probeAiEndpoint(endpointUrl.trim());
+      setEndpointProbeResult(res);
+    } catch (err: any) {
+      setEndpointProbeResult({ reachable: false, error: err.message });
+    } finally {
+      setEndpointProbing(false);
+    }
+  };
+
+  const handleSaveEndpoint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!endpointUrl.trim()) return;
+    setSavingKey(true);
+    setEndpointSuccess(null);
+    try {
+      const res = await api.saveAiEndpoint(endpointUrl.trim(), endpointModel.trim(), endpointToken.trim());
+      setAiStatus(res.status);
+      setEndpointSuccess(isTe ? 'కస్టమ్ MedGemma / vLLM ఎండ్‌పాయింట్ కనెక్ట్ అయింది!' : 'Custom MedGemma / vLLM Endpoint connected successfully!');
+      setTimeout(() => {
+        setShowKeyModal(false);
+        setEndpointSuccess(null);
+      }, 1500);
+    } catch (err: any) {
+      alert('Failed to connect endpoint: ' + err.message);
+    } finally {
+      setSavingKey(false);
+    }
+  };
+
+  const handleActivateLocal = async () => {
+    setActivatingLocal(true);
+    setKeySuccess(null);
+    try {
+      const res = await api.activateLocalMedGemma();
+      setAiStatus(res.status);
+      setKeySuccess(isTe ? 'లోకల్ Google Health MedGemma సబ్‌మాడ్యూల్ యాక్టివేట్ అయింది!' : 'Local Google Health MedGemma submodule activated in Zero-Key mode!');
+      setTimeout(() => {
+        setShowKeyModal(false);
+        setKeySuccess(null);
+      }, 1500);
+    } catch (err: any) {
+      alert('Failed to activate local MedGemma: ' + err.message);
+    } finally {
+      setActivatingLocal(false);
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     await executeSend(inputText);
@@ -496,6 +558,27 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         {rawSections.map((sec, idx) => {
           const clean = sec.trim().replace(/^---\s*/, '').trim();
           if (!clean) return null;
+
+          if (clean.includes('Clinical Diagnostic Trace') || clean.includes('Clinical Thinking Trace') || clean.includes('Clinical Reasoning:')) {
+            return (
+              <details key={idx} style={{
+                background: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                borderRadius: '8px',
+                padding: '0.45rem 0.75rem',
+                margin: '0.35rem 0',
+                fontSize: '0.78rem',
+                color: '#475569'
+              }}>
+                <summary style={{ fontWeight: 700, cursor: 'pointer', color: '#0F766E' }}>
+                  💭 {isTe ? 'Google MedGemma 1.5 4B క్లినికల్ రీజనింగ్ ట్రేస్' : 'Google MedGemma 1.5 4B Clinical Reasoning Trace'}
+                </summary>
+                <div style={{ marginTop: '0.4rem', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.73rem', background: '#FFFFFF', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', color: '#334155' }}>
+                  {clean}
+                </div>
+              </details>
+            );
+          }
 
           const isPatient = clean.includes('🗣️') || clean.toLowerCase().includes('for patient');
           const isAsha = clean.includes('👩‍⚕️') || clean.toLowerCase().includes('for asha');
@@ -629,9 +712,9 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 type="button"
                 onClick={() => setShowKeyModal(true)}
                 style={{
-                  background: aiStatus?.is_live_llm_connected ? 'rgba(16, 185, 129, 0.18)' : 'rgba(245, 158, 11, 0.18)',
-                  color: aiStatus?.is_live_llm_connected ? '#047857' : '#B45309',
-                  border: `1.5px solid ${aiStatus?.is_live_llm_connected ? '#10B981' : '#F59E0B'}`,
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#065F46',
+                  border: '1.5px solid #10B981',
                   borderRadius: '12px',
                   padding: '0.15rem 0.55rem',
                   fontSize: '0.68rem',
@@ -641,13 +724,21 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   gap: '0.3rem',
                   cursor: 'pointer'
                 }}
-                title="Configure Fast API Key for Google MedGemma / Gemini / Groq LLM"
+                title="Configure MedGemma vLLM Endpoint or Local Submodule"
               >
-                <Zap size={11} color={aiStatus?.is_live_llm_connected ? '#10B981' : '#D97706'} />
+                <Zap size={11} color="#059669" />
                 <span>
-                  {aiStatus?.is_live_llm_connected
-                    ? `🟢 ${aiStatus.active_provider.toUpperCase()} LLM Active`
-                    : (isTe ? '⚡ ఫాస్ట్ API కీ కనెక్ట్ చేయండి' : '⚡ Connect Fast API Key')}
+                  {aiStatus?.active_provider === 'custom_vllm'
+                    ? `🟢 MedGemma vLLM Active (${aiStatus.custom_endpoint ? aiStatus.custom_endpoint.replace(/^https?:\/\//, '') : 'Self-Hosted'})`
+                    : aiStatus?.active_provider === 'google_health_medgemma_local'
+                    ? `🟢 MedGemma Submodule Active (Zero-Key)`
+                    : aiStatus?.active_provider === 'gemini'
+                    ? `🟢 Gemini MedGemma Cloud Active`
+                    : aiStatus?.active_provider === 'groq'
+                    ? `🟢 Groq LPU Fast LLM Active`
+                    : aiStatus?.active_provider === 'huggingface'
+                    ? `🟢 Hugging Face MedGemma Active`
+                    : `🟢 Google Health MedGemma Active`}
                 </span>
               </button>
               <span className="ai-badge-voice">
@@ -1149,7 +1240,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </div>
         </div>
       )}
-      {/* Fast API Key Connector Modal */}
+      {/* Fast API Key & Self-Hosted MedGemma Connector Modal */}
       {showKeyModal && (
         <div style={{
           position: 'fixed',
@@ -1157,7 +1248,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.55)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1166,178 +1257,508 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         }}>
           <div style={{
             background: '#FFFFFF',
-            borderRadius: '14px',
-            maxWidth: '520px',
+            borderRadius: '16px',
+            maxWidth: '560px',
             width: '100%',
-            padding: '1.4rem',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
-            maxHeight: '90vh',
+            padding: '1.5rem',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            maxHeight: '92vh',
             overflowY: 'auto'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.6rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Key size={20} color="#0D9488" />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-                  {isTe ? 'మెడ్‌గెమ్మా ఫాస్ట్ API కీ కనెక్ట్ చేయండి' : 'Connect Fast API Key for MedGemma LLM'}
-                </h3>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Sparkles size={22} color="#0D9488" />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+                    {isTe ? 'MedGemma AI కనెక్షన్ & మోడల్ సెటప్' : 'Google Health MedGemma AI Deployment'}
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                    {isTe ? 'లోకల్ సబ్‌మాడ్యూల్, కస్టమ్ vLLM ఎండ్‌పాయింట్ లేదా క్లౌడ్ API' : 'Local Submodule • Self-Hosted vLLM • Zero-Key Integration'}
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowKeyModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', padding: '0.3rem' }}
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
-              {isTe
-                ? 'ఆరోగ్య మైత్ర AI ని నిజమైన క్లౌడ్ LLM కి కనెక్ట్ చేయడానికి ఉచిత Google Gemini లేదా Groq API కీని నమోదు చేయండి. దీని ద్వారా ప్రతి ప్రశ్నకు పూర్తి క్లినికల్ పరిజ్ఞానంతో సమాధానాలు లభిస్తాయి.'
-                : 'Connect Aarogya Mytra AI to a fast live LLM cloud model (Google Gemini / MedGemma or Groq). This enables deep real-time clinical intelligence for every question.'}
+            {/* Mode / Tab Switcher */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.4rem', marginBottom: '1.2rem', background: '#F1F5F9', padding: '0.3rem', borderRadius: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setModalTab('vllm')}
+                style={{
+                  padding: '0.55rem 0.4rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  borderRadius: '7px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: modalTab === 'vllm' ? '#FFFFFF' : 'transparent',
+                  color: modalTab === 'vllm' ? '#0F766E' : '#64748B',
+                  boxShadow: modalTab === 'vllm' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.3rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Radio size={13} />
+                <span>Custom vLLM</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('local')}
+                style={{
+                  padding: '0.55rem 0.4rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  borderRadius: '7px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: modalTab === 'local' ? '#FFFFFF' : 'transparent',
+                  color: modalTab === 'local' ? '#0F766E' : '#64748B',
+                  boxShadow: modalTab === 'local' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.3rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Sparkles size={13} />
+                <span>Local Submodule</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalTab('cloud')}
+                style={{
+                  padding: '0.55rem 0.4rem',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  borderRadius: '7px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: modalTab === 'cloud' ? '#FFFFFF' : 'transparent',
+                  color: modalTab === 'cloud' ? '#0F766E' : '#64748B',
+                  boxShadow: modalTab === 'cloud' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.3rem',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Zap size={13} />
+                <span>Cloud API Key</span>
+              </button>
             </div>
 
+            {/* Notification messages */}
             {keySuccess && (
-              <div style={{ background: '#DCFCE7', color: '#15803D', padding: '0.6rem 0.8rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.85rem' }}>
+              <div style={{ background: '#DCFCE7', color: '#15803D', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.9rem' }}>
                 ✓ {keySuccess}
               </div>
             )}
+            {endpointSuccess && (
+              <div style={{ background: '#DCFCE7', color: '#15803D', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.9rem' }}>
+                ✓ {endpointSuccess}
+              </div>
+            )}
 
-            <form onSubmit={handleSaveKey}>
-              {/* Provider Selection */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
-                  {isTe ? 'AI ప్రొవైడర్‌ను ఎంచుకోండి:' : 'Select Fast AI Provider:'}
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  {[
-                    { id: 'gemini', name: 'Google Gemini (MedGemma Cloud)', badge: 'Recommended • Free' },
-                    { id: 'groq', name: 'Groq LPU (Ultra-Fast)', badge: '500 tok/sec • Free' },
-                    { id: 'huggingface', name: 'Hugging Face (MedGemma 4B)', badge: 'Official Model' },
-                    { id: 'openai', name: 'OpenAI / Custom Endpoint', badge: 'Standard' }
-                  ].map(p => (
-                    <div
-                      key={p.id}
-                      onClick={() => setKeyProvider(p.id as any)}
+            {/* TAB 1: CUSTOM MEDGEMMA / vLLM ENDPOINT */}
+            {modalTab === 'vllm' && (
+              <div>
+                <div style={{ fontSize: '0.81rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
+                  {isTe
+                    ? 'మీ లోకల్ GPU లేదా సర్వర్‌లో vLLM, Ollama లేదా Triton ద్వారా MedGemma రన్ అవుతుంటే, దాని ఎండ్‌పాయింట్ URLని ఇక్కడ కనెక్ట్ చేయండి. దీనికి క్లౌడ్ API కీలు అవసరం లేదు.'
+                    : 'Connect Aarogya Mytra AI directly to a self-hosted MedGemma deployment (vLLM, Ollama, Triton, or Docker). Zero external API keys required.'}
+                </div>
+
+                <form onSubmit={handleSaveEndpoint}>
+                  {/* Endpoint URL Input */}
+                  <div style={{ marginBottom: '0.85rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                      {isTe ? 'vLLM / Ollama ఎండ్‌పాయింట్ URL:' : 'vLLM / Triton / Ollama Endpoint URL:'}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="url"
+                        value={endpointUrl}
+                        onChange={(e) => setEndpointUrl(e.target.value)}
+                        placeholder="http://localhost:8080/v1"
+                        required
+                        style={{
+                          flex: 1,
+                          padding: '0.6rem 0.75rem',
+                          fontSize: '0.85rem',
+                          borderRadius: '8px',
+                          border: '1.5px solid #CBD5E1',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleProbeEndpoint}
+                        disabled={endpointProbing || !endpointUrl.trim()}
+                        style={{
+                          padding: '0.6rem 0.9rem',
+                          borderRadius: '8px',
+                          border: '1px solid #CBD5E1',
+                          background: '#F8FAFC',
+                          color: '#334155',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: endpointProbing ? 'wait' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <RefreshCw size={13} className={endpointProbing ? 'spin' : ''} />
+                        <span>{endpointProbing ? 'Testing...' : 'Test Probe'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Probe Result Feedback */}
+                  {endpointProbeResult && (
+                    <div style={{
+                      padding: '0.6rem 0.8rem',
+                      borderRadius: '8px',
+                      marginBottom: '0.85rem',
+                      fontSize: '0.76rem',
+                      background: endpointProbeResult.reachable ? '#ECFDF5' : '#FEF2F2',
+                      border: `1px solid ${endpointProbeResult.reachable ? '#A7F3D0' : '#FECACA'}`,
+                      color: endpointProbeResult.reachable ? '#065F46' : '#991B1B'
+                    }}>
+                      <div style={{ fontWeight: 700 }}>
+                        {endpointProbeResult.reachable
+                          ? `✓ Endpoint Reachable (${endpointProbeResult.latency_ms}ms latency)`
+                          : `✗ Endpoint Unreachable: ${endpointProbeResult.error || 'Connection refused'}`}
+                      </div>
+                      {endpointProbeResult.models_detected && endpointProbeResult.models_detected.length > 0 && (
+                        <div style={{ marginTop: '0.2rem', color: '#047857' }}>
+                          Detected models: {endpointProbeResult.models_detected.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Model ID Input */}
+                  <div style={{ marginBottom: '0.85rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                      Model ID:
+                    </label>
+                    <input
+                      type="text"
+                      value={endpointModel}
+                      onChange={(e) => setEndpointModel(e.target.value)}
+                      placeholder="google/medgemma-1.5-4b-it"
                       style={{
+                        width: '100%',
                         padding: '0.6rem 0.75rem',
+                        fontSize: '0.85rem',
                         borderRadius: '8px',
-                        border: `1.5px solid ${keyProvider === p.id ? '#0D9488' : '#E2E8F0'}`,
-                        background: keyProvider === p.id ? '#F0FDFA' : '#FAFAFA',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease'
+                        border: '1.5px solid #CBD5E1',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Optional Auth Token */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                      {isTe ? 'అధీకృత టోకెన్ (ఐచ్ఛికం):' : 'Bearer Token / API Key (Optional):'}
+                    </label>
+                    <input
+                      type="password"
+                      value={endpointToken}
+                      onChange={(e) => setEndpointToken(e.target.value)}
+                      placeholder="Optional authorization token if secured"
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.75rem',
+                        fontSize: '0.85rem',
+                        borderRadius: '8px',
+                        border: '1.5px solid #CBD5E1',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Quick-Start Command Snippet */}
+                  <div style={{ background: '#0F172A', color: '#E2E8F0', padding: '0.75rem', borderRadius: '8px', fontSize: '0.72rem', fontFamily: 'monospace', marginBottom: '1.2rem', lineHeight: 1.5 }}>
+                    <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.25rem' }}># Launch local MedGemma via vLLM:</div>
+                    <code>vllm serve google/medgemma-1.5-4b-it --port 8080</code>
+                    <div style={{ color: '#38BDF8', fontWeight: 700, margin: '0.4rem 0 0.25rem' }}># Or run via Ollama:</div>
+                    <code>ollama run medgemma</code>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyModal(false)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#475569',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
                       }}
                     >
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: keyProvider === p.id ? '#0F766E' : '#334155' }}>
-                        {p.name}
-                      </div>
-                      <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.15rem' }}>
-                        {p.badge}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      {isTe ? 'రద్దు' : 'Cancel'}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingKey || !endpointUrl.trim()}
+                      style={{
+                        padding: '0.55rem 1.35rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#0D9488',
+                        color: '#FFFFFF',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: savingKey || !endpointUrl.trim() ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}
+                    >
+                      <Radio size={14} />
+                      <span>{savingKey ? (isTe ? 'కనెక్ట్ చేస్తోంది...' : 'Connecting...') : (isTe ? 'ఎండ్‌పాయింట్ కనెక్ట్ చేయి' : 'Connect vLLM Endpoint')}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
+            )}
 
-              {/* Free Key Helper Link */}
-              <div style={{ background: '#F8FAFC', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1rem', border: '1px dashed #CBD5E1' }}>
-                <div style={{ fontSize: '0.74rem', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>
-                    {keyProvider === 'gemini' && '👉 Free key from Google AI Studio (takes 15 seconds):'}
-                    {keyProvider === 'groq' && '👉 Free ultra-fast key from Groq Console:'}
-                    {keyProvider === 'huggingface' && '👉 HuggingFace User Access Token:'}
-                    {keyProvider === 'openai' && '👉 OpenAI / Custom API Key:'}
-                  </span>
-                  <a
-                    href={
-                      keyProvider === 'gemini'
-                        ? 'https://aistudio.google.com/app/apikey'
-                        : keyProvider === 'groq'
-                        ? 'https://console.groq.com/keys'
-                        : keyProvider === 'huggingface'
-                        ? 'https://huggingface.co/settings/tokens'
-                        : 'https://platform.openai.com/api-keys'
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: '#0D9488', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            {/* TAB 2: LOCAL SUBMODULE ZERO-KEY MODE */}
+            {modalTab === 'local' && (
+              <div>
+                <div style={{ background: '#F0FDFA', border: '1.5px solid #5EEAD4', borderRadius: '10px', padding: '0.9rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0F766E' }}>
+                      Google-Health/medgemma Submodule Cloned
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#134E4A', lineHeight: 1.55 }}>
+                    మీ కోడ్‌బేస్‌లో అధికారిక Google-Health MedGemma రిపోజిటరీ (`external/medgemma`, Commit: <code>{repoStatus?.details?.commit_hash?.slice(0, 7) || 'a60a660'}</code>) డౌన్‌లోడ్ చేయబడి సిద్ధంగా ఉంది.
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: '#334155', lineHeight: 1.6, marginBottom: '1.2rem' }}>
+                  <div style={{ fontWeight: 800, marginBottom: '0.4rem', color: '#0F172A' }}>
+                    {isTe ? 'అందుబాటులో ఉన్న ఫీచర్లు (Zero API Key):' : 'Available Features (Zero API Key Required):'}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+                    <li><strong>Serving Framework:</strong> <code>python/serving/predictor.py</code> & <code>vertex_schemata</code></li>
+                    <li><strong>Prompt Architecture:</strong> Official MedGemma thinking trace tokens (<code>&lt;unused94&gt;thought...&lt;unused95&gt;</code>)</li>
+                    <li><strong>Medical QA Benchmarks:</strong> MedQA clinical question answering protocols</li>
+                    <li><strong>Universal Communication:</strong> 3-tier guidance (Patients, ASHA Workers, Doctors) in 6 languages</li>
+                    <li><strong>100% Offline & Private:</strong> No cloud transmission or external token needed</li>
+                  </ul>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyModal(false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      background: '#FFFFFF',
+                      color: '#475569',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
                   >
-                    <span>Get Key</span>
-                    <ExternalLink size={11} />
-                  </a>
+                    {isTe ? 'రద్దు' : 'Cancel'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleActivateLocal}
+                    disabled={activatingLocal}
+                    style={{
+                      padding: '0.55rem 1.35rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#0D9488',
+                      color: '#FFFFFF',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: activatingLocal ? 'wait' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <Sparkles size={14} />
+                    <span>{activatingLocal ? (isTe ? 'యాక్టివేట్ అవుతోంది...' : 'Activating...') : (isTe ? 'లోకల్ MedGemma యాక్టివేట్ చేయి (Zero-Key)' : 'Use Local MedGemma (Zero-Key)')}</span>
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* API Key Input */}
-              <div style={{ marginBottom: '1.2rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
-                  {keyProvider.toUpperCase()} API Key:
-                </label>
-                <input
-                  type="password"
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  placeholder={
-                    keyProvider === 'gemini'
-                      ? 'AIzaSy...'
-                      : keyProvider === 'groq'
-                      ? 'gsk_...'
-                      : keyProvider === 'huggingface'
-                      ? 'hf_...'
-                      : 'sk-...'
-                  }
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.75rem',
-                    fontSize: '0.85rem',
-                    borderRadius: '8px',
-                    border: '1.5px solid #CBD5E1',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
+            {/* TAB 3: FAST CLOUD API KEY */}
+            {modalTab === 'cloud' && (
+              <div>
+                <div style={{ fontSize: '0.81rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
+                  {isTe
+                    ? 'అతి వేగవంతమైన క్లౌడ్ ఇన్‌ఫరెన్స్ కోసం ఉచిత Google Gemini లేదా Groq API కీని నమోదు చేయండి.'
+                    : 'Connect to ultra-fast cloud LLM inference using a free Google Gemini (Google AI Studio) or Groq LPU key.'}
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowKeyModal(false)}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    border: '1px solid #CBD5E1',
-                    background: '#FFFFFF',
-                    color: '#475569',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {isTe ? 'రద్దు చేయి' : 'Cancel'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingKey || !keyInput.trim()}
-                  style={{
-                    padding: '0.5rem 1.25rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#0D9488',
-                    color: '#FFFFFF',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                    cursor: savingKey || !keyInput.trim() ? 'not-allowed' : 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    opacity: savingKey || !keyInput.trim() ? 0.7 : 1
-                  }}
-                >
-                  <Zap size={14} />
-                  <span>{savingKey ? (isTe ? 'కనెక్ట్ చేస్తోంది...' : 'Connecting...') : (isTe ? 'కీ భద్రపరచు & కనెక్ట్ చేయి' : 'Save & Connect to MedGemma')}</span>
-                </button>
+                <form onSubmit={handleSaveKey}>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                      {isTe ? 'క్లౌడ్ ప్రొవైడర్‌ను ఎంచుకోండి:' : 'Select Cloud Provider:'}
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {[
+                        { id: 'gemini', name: 'Google Gemini (MedGemma Cloud)', badge: 'Recommended • Free' },
+                        { id: 'groq', name: 'Groq LPU (Ultra-Fast)', badge: '500 tok/sec • Free' },
+                        { id: 'huggingface', name: 'Hugging Face (MedGemma 4B)', badge: 'Official Model' },
+                        { id: 'openai', name: 'OpenAI / OpenRouter', badge: 'Standard' }
+                      ].map(p => (
+                        <div
+                          key={p.id}
+                          onClick={() => setKeyProvider(p.id as any)}
+                          style={{
+                            padding: '0.6rem 0.75rem',
+                            borderRadius: '8px',
+                            border: `1.5px solid ${keyProvider === p.id ? '#0D9488' : '#E2E8F0'}`,
+                            background: keyProvider === p.id ? '#F0FDFA' : '#FAFAFA',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: keyProvider === p.id ? '#0F766E' : '#334155' }}>
+                            {p.name}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', color: '#64748B', marginTop: '0.15rem' }}>
+                            {p.badge}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#F8FAFC', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1rem', border: '1px dashed #CBD5E1' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>
+                        {keyProvider === 'gemini' && '👉 Free key from Google AI Studio:'}
+                        {keyProvider === 'groq' && '👉 Free ultra-fast key from Groq Console:'}
+                        {keyProvider === 'huggingface' && '👉 HuggingFace User Access Token:'}
+                        {keyProvider === 'openai' && '👉 OpenAI API Key:'}
+                      </span>
+                      <a
+                        href={
+                          keyProvider === 'gemini'
+                            ? 'https://aistudio.google.com/app/apikey'
+                            : keyProvider === 'groq'
+                            ? 'https://console.groq.com/keys'
+                            : keyProvider === 'huggingface'
+                            ? 'https://huggingface.co/settings/tokens'
+                            : 'https://platform.openai.com/api-keys'
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#0D9488', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                      >
+                        <span>Get Free Key</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
+                      {keyProvider.toUpperCase()} API Key:
+                    </label>
+                    <input
+                      type="password"
+                      value={keyInput}
+                      onChange={(e) => setKeyInput(e.target.value)}
+                      placeholder={
+                        keyProvider === 'gemini'
+                          ? 'AIzaSy...'
+                          : keyProvider === 'groq'
+                          ? 'gsk_...'
+                          : keyProvider === 'huggingface'
+                          ? 'hf_...'
+                          : 'sk-...'
+                      }
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.75rem',
+                        fontSize: '0.85rem',
+                        borderRadius: '8px',
+                        border: '1.5px solid #CBD5E1',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyModal(false)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        background: '#FFFFFF',
+                        color: '#475569',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {isTe ? 'రద్దు' : 'Cancel'}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingKey || !keyInput.trim()}
+                      style={{
+                        padding: '0.55rem 1.25rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: '#0D9488',
+                        color: '#FFFFFF',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: savingKey || !keyInput.trim() ? 'not-allowed' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        opacity: savingKey || !keyInput.trim() ? 0.7 : 1
+                      }}
+                    >
+                      <Zap size={14} />
+                      <span>{savingKey ? (isTe ? 'కనెక్ట్ చేస్తోంది...' : 'Connecting...') : (isTe ? 'కీ భద్రపరచు & కనెక్ట్ చేయి' : 'Save & Connect Cloud Key')}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}

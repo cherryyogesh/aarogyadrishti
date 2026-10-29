@@ -3,7 +3,9 @@ import json
 import base64
 import logging
 import subprocess
+import time
 from typing import Dict, Any, List, Optional, Tuple
+import httpx
 
 logger = logging.getLogger("google_health_medgemma_bridge")
 
@@ -221,3 +223,121 @@ class GoogleHealthMedGemmaBridge:
             "missing_information": ["Complete clinical in-person palpation details"],
             "limitations": ["Evaluated via photographic input; histology required for confirmation."]
         }
+
+    def normalize_endpoint_url(self, endpoint_url: str) -> str:
+        """
+        Normalizes any user-supplied vLLM, Ollama, or Triton URL to the standard chat completions endpoint.
+        """
+        url = endpoint_url.strip().rstrip("/")
+        if url.endswith("/chat/completions"):
+            return url
+        if url.endswith("/v1"):
+            return f"{url}/chat/completions"
+        return f"{url}/v1/chat/completions"
+
+    async def probe_endpoint(self, endpoint_url: str, api_key: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Tests connectivity and response latency of a self-hosted MedGemma / vLLM / Ollama endpoint.
+        """
+        if not endpoint_url or not endpoint_url.strip():
+            return {"reachable": False, "error": "Endpoint URL is empty."}
+
+        url = endpoint_url.strip().rstrip("/")
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key.strip()}"
+
+        start_time = time.time()
+        # Candidate probe endpoints
+        test_paths = ["/v1/models", "/models", "/api/version", "/health", "/"]
+
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            for path in test_paths:
+                probe_target = f"{url}{path}" if path != "/" else url
+                try:
+                    resp = await client.get(probe_target, headers=headers)
+                    latency = round((time.time() - start_time) * 1000, 1)
+                    if resp.status_code in [200, 204, 301, 302, 401, 403, 405]:
+                        models = []
+                        if resp.status_code == 200:
+                            try:
+                                body = resp.json()
+                                if isinstance(body, dict) and "data" in body:
+                                    models = [m.get("id") for m in body["data"] if isinstance(m, dict) and "id" in m]
+                                elif isinstance(body, dict) and "models" in body:
+                                    models = [m.get("name") for m in body["models"] if isinstance(m, dict) and "name" in m]
+                            except Exception:
+                                pass
+                        return {
+                            "reachable": True,
+                            "endpoint_url": url,
+                            "probe_path": path,
+                            "status_code": resp.status_code,
+                            "latency_ms": latency,
+                            "models_detected": models,
+                            "message": f"Successfully probed self-hosted MedGemma endpoint ({latency}ms latency)."
+                        }
+                except httpx.ConnectError:
+                    # Target host/port refused connection; don't wait for other paths
+                    break
+                except Exception:
+                    continue
+
+        return {
+            "reachable": False,
+            "endpoint_url": url,
+            "error": "Could not connect to custom MedGemma endpoint. Ensure vLLM or Ollama is listening."
+        }
+
+    async def query_vllm_chat(
+        self,
+        endpoint_url: str,
+        user_message: str,
+        system_prompt: str,
+        model_id: str = DEFAULT_MODEL_ID,
+        api_key: Optional[str] = None,
+        enable_thinking: bool = True
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Sends an inference request to a self-hosted MedGemma / vLLM / Ollama endpoint
+        using official MedGemma thinking trace tokens.
+        """
+        target_url = self.normalize_endpoint_url(endpoint_url)
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key.strip()}"
+
+        full_system = f"SYSTEM INSTRUCTION: think silently if needed. {system_prompt}" if enable_thinking else system_prompt
+
+        payload = {
+            "model": model_id,
+            "messages": [
+                {"role": "system", "content": full_system},
+                {"role": "user", "content": user_message}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 1400
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=25.0) as client:
+                resp = await client.post(target_url, json=payload, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    choices = data.get("choices", [])
+                    if choices and "message" in choices[0]:
+                        raw_content = choices[0]["message"].get("content", "").strip()
+                        thought, clean_text = self.parse_thinking_trace(raw_content)
+                        return {
+                            "content": clean_text,
+                            "thinking_trace": thought,
+                            "raw_content": raw_content,
+                            "model_id": model_id,
+                            "endpoint_url": endpoint_url
+                        }
+        except Exception as e:
+            logger.warning(f"Error querying custom vLLM endpoint '{target_url}': {e}")
+
+        return None
+
+google_health_medgemma_bridge = GoogleHealthMedGemmaBridge()
