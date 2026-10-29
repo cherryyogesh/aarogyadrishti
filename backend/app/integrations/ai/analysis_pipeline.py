@@ -298,6 +298,7 @@ class MedicalImageAnalysisPipeline:
             "urgency_reason": urgency_reason,
             "medical_references": retrieved_refs,
             "cancer_safety_notice": self.safety.get_mandatory_cancer_notice(language=language),
+            "stakeholder_views": inference_result.get("stakeholder_views", {}),
             "model_name": self.provider.get_model_metadata().get("model_id", "MedGemma"),
             "model_version": "1.5-4b-it",
             "created_at": datetime.now(timezone.utc).isoformat(),

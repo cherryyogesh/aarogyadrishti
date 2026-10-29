@@ -558,6 +558,7 @@ class MytraAnalysisResponse(BaseModel):
     created_at: str
     clinician_review_status: str = "pending"  # pending, approved, amended, rejected
     guidance_message: Optional[str] = None
+    stakeholder_views: Optional[Dict[str, Any]] = None
     audit_trail: Optional[List[Dict[str, Any]]] = None
 
 class ClinicianReviewAmendPayload(BaseModel):

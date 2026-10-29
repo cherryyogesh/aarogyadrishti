@@ -407,6 +407,27 @@ export interface MytraAnalysisRequest {
   language: string;
 }
 
+export interface StakeholderViews {
+  patient?: {
+    title?: string;
+    summary?: string;
+    home_care?: string[];
+    doctor_reason?: string;
+  };
+  asha?: {
+    title?: string;
+    action_urgency?: string;
+    field_checklist?: string[];
+    referral_step?: string;
+  };
+  doctor?: {
+    title?: string;
+    clinical_features?: string[];
+    differential_considerations?: string[];
+    clinical_protocol?: string;
+  };
+}
+
 export interface MytraAnalysisResponse {
   assessment_id: string;
   assessment_status: 'preliminary' | 'quality_check_failed' | 'unsupported_category' | 'clinician_reviewed' | 'analysis_failed';
@@ -426,6 +447,7 @@ export interface MytraAnalysisResponse {
   created_at: string;
   clinician_review_status: 'pending' | 'approved' | 'amended' | 'rejected';
   guidance_message?: string | null;
+  stakeholder_views?: StakeholderViews;
   audit_trail?: any[];
 }
 

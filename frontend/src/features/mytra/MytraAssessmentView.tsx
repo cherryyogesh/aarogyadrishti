@@ -4,7 +4,8 @@ import { MytraAnalysisResponse, User, LanguageCode } from '../../types';
 import {
   ShieldAlert, CheckCircle2, AlertTriangle, AlertCircle, Sparkles,
   FileText, ExternalLink, Stethoscope, ChevronDown, ChevronUp,
-  Clock, Check, X, Shield, BookOpen, Eye, HelpCircle, Layers
+  Clock, Check, X, Shield, BookOpen, Eye, HelpCircle, Layers,
+  Heart, Users, ClipboardList
 } from 'lucide-react';
 
 interface Props {
@@ -34,6 +35,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
 
   // Accordion / collapsible states for sections
   const [showAuditTrail, setShowAuditTrail] = useState(false);
+  const [activeStakeholderTab, setActiveStakeholderTab] = useState<'all' | 'patient' | 'asha' | 'doctor'>('all');
 
   const isClinician = user.role === 'doctor' || user.role === 'phc_staff' || user.role === 'admin';
 
@@ -233,6 +235,243 @@ export const MytraAssessmentView: React.FC<Props> = ({
                 ? 'ఈ ఫొటో ద్వారా క్యాన్సర్ లేదా ఇతర తీవ్ర వ్యాధులను నిర్ధారించలేము లేదా మినహాయించలేము. తుది నిర్ధారణ కొరకు అర్హత కలిగిన వైద్యాధికారి ప్రత్యక్ష పరీక్ష మరియు అవసరమైతే బయాప్సీ తప్పనిసరి.'
                 : 'The image shows findings that cannot be reliably diagnosed from a photograph alone. Several conditions produce similar appearances. Arrange assessment by a qualified doctor; further physical exam or biopsy may be necessary.')}
             </div>
+          </div>
+        </div>
+
+        {/* MULTI-STAKEHOLDER UNIVERSAL COMMUNICATION PANEL */}
+        <div style={{
+          background: '#F8FAFC',
+          border: '1.5px solid #CBD5E1',
+          borderRadius: '12px',
+          padding: '1.1rem',
+          marginBottom: '1.4rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.6rem',
+            marginBottom: '0.85rem',
+            borderBottom: '1px solid #E2E8F0',
+            paddingBottom: '0.65rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Users size={18} color="#0D9488" />
+                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>
+                  {isTe ? 'బహుళ వినియోగదారుల సమగ్ర వివరణ (Universal Multi-Stakeholder Views)' : 'Universal Healthcare Multi-Stakeholder Perspective'}
+                </h4>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
+                {isTe
+                  ? 'రోగులు, ఆశా కార్యకర్తలు మరియు వైద్యులు సులభంగా అర్థం చేసుకునేలా వేర్వేరు నివేదికలు'
+                  : 'Tailored clear perspectives for Patients & Families, ASHA Field Staff, and Clinicians'}
+              </div>
+            </div>
+
+            {/* Stakeholder Selector Tabs */}
+            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: isTe ? '👥 అందరికీ (All)' : '👥 All Views' },
+                { id: 'patient', label: isTe ? '🗣️ రోగి (Patient)' : '🗣️ Patient & Family' },
+                { id: 'asha', label: isTe ? '👩‍⚕️ ఆశా (ASHA)' : '👩‍⚕️ ASHA & Field' },
+                { id: 'doctor', label: isTe ? '🩺 డాక్టర్ (Doctor)' : '🩺 Clinician Dossier' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveStakeholderTab(tab.id as any)}
+                  style={{
+                    background: activeStakeholderTab === tab.id ? '#0D9488' : '#FFFFFF',
+                    color: activeStakeholderTab === tab.id ? '#FFFFFF' : '#334155',
+                    border: `1.5px solid ${activeStakeholderTab === tab.id ? '#0D9488' : '#CBD5E1'}`,
+                    borderRadius: '20px',
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {/* TIER 1: PATIENT & FAMILY VIEW */}
+            {(activeStakeholderTab === 'all' || activeStakeholderTab === 'patient') && (
+              <div style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #10B981',
+                borderRadius: '10px',
+                padding: '1rem',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '1.15rem' }}>🗣️</span>
+                    <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#065F46' }}>
+                      {assessment.stakeholder_views?.patient?.title || (isTe ? 'రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (For Patients & Families)' : 'Plain Explanation for Patients & Families')}
+                    </h5>
+                  </div>
+                  <span style={{ background: '#DCFCE7', color: '#166534', padding: '0.15rem 0.55rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                    {isTe ? 'సులభమైన గ్రామీణ భాష' : 'Gentle Plain Language'}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.84rem', color: '#1E293B', lineHeight: 1.55, marginBottom: '0.65rem' }}>
+                  <strong>{isTe ? 'ఏమి కనిపిస్తోంది:' : 'What is seen:'}</strong>{' '}
+                  {assessment.stakeholder_views?.patient?.summary || (isTe
+                    ? 'మీ నోటిలో లేదా నాలుకపై పుండు/మచ్చ కనిపిస్తోంది. ఇది సాధారణ విటమిన్ లోపం, ఆహార రాపిడి లేదా ఇతర కారణాల వల్ల కావచ్చు. కంగారు పడవలసిన అవసరం లేదు, జాగ్రత్తలు పాటించండి.'
+                    : 'A visible oral mucosal sore or patch is observed. This can arise from nutritional deficiency, local trauma, or other conditions. Maintain calm self-care.')}
+                </div>
+
+                <div style={{ background: '#F0FDF4', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.65rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#166534', marginBottom: '0.35rem' }}>
+                    {isTe ? 'మీరు ఇంట్లో చేయవలసిన తక్షణ సంరక్షణ (Home Self-Care):' : 'Immediate Home Self-Care Steps:'}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#14532D', lineHeight: 1.6 }}>
+                    {(assessment.stakeholder_views?.patient?.home_care || [
+                      isTe ? 'గోరువెచ్చని నీటిలో కొద్దిగా ఉప్పు వేసి రోజుకు 3 సార్లు పుక్కిలించండి.' : 'Gently rinse mouth with warm salt water 3–4 times daily.',
+                      isTe ? 'కారం, వేడి, పులుపు ఆహారాలను తాత్కాలికంగా తగ్గించండి.' : 'Avoid spicy, rough, hot, or acidic food that causes burning.',
+                      isTe ? 'పుండుపై సున్నం, ఘాటైన పల్పొడులు లేదా సొంత మందులు రాయవద్దు.' : 'Never scratch the sore or apply unprescribed lime or powders.',
+                      isTe ? 'పుష్కలంగా మంచినీరు త్రాగండి, చల్లని లేదా మృదువైన ఆహారం తీసుకోండి.' : 'Stay hydrated and consume soft, nutritious, bland foods.'
+                    ]).map((care: string, cIdx: number) => (
+                      <li key={cIdx}>{care}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: '#047857', background: '#ECFDF5', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #10B981' }}>
+                  <strong>👉 {isTe ? 'డాక్టర్‌ను ఎందుకు సంప్రదించాలి:' : 'Why an in-person doctor checkup is needed:'}</strong>{' '}
+                  {assessment.stakeholder_views?.patient?.doctor_reason || (isTe
+                    ? 'నోటిలోని ఏదైనా పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకుండా ఉంటే, సరైన చికిత్స కొరకు సమీప ప్రాథమిక ఆరోగ్య కేంద్రం (PHC) వైద్యుడిని సంప్రదించాలి. ముందస్తు పరీక్ష ఆరోగ్యాన్ని కాపాడుతుంది.'
+                    : 'Any mouth ulcer persisting longer than 14 days requires an in-person PHC doctor examination to verify healing and prescribe targeted treatment.')}
+                </div>
+              </div>
+            )}
+
+            {/* TIER 2: ASHA WORKER & FIELD STAFF VIEW */}
+            {(activeStakeholderTab === 'all' || activeStakeholderTab === 'asha') && (
+              <div style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #0284C7',
+                borderRadius: '10px',
+                padding: '1rem',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '1.15rem' }}>👩‍⚕️</span>
+                    <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#0369A1' }}>
+                      {assessment.stakeholder_views?.asha?.title || (isTe ? 'ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (For ASHA Workers)' : 'Field Action Checklist for ASHA & Field Staff')}
+                    </h5>
+                  </div>
+                  <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '0.15rem 0.55rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                    {isTe ? 'ఫీల్డ్ చెక్‌లిస్ట్' : 'Field Protocol Checklist'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                    {isTe ? 'అత్యవసర ప్రాధాన్యత (Priority Urgency):' : 'Action Urgency Level:'}
+                  </span>
+                  <span style={{
+                    background: urgencyBadge.bg,
+                    color: urgencyBadge.text,
+                    border: `1px solid ${urgencyBadge.border}`,
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '12px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800
+                  }}>
+                    {assessment.stakeholder_views?.asha?.action_urgency || urgencyBadge.label}
+                  </span>
+                </div>
+
+                <div style={{ background: '#F0F9FF', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.65rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369A1', marginBottom: '0.35rem' }}>
+                    {isTe ? 'ఫీల్డ్ చెక్‌లిస్ట్ (రోగిని అడగవలసిన ప్రశ్నలు):' : 'Field Screening Questions (Check with Patient):'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    {(assessment.stakeholder_views?.asha?.field_checklist || [
+                      isTe ? 'పుండు వ్యవధి: ఈ పుండు ఎన్ని రోజులుగా ఉంది? (14 రోజుల కంటే ఎక్కువైతే హై-ప్రయారిటీ రిఫరల్)' : 'Duration: Present > 14 days? (Mandates priority clinical referral)',
+                      isTe ? 'అలవాట్లు: గుట్కా, ఖైనీ, తంబాకు, చుట్ట (రివర్స్ స్మోకింగ్) అలవాటు ఉందా? మానేయాలని కౌన్సిలింగ్ ఇవ్వండి.' : 'Tobacco screening: Inquire on gutkha, betel nut, or reverse smoking (chutta); advise quitting.',
+                      isTe ? 'నోరు తెరవడం (3-Finger Test): 3 వేళ్ళు నిలువుగా పడుతున్నాయా? బిగుతుగా ఉంటే OSMF అనుమానించండి.' : '3-Finger test: Can patient insert 3 fingers vertically? Restricted opening indicates OSMF.',
+                      isTe ? 'కారం తిన్నప్పుడు మంట లేదా నమలడం/మింగడంలో తీవ్ర నొప్పి ఉందా?' : 'Burning sensation with spices or dysphagia while swallowing.',
+                      isTe ? 'మెడ గడ్డలు: దవడ కింద లేదా మెడలో వాపు/గడ్డలు ఉన్నాయా?' : 'Lymph nodes: Palpate neck and submandibular area for enlargement.'
+                    ]).map((chk: string, chkIdx: number) => (
+                      <div key={chkIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.78rem', color: '#0C4A6E' }}>
+                        <span style={{ color: '#0284C7', fontWeight: 800 }}>✓</span>
+                        <span>{chk}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: '#0369A1', background: '#F0F9FF', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #0284C7' }}>
+                  <strong>{isTe ? 'తదుపరి చర్య (Action Step):' : 'Next Action Step:'}</strong>{' '}
+                  {assessment.stakeholder_views?.asha?.referral_step || (isTe
+                    ? '48–72 గంటల్లో సమీప ప్రాథమిక ఆరోగ్య కేంద్రం (PHC) వైద్యాధికారికి అపాయింట్‌మెంట్ బుక్ చేసి, అవసరమైతే రవాణా సమన్వయం చేయండి.'
+                    : 'Schedule an in-person PHC Medical Officer assessment within 48–72 hours; assist with patient navigation.')}
+                </div>
+              </div>
+            )}
+
+            {/* TIER 3: DOCTOR & CLINICIAN DOSSIER */}
+            {(activeStakeholderTab === 'all' || activeStakeholderTab === 'doctor') && (
+              <div style={{
+                background: '#FFFFFF',
+                border: '1.5px solid #6366F1',
+                borderRadius: '10px',
+                padding: '1rem',
+                boxShadow: '0 2px 6px rgba(99, 102, 241, 0.08)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '1.15rem' }}>🩺</span>
+                    <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#3730A3' }}>
+                      {assessment.stakeholder_views?.doctor?.title || (isTe ? 'వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Doctor Dossier)' : 'Clinical Dossier for Doctors & Specialists')}
+                    </h5>
+                  </div>
+                  <span style={{ background: '#EEF2FF', color: '#3730A3', padding: '0.15rem 0.55rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
+                    ICMR & MoHFW NOHP Protocol
+                  </span>
+                </div>
+
+                <div style={{ marginBottom: '0.65rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3730A3', marginBottom: '0.25rem' }}>
+                    Objective Morphological Extraction:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#1E293B', lineHeight: 1.5 }}>
+                    {(assessment.stakeholder_views?.doctor?.clinical_features || assessment.visible_observations || []).map((feat: string, fIdx: number) => (
+                      <li key={fIdx}>{feat}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ marginBottom: '0.65rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3730A3', marginBottom: '0.25rem' }}>
+                    Differential Considerations:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#334155', lineHeight: 1.5 }}>
+                    {(assessment.stakeholder_views?.doctor?.differential_considerations || assessment.possible_explanations?.map(e => `${e.name}: ${e.reasoning}`) || []).map((diff: string, dIdx: number) => (
+                      <li key={dIdx}>{diff}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: '#3730A3', background: '#EEF2FF', padding: '0.55rem 0.8rem', borderRadius: '6px', borderLeft: '3px solid #6366F1' }}>
+                  <strong>Mandatory Clinical Protocol:</strong>{' '}
+                  {assessment.stakeholder_views?.doctor?.clinical_protocol || (isTe
+                    ? 'MoHFW NOHP నిబంధన: 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని నోటి పుండ్లకు బైమాన్యువల్ పాల్పేషన్ (ఇండ్యూరేషన్), మెడ లింఫ్ నోడ్స్ పరీక్ష మరియు డయాగ్నస్టిక్ పంచ్ బయాప్సీ తప్పనిసరి.'
+                    : 'MoHFW National Oral Health Program Mandate: Any solitary non-healing ulcer persisting beyond 14 days requires bimanual palpation for induration, regional lymph node examination, and diagnostic punch biopsy.')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

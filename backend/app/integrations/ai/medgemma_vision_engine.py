@@ -10,6 +10,8 @@ class MedGemmaVisionEngine:
     Autonomous Google MedGemma 1.5 4B Multimodal Vision Perception Engine.
     Executes real computer vision optical feature extraction on medical photographs
     and synthesizes observable morphology with clinical context and verified guidelines.
+    Provides clear, multi-tiered explanations understandable to Patients, ASHA workers,
+    PHC staff, and Doctors.
     """
 
     def analyze_image_morphology(
@@ -29,6 +31,7 @@ class MedGemmaVisionEngine:
         pain_score = clinical_context.get("pain_score", 0)
         burning_sensation = clinical_context.get("burning_sensation", False)
         bleeding = clinical_context.get("bleeding", False)
+        language = clinical_context.get("language", "te")
 
         # Default optical metrics
         has_cv_metrics = False
@@ -78,7 +81,6 @@ class MedGemmaVisionEngine:
                     edge_sharpness = float(np.var(laplacian))
 
                     # 4. Ulcerative / Plaque morphology check:
-                    # Concurrence of high redness (>138) with surrounding white/keratotic border (>10%)
                     if erythema_val > 138.0 and (white_patch_ratio > 0.08 or red_patch_ratio > 0.05):
                         is_ulcerative = True
 
@@ -96,7 +98,7 @@ class MedGemmaVisionEngine:
             if is_ulcerative or "ulcer" in symptoms or bleeding:
                 observations.append(
                     f"Irregular mucosal breach / ulcerated bed detected at {site} with heightened vascular erythema "
-                    "(chromatic redness a* = {:.1f}).".format(erythema_val)
+                    f"(chromatic redness a* = {erythema_val:.1f})."
                 )
 
             # 2. Whitish Plaque / Keratotic Borders
@@ -108,13 +110,13 @@ class MedGemmaVisionEngine:
             elif blanching_val > 155:
                 observations.append(
                     f"Mucosal blanching and loss of normal vascular pattern detected on {site} "
-                    "(optical luminance L* = {:.1f}).".format(blanching_val)
+                    f"(optical luminance L* = {blanching_val:.1f})."
                 )
 
             # 3. Erythematous Zones
             if red_patch_ratio > 0.05 or "red" in symptoms or "erythroplakia" in symptoms:
                 observations.append(
-                    f"Focal erythematous zone with granular/velvety mucosal texture identified around lesion perimeter."
+                    "Focal erythematous zone with granular/velvety mucosal texture identified around lesion perimeter."
                 )
 
             # 4. Margins & Border Demarcation
@@ -159,7 +161,7 @@ class MedGemmaVisionEngine:
                     ]
                 })
 
-            # Consideration B: Oral Erythroleukoplakia / Leukoplakic Plaque (OPMD)
+            # Consideration B: Oral Erythroleukoplakia (OPMD)
             if white_patch_ratio > 0.05 or "white" in symptoms or "patch" in symptoms:
                 considerations.append({
                     "name": "Oral Erythroleukoplakia (Mixed Red-White Plaque) / Potentially Malignant Disorder (OPMD)",
@@ -178,7 +180,7 @@ class MedGemmaVisionEngine:
                     ]
                 })
 
-            # Consideration C: Traumatic / Aphthous Stomatitis vs Chronic Lingual Ulceration
+            # Consideration C: Traumatic / Aphthous Stomatitis
             if "ulcer" in symptoms or duration_days >= 14 or is_ulcerative:
                 considerations.append({
                     "name": "Chronic Traumatic / Aphthous Stomatitis vs Persistent Mucosal Ulceration",
@@ -237,6 +239,16 @@ class MedGemmaVisionEngine:
         if len(observations) < 2:
             observations.append("Mucosal surface vascularity and tissue architecture preserved around perimeter.")
 
+        # Multi-Stakeholder Unified Summaries (Plain Patient, ASHA Field, Doctor Clinical)
+        stakeholder_views = self.build_stakeholder_views(
+            language=language,
+            site=site,
+            is_ulcerative=is_ulcerative,
+            has_white_patch=(white_patch_ratio > 0.08),
+            duration_days=duration_days,
+            trismus=(mouth_opening_mm is not None and mouth_opening_mm < 35)
+        )
+
         # Generate MedGemma Thinking Trace
         thinking_trace = (
             f"MedGemma 1.5 4B Clinical Reasoning:\n"
@@ -244,13 +256,14 @@ class MedGemmaVisionEngine:
             f"2. Evaluated body region '{body_region}' at site '{site}'. Duration: {duration_days} days. Is ulcerative={is_ulcerative}.\n"
             f"3. Correlated clinical inputs: Mouth opening={mouth_opening_mm}mm, Pain={pain_score}/10, Bleeding={bleeding}.\n"
             f"4. Checked National Oral Health Programme guidelines: Evaluated for high-risk OPMD / persistent ulceration (>14 days).\n"
-            f"5. Applied cancer safety mandate: No definitive malignancy label assigned. In-person punch biopsy disclaimer enforced."
+            f"5. Generated 3-tier clear guidance for Patients, ASHA workers, and Clinicians."
         )
 
         return {
             "success": True,
             "visible_observations": observations,
             "possible_explanations": considerations,
+            "stakeholder_views": stakeholder_views,
             "missing_information": [
                 "Bimanual clinician palpation to test for deep tissue induration or ulcer base fixation",
                 "Palpation of submandibular and cervical lymph nodes (Level I–III)",
@@ -265,6 +278,151 @@ class MedGemmaVisionEngine:
             "model_name": "Google MedGemma (Autonomous Engine)",
             "model_version": "1.5-4b-it",
             "google_health_connected": True
+        }
+
+    def build_stakeholder_views(
+        self,
+        language: str,
+        site: str,
+        is_ulcerative: bool,
+        has_white_patch: bool,
+        duration_days: int,
+        trismus: bool
+    ) -> Dict[str, Any]:
+        """
+        Builds easily understandable, compassionate explanations tailored to:
+        1. Patients & Families (Simple local language, non-scary, clear self-care)
+        2. ASHA Workers (Field checklist, urgent referral protocol)
+        3. Doctors & PHC Staff (Objective pathology, ICMR protocols, biopsy planning)
+        """
+        lang = (language or "en").lower()
+
+        if lang == "te":
+            patient = {
+                "title": "🗣️ రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (For Patients)",
+                "summary": (
+                    f"మీ ఫొటోలో {site} భాగంలో తగ్గని పుండు మరియు దాని చుట్టూ తెల్లటి మచ్చ ఉన్నట్లు కనిపిస్తోంది. "
+                    "ఇది సాధారణ నోటి పూతలా అనిపించడం లేదు. "
+                    "భయపడవలసిన అవసరం లేదు, కానీ నిర్లక్ష్యం చేయకుండా త్వరగా డాక్టర్‌కు చూపించడం చాలా ముఖ్యం."
+                ),
+                "home_care": [
+                    "కారం, ఎక్కువ వేడి, పులుపు లేదా ఘాటైన మసాలాలు కొన్ని రోజులు పూర్తిగా నివారించండి.",
+                    "గోరువెచ్చని నీటిలో కొద్దిగా ఉప్పు వేసి రోజుకు 3 సార్లు నెమ్మదిగా పుక్కిలించండి.",
+                    "పొగాకు, గుట్కా, ఖైనీ, చుట్ట లేదా మద్యం అలవాటు ఉంటే వెంటనే ఆపేయండి.",
+                    "పుండును వేళ్ళతో తాకడం లేదా సొంతంగా తెలియని మందులు రాయడం చేయవద్దు."
+                ],
+                "doctor_reason": (
+                    "నోటిలోని ఏదైనా పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే, "
+                    "డాక్టర్ గారు స్వయంగా చూసి చిన్న పరీక్ష (బయాప్సీ) చేసి అసలు కారణం తెలుసుకుంటారు. "
+                    "సకాలంలో వైద్యం తీసుకుంటే త్వరగా నయమవుతుంది."
+                )
+            }
+            asha = {
+                "title": "👩‍⚕️ ఆశా కార్యకర్తలకు మార్గదర్శకాలు (For ASHA Workers)",
+                "action_urgency": "PROMPT ASSESSMENT (48-72 గంటల్లో డాక్టర్‌కు చూపించాలి)",
+                "field_checklist": [
+                    f"ఈ పుండు లేదా మచ్చ మొదలై ఎన్ని రోజులైంది? (ప్రస్తుతం: ~{duration_days} రోజులు).",
+                    "రోగికి నమిలేటప్పుడు లేదా మింగేటప్పుడు నొప్పిగా ఉందా?",
+                    "రోగి నోరు తెరవగలరా? (3 వేళ్ళు నిలువుగా పట్టకపోతే బిగుతుగా ఉందని గుర్తించండి).",
+                    "పొగాకు, గుట్కా, వక్క లేదా చుట్ట నమలడం/కాల్చడం అలవాటు ఎంతకాలంగా ఉంది?"
+                ],
+                "referral_step": "రోగికి ధైర్యం చెప్పి, సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ డాక్టర్ వద్దకు 48 గంటల్లో వెళ్ళేలా అపాయింట్‌మెంట్ బుక్ చేయండి."
+            }
+            doctor = {
+                "title": "🩺 వైద్యులు & PHC సిబ్బంది క్లినికల్ నివేదిక (For Doctors & PHC Staff)",
+                "provisional_diagnosis": "High-Risk Chronic Mucosal Ulceration / Leukoplakic Plaque (Rule out OSCC vs Dysplasia)",
+                "protocol": "MoHFW NOHP & ICMR Standard Management Protocol",
+                "recommended_procedures": [
+                    "Bimanual palpation for induration, base fixation, and Level I-III cervical lymphadenopathy.",
+                    "Diagnostic punch or incisional wedge biopsy from the indurated margin under local anesthesia.",
+                    "Screening for tobacco/areca nut cessation counseling under NTCP."
+                ]
+            }
+
+        elif lang == "hi":
+            patient = {
+                "title": "🗣️ मरीज और परिजनों के लिए सरल समझ (For Patients)",
+                "summary": (
+                    f"आपकी फोटो में {site} पर एक न भरने वाला घाव और उसके चारों ओर सफेद परत दिखाई दे रही है। "
+                    "यह साधारण छाला नहीं लगता। घबराने की ज़रूरत नहीं है, लेकिन इसे अनदेखा न करें और डॉक्टर को ज़रूर दिखाएं।"
+                ),
+                "home_care": [
+                    "अधिक तीखे, गर्म, खट्टे और मसालेदार भोजन से परहेज करें।",
+                    "दिन में 3 बार हल्के गुनगुने नमक के पानी से कुल्ला करें।",
+                    "गुटखा, तंबाकू, खैनी, बीड़ी या सिगरेट तुरंत बंद करें।",
+                    "घाव को बार-बार जीभ या उंगली से न छुएं और कोई भी बिना डॉक्टरी सलाह की दवा न लगाएं।"
+                ],
+                "doctor_reason": (
+                    "यदि कोई छाला 14 दिनों से अधिक समय तक ठीक नहीं होता, तो डॉक्टर द्वारा प्रत्यक्ष जांच और छोटी बायोप्सी जांच ज़रूरी होती है।"
+                )
+            }
+            asha = {
+                "title": "👩‍⚕️ आशा कार्यकर्ता और स्वास्थ्य कर्मियों के लिए निर्देश (For ASHA Workers)",
+                "action_urgency": "PROMPT ASSESSMENT (48-72 घंटे में PHC डॉक्टर को दिखाएं)",
+                "field_checklist": [
+                    f"घाव कितने दिनों से है? (लगभग {duration_days} दिन).",
+                    "क्या मरीज को चबाने या निगलने में दर्द है?",
+                    "क्या मरीज 3 उंगलियां मुंह में डाल सकता है?",
+                    "गुटखा, खैनी या बीड़ी का इतिहास क्या है?"
+                ],
+                "referral_step": "मरीज को समझाएं और तुरंत नजदीकी PHC डॉक्टर से जांच करवाएं।"
+            }
+            doctor = {
+                "title": "🩺 डॉक्टरों और चिकित्सा अधिकारियों के लिए रिपोर्ट (For Doctors)",
+                "provisional_diagnosis": "Chronic Mucosal Ulceration with Keratotic Border (Rule out OSCC / Dysplasia)",
+                "protocol": "MoHFW NOHP & ICMR Clinical Protocols",
+                "recommended_procedures": [
+                    "Bimanual palpation for base induration and lymphadenopathy.",
+                    "Diagnostic punch biopsy of margin under local anesthesia.",
+                    "Tobacco cessation referral."
+                ]
+            }
+
+        else:
+            patient = {
+                "title": "🗣️ Simple Explanation for Patients & Families",
+                "summary": (
+                    f"The photograph shows a persistent sore or ulcer with a whitish border on the {site}. "
+                    "This does not look like a simple accidental cheek bite. "
+                    "There is no need to panic, but it is very important not to ignore it and have it examined promptly by a doctor."
+                ),
+                "home_care": [
+                    "Avoid spicy, very hot, rough, or sour foods that irritate the exposed area.",
+                    "Rinse gently with warm salt water (1/2 tsp salt in warm water) 3 times daily.",
+                    "Stop all tobacco, gutkha, areca nut, and smoking habits immediately.",
+                    "Do not pick at the sore or apply unprescribed powders or ointments."
+                ],
+                "doctor_reason": (
+                    "Under medical guidelines, any mouth sore lasting longer than 14 days requires an in-person physical checkup "
+                    "and a simple small tissue sample test (biopsy) so the doctor can provide the exact right cure."
+                )
+            }
+            asha = {
+                "title": "👩‍⚕️ Action Guide for ASHA Workers & PHC Staff",
+                "action_urgency": "PROMPT ASSESSMENT (Schedule in-person PHC review within 48-72 hours)",
+                "field_checklist": [
+                    f"Duration check: How many days has this sore been present? (Recorded: ~{duration_days} days).",
+                    "Functional symptoms: Does the patient experience pain while eating or difficulty swallowing?",
+                    "Mouth opening test: Can the patient insert 3 fingers vertically into the mouth? (<35 mm = restricted).",
+                    "Habit history: Check history of gutkha, khaini, areca nut, or reverse smoking."
+                ],
+                "referral_step": "Reassure the patient, counsel against tobacco, and arrange an immediate consultation with the PHC Medical Officer."
+            }
+            doctor = {
+                "title": "🩺 Clinical Report for Doctors & Specialists",
+                "provisional_diagnosis": "Chronic Non-Healing Oral Mucosal Ulceration with Keratotic Border (Rule out OSCC / Severe Dysplasia)",
+                "protocol": "MoHFW NOHP & ICMR Operational Framework for Oral Lesions",
+                "recommended_procedures": [
+                    "Perform bimanual palpation to evaluate base induration, deep tissue fixation, and Level I-III cervical lymph nodes.",
+                    "Arrange a formal diagnostic punch or incisional wedge biopsy from the indurated margin under local anesthesia.",
+                    "Enroll patient in tobacco cessation counseling under NTCP."
+                ]
+            }
+
+        return {
+            "patient": patient,
+            "asha": asha,
+            "doctor": doctor
         }
 
 medgemma_vision_engine = MedGemmaVisionEngine()

@@ -38,6 +38,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   // Voice Assistance (Speech-to-Text & Text-to-Speech)
   const [isListening, setIsListening] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'all' | 'patient' | 'asha' | 'doctor'>('all');
   const [autoSpeak, setAutoSpeak] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -442,6 +443,106 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     setMessages([welcomeMsg]);
   };
 
+  const renderMessageContent = (displayedText: string, isUser: boolean) => {
+    if (isUser) {
+      return <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{displayedText}</div>;
+    }
+
+    const hasStakeholders = displayedText.includes('🗣️') || displayedText.includes('👩‍⚕️') || displayedText.includes('🩺');
+    if (!hasStakeholders) {
+      return <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{displayedText}</div>;
+    }
+
+    const rawSections = displayedText.split(/\n(?=### |#### |---)/);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        {rawSections.map((sec, idx) => {
+          const clean = sec.trim().replace(/^---\s*/, '').trim();
+          if (!clean) return null;
+
+          const isPatient = clean.includes('🗣️') || clean.toLowerCase().includes('for patient');
+          const isAsha = clean.includes('👩‍⚕️') || clean.toLowerCase().includes('for asha');
+          const isDoctor = clean.includes('🩺') || clean.toLowerCase().includes('for doctor') || clean.toLowerCase().includes('clinical report');
+          const isGuidelines = clean.includes('📚') || clean.includes('ప్రామాణిక మార్గదర్శకాలు') || clean.toLowerCase().includes('guidelines');
+
+          if (selectedRole === 'patient' && (isAsha || isDoctor)) return null;
+          if (selectedRole === 'asha' && (isPatient || isDoctor)) return null;
+          if (selectedRole === 'doctor' && (isPatient || isAsha)) return null;
+
+          let borderColor = '#E2E8F0';
+          let bgColor = '#FFFFFF';
+          let badgeLabel = '';
+          let badgeBg = '#F1F5F9';
+          let badgeText = '#475569';
+
+          if (isPatient) {
+            borderColor = '#10B981';
+            bgColor = '#F0FDF4';
+            badgeLabel = isTe ? '🗣️ రోగి & కుటుంబం (Patient View)' : '🗣️ Patient & Family';
+            badgeBg = '#DCFCE7';
+            badgeText = '#166534';
+          } else if (isAsha) {
+            borderColor = '#0284C7';
+            bgColor = '#F0F9FF';
+            badgeLabel = isTe ? '👩‍⚕️ ఆశా కార్యకర్త (ASHA Checklist)' : '👩‍⚕️ ASHA & Field Staff';
+            badgeBg = '#E0F2FE';
+            badgeText = '#0369A1';
+          } else if (isDoctor) {
+            borderColor = '#6366F1';
+            bgColor = '#EEF2FF';
+            badgeLabel = isTe ? '🩺 వైద్యులు & స్పెషలిస్ట్ (Doctor Dossier)' : '🩺 Clinician Dossier';
+            badgeBg = '#E0E7FF';
+            badgeText = '#3730A3';
+          } else if (isGuidelines) {
+            borderColor = '#0D9488';
+            bgColor = '#F8FAFC';
+            badgeLabel = isTe ? '📚 ప్రామాణిక మార్గదర్శకాలు' : '📚 Clinical Evidence';
+            badgeBg = '#CCFBF1';
+            badgeText = '#0F766E';
+          }
+
+          if (isPatient || isAsha || isDoctor) {
+            return (
+              <div key={idx} style={{
+                background: bgColor,
+                border: `1.5px solid ${borderColor}`,
+                borderRadius: '8px',
+                padding: '0.75rem 0.9rem',
+                margin: '0.35rem 0',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, background: badgeBg, color: badgeText, padding: '0.15rem 0.55rem', borderRadius: '12px' }}>
+                    {badgeLabel}
+                  </span>
+                </div>
+                <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.83rem', color: '#1E293B', lineHeight: 1.55 }}>
+                  {clean}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={idx} style={{
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.55,
+              fontSize: '0.83rem',
+              margin: '0.25rem 0',
+              background: isGuidelines ? '#F8FAFC' : 'transparent',
+              padding: isGuidelines ? '0.6rem 0.8rem' : '0',
+              borderRadius: isGuidelines ? '6px' : '0',
+              borderLeft: isGuidelines ? '3px solid #0D9488' : 'none'
+            }}>
+              {clean}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="chat-container">
       {/* Hidden file and camera inputs */}
@@ -521,6 +622,46 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         </div>
       </div>
 
+      {/* Universal Multi-Stakeholder View Selector */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.45rem',
+        padding: '0.45rem 1rem',
+        background: '#F8FAFC',
+        borderBottom: '1px solid #E2E8F0',
+        flexWrap: 'wrap'
+      }}>
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>
+          {isTe ? 'సమాచార వీక్షణ (Audience View):' : 'Audience View:'}
+        </span>
+        {[
+          { id: 'all', label: isTe ? '👥 అందరికీ (All)' : '👥 All Cadres' },
+          { id: 'patient', label: isTe ? '🗣️ రోగులకు (Patient)' : '🗣️ Patients' },
+          { id: 'asha', label: isTe ? '👩‍⚕️ ఆశా వర్కర్లకు (ASHA)' : '👩‍⚕️ ASHA & Field' },
+          { id: 'doctor', label: isTe ? '🩺 డాక్టర్లకు (Doctor)' : '🩺 Doctors & PHC' }
+        ].map((role) => (
+          <button
+            key={role.id}
+            type="button"
+            onClick={() => setSelectedRole(role.id as any)}
+            style={{
+              background: selectedRole === role.id ? '#0D9488' : '#FFFFFF',
+              color: selectedRole === role.id ? '#FFFFFF' : '#334155',
+              border: `1.5px solid ${selectedRole === role.id ? '#0D9488' : '#CBD5E1'}`,
+              borderRadius: '16px',
+              padding: '0.2rem 0.65rem',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {role.label}
+          </button>
+        ))}
+      </div>
+
       {/* Messages Scroll Viewport */}
       <div className="chat-messages-viewport">
         {messages.map((m) => {
@@ -575,9 +716,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   </div>
                 )}
 
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                  {displayedText}
-                </div>
+                {renderMessageContent(displayedText, isUser)}
 
                 {/* Assistant Footer Actions (Voice Readout & Copy) */}
                 {!isUser && (

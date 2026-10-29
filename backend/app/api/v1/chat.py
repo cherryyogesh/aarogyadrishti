@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -21,6 +21,8 @@ async def send_chat_message(
 ):
     text = payload.message.strip()
     session_id = payload.session_id.strip()
+    is_te = payload.language == "te"
+    is_hi = payload.language == "hi"
 
     attachment_path = None
     preview_url = None
@@ -59,31 +61,68 @@ async def send_chat_message(
             clinical_context={
                 "symptoms": text if text and text != "Attached photograph for review." else "Oral lesion visual inspection",
                 "duration_days": 14,
-                "body_site": "tongue_or_oral_mucosa"
+                "body_site": "tongue_or_oral_mucosa",
+                "language": payload.language
             },
             consent_recorded=True,
             language=payload.language
         )
+
         if pipeline_res.get("assessment_status") == "preliminary":
+            sh = pipeline_res.get("stakeholder_views") or {}
+            patient_view = sh.get("patient") or {}
+            asha_view = sh.get("asha") or {}
+            doctor_view = sh.get("doctor") or {}
+
+            # Tier 1: Patient & Family (Simple, Caring, Plain Local Language)
+            patient_sec = ""
+            if patient_view:
+                home_care_list = "\n".join([f"  • {item}" for item in patient_view.get("home_care", [])])
+                patient_sec = (
+                    f"### {patient_view.get('title', '🗣️ రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ')}\n\n"
+                    f"**ఏమి కనిపిస్తోంది (What is seen):**\n{patient_view.get('summary', '')}\n\n"
+                    f"**మీరు ఇంట్లో చేయవలసిన తక్షణ జాగ్రత్తలు (Immediate Self-Care):**\n{home_care_list}\n\n"
+                    f"👉 **డాక్టర్‌ను ఎందుకు సంప్రదించాలి:** {patient_view.get('doctor_reason', '')}\n\n"
+                    f"---\n"
+                )
+
+            # Tier 2: ASHA Worker & PHC Staff (Field Checklist, Priority, Next Steps)
+            asha_sec = ""
+            if asha_view:
+                checklist_items = "\n".join([f"  ✓ {item}" for item in asha_view.get("field_checklist", [])])
+                asha_sec = (
+                    f"### {asha_view.get('title', '👩‍⚕️ ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు')}\n\n"
+                    f"**అత్యవసర ప్రాధాన్యత (Priority Level):** `{asha_view.get('action_urgency', '')}`\n\n"
+                    f"**ఫీల్డ్ చెక్‌లిస్ట్ (రోగిని అడగవలసిన ప్రశ్నలు):**\n{checklist_items}\n\n"
+                    f"**తదుపరి చర్య (Action Step):** {asha_view.get('referral_step', '')}\n\n"
+                    f"---\n"
+                )
+
+            # Tier 3: Doctors & Specialists (Objective Morphological Features, Differential Diagnoses, Protocols)
             obs_lines = "\n".join([f"• {obs}" for obs in pipeline_res.get("visible_observations", [])])
             expl_lines = "\n".join([f"• **{e['name']}**: {e['reasoning']}" for e in pipeline_res.get("possible_explanations", [])])
             citations = medical_rag.format_citations_markdown(pipeline_res.get("medical_references", []), language=payload.language)
 
-            is_te = payload.language == "te"
-            image_analysis_report = (
-                f"### 🔬 {'ఆరోగ్య మైత్ర AI ప్రాథమిక ఇమేజ్ పరిశీలన' if is_te else 'Aarogya Mytra AI Preliminary Image Assessment'}\n\n"
-                f"**{'కనిపించే లక్షణాలు (Visible Observations)' if is_te else 'Visible Morphological Observations'}:**\n{obs_lines}\n\n"
-                f"**{'సాధ్యమయ్యే ప్రాథమిక కారణాలు (Preliminary Considerations)' if is_te else 'Preliminary Clinical Considerations'}:**\n{expl_lines}\n\n"
-                f"**{'సిఫార్సు చేయబడిన తదుపరి చర్య' if is_te else 'Recommended Next Step'}:** {pipeline_res.get('recommended_next_step')}\n\n"
-                f"**{'అత్యవసర స్థాయి' if is_te else 'Urgency Level'}:** `{pipeline_res.get('urgency').upper()}` — {pipeline_res.get('urgency_reason')}\n\n"
+            doctor_sec = (
+                f"### {'🩺 వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Doctor & Specialist Clinical Report)' if is_te else '🩺 Clinical Report for Doctors & Specialists'}\n\n"
+                f"**Visible Morphology & Feature Extraction:**\n{obs_lines}\n\n"
+                f"**Differential Considerations (MoHFW & ICMR Protocols):**\n{expl_lines}\n\n"
+                f"**Clinical Next Step:** {pipeline_res.get('recommended_next_step')}\n\n"
+                f"**Urgency & Triage Classification:** `{pipeline_res.get('urgency').upper()}` — {pipeline_res.get('urgency_reason')}\n\n"
                 f"---\n"
                 f"### 📚 {'ప్రామాణిక వైద్య మార్గదర్శకాలు (Verified Clinical Guidelines)' if is_te else 'Verified Clinical Guidelines & Evidence'}\n"
                 f"{citations}\n\n"
                 f"> ⚠️ *{pipeline_res.get('cancer_safety_notice')}*\n"
                 f"> *Preliminary AI-assisted assessment — clinician review pending.*"
             )
+
+            image_analysis_report = (
+                f"{patient_sec}"
+                f"{asha_sec}"
+                f"{doctor_sec}"
+            )
+
         elif pipeline_res.get("assessment_status") == "quality_check_failed":
-            is_te = payload.language == "te"
             image_analysis_report = (
                 f"### ⚠️ {'ఫొటో నాణ్యత పరిమితి (Image Quality Warning)' if is_te else 'Image Quality Warning'}\n\n"
                 f"{pipeline_res.get('guidance_message')}\n\n"
@@ -107,9 +146,10 @@ async def send_chat_message(
 
     final_content = ai_resp.get("content", "")
     if image_analysis_report:
-        final_content = f"{image_analysis_report}\n\n---\n**{'రోగి సంరక్షణ సలహా' if payload.language == 'te' else 'MedGemma Health Counseling'}:**\n{final_content}"
+        # Prepend the 3-tier multimodal report above counseling
+        final_content = f"{image_analysis_report}\n\n---\n**{'ఆరోగ్య సలహా & కౌన్సిలింగ్' if is_te else 'Health Counseling'}:**\n{final_content}"
     elif rag_citations and not ai_resp.get("is_emergency"):
-        final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if payload.language == 'te' else 'Verified Clinical Guidelines'}\n{rag_citations}"
+        final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if is_te else 'Verified Clinical Guidelines'}\n{rag_citations}"
 
     # Save assistant message
     asst_msg = ChatMessage(

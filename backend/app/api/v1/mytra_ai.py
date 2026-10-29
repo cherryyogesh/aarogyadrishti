@@ -173,6 +173,7 @@ async def analyze_medical_image(
         created_at=result.get("created_at", datetime.now(timezone.utc).isoformat()),
         clinician_review_status=assessment_record.clinician_review_status,
         guidance_message=result.get("guidance_message"),
+        stakeholder_views=result.get("stakeholder_views"),
         audit_trail=result.get("audit_trail")
     )
 
@@ -211,6 +212,7 @@ def get_mytra_assessment(
         created_at=assessment.created_at.isoformat(),
         clinician_review_status=assessment.clinician_review_status,
         guidance_message=res.get("guidance_message"),
+        stakeholder_views=res.get("stakeholder_views"),
         audit_trail=assessment.audit_trail_json
     )
 
