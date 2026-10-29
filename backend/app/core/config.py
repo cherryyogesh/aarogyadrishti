@@ -34,11 +34,15 @@ class Settings(BaseSettings):
 
     # Aarogya Mytra AI — Google MedGemma 1.5 4B Vision & Clinical AI
     MYTRA_AI_ENABLED: bool = True
+    GOOGLE_HEALTH_MEDGEMMA_REPO: str = "https://github.com/Google-Health/medgemma.git"
+    GOOGLE_HEALTH_MEDGEMMA_SUBMODULE: str = str(BASE_DIR.parent / "external" / "medgemma")
     MEDGEMMA_PROVIDER_TYPE: str = os.getenv("MEDGEMMA_PROVIDER_TYPE", "auto")  # local, managed, auto, mock_test, none
     MEDGEMMA_ENDPOINT_URL: str = os.getenv("MEDGEMMA_ENDPOINT_URL", "")
     MEDGEMMA_API_KEY: str = os.getenv("MEDGEMMA_API_KEY", "")
+    MEDGEMMA_HF_TOKEN: str = os.getenv("MEDGEMMA_HF_TOKEN", "")
     MEDGEMMA_MODEL_ID: str = os.getenv("MEDGEMMA_MODEL_ID", "google/medgemma-1.5-4b-it")
     MEDGEMMA_TIMEOUT_SECONDS: int = int(os.getenv("MEDGEMMA_TIMEOUT_SECONDS", "30"))
+    MEDGEMMA_USE_QUANTIZATION: bool = os.getenv("MEDGEMMA_USE_QUANTIZATION", "true").lower() == "true"
 
     # Telemedicine WebRTC
     STUN_SERVER_URL: str = os.getenv("STUN_SERVER_URL", "stun:stun.l.google.com:19302")

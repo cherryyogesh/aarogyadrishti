@@ -407,6 +407,16 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700 }}>
                 Google MedGemma 1.5 4B
               </span>
+              <a
+                href="https://github.com/Google-Health/medgemma"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="badge badge-secondary"
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700, textDecoration: 'none' }}
+                title="Connected to official Google-Health/medgemma repository"
+              >
+                Google-Health/medgemma ↗
+              </a>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />
                 {isTe ? 'వాయిస్ + విజన్' : 'Vision + Voice'}

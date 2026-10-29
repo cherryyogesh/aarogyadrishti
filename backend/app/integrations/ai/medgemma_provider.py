@@ -7,6 +7,7 @@ import httpx
 
 from app.core.config import settings
 from app.integrations.ai.provider_interface import MedicalVisionProvider
+from app.integrations.ai.google_health_medgemma_bridge import GoogleHealthMedGemmaBridge
 
 logger = logging.getLogger("medgemma_provider")
 
@@ -14,6 +15,7 @@ class MedGemmaProvider(MedicalVisionProvider):
     """
     Google MedGemma 1.5 4B Multimodal Medical AI Provider.
     Official Model Reference: https://developers.google.com/health-ai-developer-foundations/medgemma
+    Official GitHub Repository: https://github.com/Google-Health/medgemma.git
     Supports Local/Self-hosted (e.g. vLLM, Ollama, Triton) and Managed deployment (Vertex AI, HF Inference).
     """
 
@@ -30,6 +32,7 @@ class MedGemmaProvider(MedicalVisionProvider):
         self.api_key = api_key or getattr(settings, "MEDGEMMA_API_KEY", "")
         self.model_id = model_id or getattr(settings, "MEDGEMMA_MODEL_ID", "google/medgemma-1.5-4b-it")
         self.timeout = timeout or getattr(settings, "MEDGEMMA_TIMEOUT_SECONDS", 30)
+        self.bridge = GoogleHealthMedGemmaBridge(repo_path=getattr(settings, "GOOGLE_HEALTH_MEDGEMMA_SUBMODULE", None))
 
     def is_configured(self) -> bool:
         """
@@ -55,20 +58,24 @@ class MedGemmaProvider(MedicalVisionProvider):
             "intended_use": "Preliminary multimodal assistance in visual observation and clinical symptom synthesis for healthcare staff review.",
             "is_configured": self.is_configured(),
             "documentation_url": "https://developers.google.com/health-ai-developer-foundations/medgemma",
+            "github_repository": "https://github.com/Google-Health/medgemma",
             "license": "Health AI Developer Foundations Community License",
-            "clinical_oversight": "Mandatory clinician review required before any clinical decision."
+            "clinical_oversight": "Mandatory clinician review required before any clinical decision.",
+            "google_health_repo": self.bridge.get_repo_info()
         }
 
     async def check_provider_health(self) -> Dict[str, Any]:
         """
         Check connectivity and operational readiness.
         """
+        repo_info = self.bridge.get_repo_info()
         if not self.is_configured():
             return {
                 "status": "not_configured",
                 "message": "Medical AI not configured. Set MEDGEMMA_ENDPOINT_URL or MEDGEMMA_API_KEY in environment variables.",
                 "model_id": self.model_id,
-                "provider_type": self.provider_type
+                "provider_type": self.provider_type,
+                "google_health_submodule": repo_info
             }
 
         if self.provider_type == "mock_test":
@@ -76,7 +83,8 @@ class MedGemmaProvider(MedicalVisionProvider):
                 "status": "healthy",
                 "message": "MedGemma mock/test provider operational for regression validation.",
                 "model_id": self.model_id,
-                "provider_type": "mock_test"
+                "provider_type": "mock_test",
+                "google_health_submodule": repo_info
             }
 
         target_url = self.endpoint_url or "https://api-inference.huggingface.co/models/" + self.model_id
@@ -160,6 +168,14 @@ class MedGemmaProvider(MedicalVisionProvider):
 
         b64_image = base64.b64encode(image_bytes).decode("utf-8") if image_bytes else ""
 
+        # Build payload according to official Google-Health/medgemma schema
+        payload = self.bridge.build_medgemma_chat_payload(
+            image_bytes=image_bytes,
+            body_region=body_region,
+            clinical_context=clinical_context,
+            model_id=self.model_id
+        )
+
         # Perform HTTP call to configured MedGemma endpoint
         try:
             async with httpx.AsyncClient(timeout=float(self.timeout)) as client:
@@ -167,32 +183,18 @@ class MedGemmaProvider(MedicalVisionProvider):
                 if self.api_key:
                     headers["Authorization"] = f"Bearer {self.api_key}"
 
-                payload = {
-                    "model": self.model_id,
-                    "messages": [
-                        {"role": "system", "content": system_instruction},
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": user_content},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:image/jpeg;base64,{b64_image}"}
-                                }
-                            ] if b64_image else user_content
-                        }
-                    ],
-                    "temperature": 0.2,
-                    "max_tokens": 700
-                }
-
                 endpoint = self.endpoint_url or f"https://api-inference.huggingface.co/models/{self.model_id}"
                 resp = await client.post(endpoint, json=payload, headers=headers)
 
                 if resp.status_code == 200:
                     data = resp.json()
                     raw_text = self._extract_response_text(data)
-                    parsed = self._parse_medgemma_json(raw_text, body_region, clinical_context)
+                    # Extract thinking trace (<unused94>thought ... <unused95>) from MedGemma 1.5 4B
+                    thought, response_text = self.bridge.parse_thinking_trace(raw_text)
+                    parsed = self._parse_medgemma_json(response_text, body_region, clinical_context)
+                    if thought:
+                        parsed["thinking_trace"] = thought
+                    parsed["google_health_repo"] = self.bridge.get_repo_info()
                     parsed["success"] = True
                     parsed["model_name"] = self.model_id
                     parsed["model_version"] = "1.5-4b-it"

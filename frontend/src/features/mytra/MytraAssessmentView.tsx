@@ -152,6 +152,28 @@ export const MytraAssessmentView: React.FC<Props> = ({
               }}>
                 Google MedGemma 1.5 4B
               </span>
+              <a
+                href="https://github.com/Google-Health/medgemma"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  color: '#F0FDFA',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+                title="Connected to official Google-Health/medgemma repository"
+              >
+                <span>🐙 Google-Health/medgemma</span>
+                <ExternalLink size={11} />
+              </a>
               <span style={{
                 background: 'rgba(255, 255, 255, 0.12)',
                 color: '#E2E8F0',
@@ -576,6 +598,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
           {showAuditTrail && (
             <div style={{ background: '#F8FAFC', borderRadius: '6px', padding: '0.75rem', marginTop: '0.5rem', fontSize: '0.72rem', color: '#475569' }}>
               <div><strong>Model ID:</strong> {assessment.model_name} ({assessment.model_version})</div>
+              <div><strong>Google-Health Repo:</strong> <a href="https://github.com/Google-Health/medgemma" target="_blank" rel="noreferrer" style={{ color: '#0D9488', fontWeight: 600 }}>Google-Health/medgemma.git</a> (Submodule: external/medgemma)</div>
               <div><strong>Assessment ID:</strong> {assessment.assessment_id}</div>
               <div><strong>Created Timestamp:</strong> {assessment.created_at}</div>
               {assessment.audit_trail && (

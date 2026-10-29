@@ -297,6 +297,25 @@ A comprehensive test suite in `backend/tests/test_mytra_ai.py` validates the ent
 9. `test_quality_check_rejection`: Confirms rejection of blurry or flat images.
 10. `test_clinician_review_flow`: Confirms clinician approval and amendment persistence.
 11. `test_chat_mytra_ai_integration`: Confirms end-to-end integration into the conversational assistant.
+12. `test_google_health_bridge_components`: Confirms direct bridge with the official `Google-Health/medgemma` git submodule, commit hash extraction, thinking trace parsing, and serving request formatting.
 
 All tests pass with 100% success (`pytest backend/tests/test_mytra_ai.py`).
+
+---
+
+## 13. Official Google-Health/medgemma Repository Connection
+
+Aarogya Mytra AI is connected to Google Health's official MedGemma repository:
+- **Repository URL**: `https://github.com/Google-Health/medgemma.git`
+- **Submodule Location**: `external/medgemma`
+- **Verified Commit Hash**: `a60a66024f6153496dfa9490dba12d4f1fbd092e`
+- **Architecture Bridge**: `backend/app/integrations/ai/google_health_medgemma_bridge.py`
+- **Standalone Service Runner**: `backend/scripts/run_medgemma_service.py`
+
+### Key Google Health Repository Components Utilized:
+1. **Serving Specification**: Conforms to `python/serving/vertex_schemata/request.yaml` (`MedGemmaChatCompletionRequest`) for standard Triton, vLLM, and Vertex AI deployments.
+2. **Notebook Architecture**: Follows `notebooks/quick_start_with_hugging_face.ipynb` for SigLIP multimodal preprocessing and 4-bit `BitsAndBytesConfig` quantization.
+3. **Thinking Trace Extraction**: Automatically separates internal clinical reasoning tokens `<unused94>thought\n ... <unused95>` from user-facing observable features.
+4. **Dedicated Diagnostic Endpoint**: `GET /api/v1/mytra-ai/google-health-repo` provides real-time auditability of submodule status and framework features.
+
 

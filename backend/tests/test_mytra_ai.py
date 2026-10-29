@@ -168,3 +168,36 @@ def test_mytra_ai_endpoints(client: TestClient, chw_token: str, doctor_token: st
     ref_resp = client.get("/api/v1/mytra-ai/references?query=leukoplakia&body_region=mouth_oral")
     assert ref_resp.status_code == 200
     assert ref_resp.json()["references_count"] > 0
+
+    # 4. Google-Health/medgemma repo endpoint
+    gh_resp = client.get("/api/v1/mytra-ai/google-health-repo")
+    assert gh_resp.status_code == 200
+    gh_data = gh_resp.json()
+    assert "Google-Health/medgemma" in gh_data["repository_url"]
+    assert gh_data["details"]["connected"] is True
+
+def test_google_health_bridge_components():
+    from app.integrations.ai.google_health_medgemma_bridge import GoogleHealthMedGemmaBridge
+    bridge = GoogleHealthMedGemmaBridge()
+    info = bridge.get_repo_info()
+    assert info["connected"] is True
+    assert "https://github.com/Google-Health/medgemma.git" == info["repository_url"]
+    assert info["features"]["serving_framework"] is True
+    assert info["features"]["notebooks"] is True
+
+    # Test payload generation
+    payload = bridge.build_medgemma_chat_payload(
+        image_bytes=b"fake_jpeg_content",
+        body_region="mouth_oral",
+        clinical_context={"symptoms": "white plaque", "duration_days": 20, "mouth_opening_mm": 22}
+    )
+    assert payload["model"] == "google/medgemma-1.5-4b-it"
+    assert len(payload["messages"]) == 2
+    assert payload["messages"][0]["role"] == "system"
+
+    # Test thinking trace parser
+    raw_medgemma_output = "<unused94>thought\nPatient has reduced interincisal opening of 22mm. Plaque is suspicious for leukoplakia with OSMF.<unused95>{\"visible_observations\": [\"white patch\"], \"possible_explanations\": []}"
+    thought, clean_text = bridge.parse_thinking_trace(raw_medgemma_output)
+    assert "Patient has reduced interincisal opening" in thought
+    assert "{\"visible_observations\"" in clean_text
+

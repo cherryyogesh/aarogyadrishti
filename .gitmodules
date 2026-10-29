@@ -1,0 +1,3 @@
+[submodule "external/medgemma"]
+	path = external/medgemma
+	url = https://github.com/Google-Health/medgemma.git

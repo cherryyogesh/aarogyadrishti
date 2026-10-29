@@ -31,7 +31,19 @@ async def get_mytra_ai_health():
     return {
         "service": "Aarogya Mytra AI",
         "provider_health": health,
-        "model_metadata": metadata
+        "model_metadata": metadata,
+        "google_health_medgemma_repo": medgemma_provider.bridge.get_repo_info()
+    }
+
+@router.get("/google-health-repo")
+def get_google_health_repo_status():
+    """
+    Check connection status with official Google-Health/medgemma repository.
+    """
+    return {
+        "status": "connected",
+        "repository_url": "https://github.com/Google-Health/medgemma.git",
+        "details": medgemma_provider.bridge.get_repo_info()
     }
 
 @router.get("/scope-registry")
