@@ -49,3 +49,4 @@ class MedicalVisionProvider(ABC):
         Return model identifier, version, license, deployment mode, and clinical validation scope.
         """
         pass
+

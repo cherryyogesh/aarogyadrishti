@@ -208,3 +208,4 @@ class ImageScopeRegistry:
         }
 
 scope_registry = ImageScopeRegistry()
+

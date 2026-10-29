@@ -597,3 +597,4 @@ export const MytraAssessmentView: React.FC<Props> = ({
     </div>
   );
 };
+

@@ -249,3 +249,4 @@ class MedicalEvidenceRAG:
         return "\n".join(lines)
 
 medical_rag = MedicalEvidenceRAG()
+

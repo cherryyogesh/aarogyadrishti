@@ -167,3 +167,4 @@ class ClinicalSafetyEngine:
         return MANDATORY_CANCER_DISCLAIMER_TE if language == "te" else MANDATORY_CANCER_DISCLAIMER_EN
 
 clinical_safety = ClinicalSafetyEngine()
+

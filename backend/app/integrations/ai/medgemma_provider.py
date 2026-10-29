@@ -386,3 +386,4 @@ class MedGemmaProvider(MedicalVisionProvider):
             }
 
 medgemma_provider = MedGemmaProvider()
+
