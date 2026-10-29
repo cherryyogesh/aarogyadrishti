@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.entities import ChatMessage, ScreeningImage
 from app.schemas.all_schemas import ChatMessagePayload, ChatMessageResponse
 from app.integrations.ai.hf_client import hf_client
+from app.integrations.ai.medgemma_chat_engine import medgemma_chat_engine
 from app.integrations.ai.triage import detect_emergency_symptoms, check_cancer_claim_guard
 from app.integrations.ai.medical_rag import medical_rag
 from app.integrations.ai.clinical_safety import clinical_safety
@@ -86,10 +87,9 @@ async def send_chat_message(
     retrieved_refs = medical_rag.retrieve_relevant_references(query=text, symptoms=text, max_results=2)
     rag_citations = medical_rag.format_citations_markdown(retrieved_refs, language=payload.language) if retrieved_refs else ""
 
-    # Generate AI response with medical guardrails
-    ai_resp = await hf_client.generate_response(
-        prompt=text,
-        category="general",
+    # Generate AI response using MedGemma Clinical Health & Voice Dialogue Engine
+    ai_resp = medgemma_chat_engine.generate_chat_response(
+        user_message=text,
         language=payload.language,
         has_attachment=has_attachment
     )
@@ -100,7 +100,7 @@ async def send_chat_message(
 
     final_content = ai_resp.get("content", "")
     if image_analysis_report:
-        final_content = f"{image_analysis_report}\n\n---\n**{'రోగి సందేహ నివృత్తి' if payload.language == 'te' else 'Clinical Communication Guidance'}:**\n{final_content}"
+        final_content = f"{image_analysis_report}\n\n---\n**{'రోగి సంరక్షణ సలహా' if payload.language == 'te' else 'MedGemma Health Counseling'}:**\n{final_content}"
     elif rag_citations and not ai_resp.get("is_emergency"):
         final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if payload.language == 'te' else 'Verified Clinical Guidelines'}\n{rag_citations}"
 
