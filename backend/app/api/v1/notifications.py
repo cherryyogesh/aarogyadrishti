@@ -166,3 +166,4 @@ async def send_test_notification(
         is_read=False,
         created_at="Just now"
     )
+
