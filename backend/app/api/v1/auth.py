@@ -1,15 +1,46 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import verify_password, create_access_token, get_password_hash
-from app.models.entities import User, AuditEvent, PHC, UserRole
+from app.core.security import (
+    verify_password, create_access_token, get_password_hash,
+    generate_secure_otp, hash_otp, verify_otp_hash, mask_phone_number
+)
+from app.models.entities import User, AuditEvent, PHC, UserRole, PasswordResetOTP, NotificationLog
 from app.schemas.all_schemas import (
-    LoginRequest, Token, UserResponse, EmployeeRegisterRequest, StaffMemberResponse
+    LoginRequest, Token, UserResponse, EmployeeRegisterRequest, StaffMemberResponse,
+    ForgotPasswordRequestPayload, ForgotPasswordRequestResponse,
+    ForgotPasswordResetPayload, ForgotPasswordResetResponse
 )
 from app.api.deps import get_current_user, require_roles
+from app.integrations.sms.adapter import sms_adapter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+def find_user_by_phone(db: Session, phone_input: str) -> Optional[User]:
+    clean_ident = phone_input.strip()
+    digits = "".join(c for c in clean_ident if c.isdigit())
+    if len(digits) < 10:
+        return None
+    last_10 = digits[-10:]
+    pattern_spaced = f"%{last_10[:5]}%{last_10[5:]}%"
+    user = db.query(User).filter(
+        (User.phone == clean_ident) |
+        (User.phone == f"+91 {clean_ident}") |
+        (User.phone == f"+91{clean_ident}") |
+        (User.phone.like(f"%{last_10}%")) |
+        (User.phone.like(pattern_spaced))
+    ).first()
+    if user:
+        return user
+    for u in db.query(User).all():
+        if u.phone:
+            u_digits = "".join(c for c in u.phone if c.isdigit())
+            if len(u_digits) >= 10 and u_digits[-10:] == last_10:
+                return u
+    return None
 
 @router.post("/login", response_model=Token)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
@@ -17,17 +48,21 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     digits_only = "".join(ch for ch in clean_ident if ch.isdigit())
 
     # Support login via Email, Username, or Registered Mobile Number
-    query_filter = (
-        (User.email.ilike(clean_ident)) |
-        (User.username.ilike(clean_ident)) |
-        (User.phone == clean_ident) |
-        (User.phone == f"+91 {clean_ident}") |
-        (User.phone == f"+91{clean_ident}")
-    )
-    if len(digits_only) >= 10:
-        query_filter = query_filter | (User.phone.like(f"%{digits_only[-10:]}"))
+    user = None
+    if "@" in clean_ident or not clean_ident.replace("+", "").replace(" ", "").isdigit():
+        user = db.query(User).filter(
+            (User.email.ilike(clean_ident)) |
+            (User.username.ilike(clean_ident))
+        ).first()
 
-    user = db.query(User).filter(query_filter).first()
+    if not user and len(digits_only) >= 10:
+        user = find_user_by_phone(db, clean_ident)
+
+    if not user:
+        user = db.query(User).filter(
+            (User.email.ilike(clean_ident)) |
+            (User.username.ilike(clean_ident))
+        ).first()
 
     valid_pass = False
     if user:
@@ -221,4 +256,198 @@ def get_me(current_user: User = Depends(get_current_user)):
         state=current_user.state or (current_user.phc.state if current_user.phc else "Andhra Pradesh"),
         is_active=current_user.is_active,
         created_at=current_user.created_at
+    )
+
+@router.post("/forgot-password/request-otp", response_model=ForgotPasswordRequestResponse)
+async def request_forgot_password_otp(payload: ForgotPasswordRequestPayload, db: Session = Depends(get_db)):
+    phone_input = payload.phone.strip()
+    digits = "".join(c for c in phone_input if c.isdigit())
+    if len(digits) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid 10-digit mobile number."
+        )
+
+    user = find_user_by_phone(db, phone_input)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No registered healthcare account found with phone number ending in {digits[-10:]}."
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This account is deactivated. Please contact your district administrator."
+        )
+
+    now = datetime.now(timezone.utc)
+    # Check rate limit / cooldown
+    existing_otp = db.query(PasswordResetOTP).filter(PasswordResetOTP.user_id == user.id).first()
+    if existing_otp and existing_otp.resend_available_at:
+        resend_time = existing_otp.resend_available_at
+        if resend_time.tzinfo is None:
+            resend_time = resend_time.replace(tzinfo=timezone.utc)
+        if resend_time > now:
+            remaining = int((resend_time - now).total_seconds())
+            if remaining > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Please wait {remaining} seconds before requesting a new OTP."
+                )
+
+    # Generate cryptographic 6-digit OTP
+    otp_code = generate_secure_otp()
+    salt = secrets.token_hex(16)
+    hashed_val = hash_otp(otp_code, salt)
+    expires_at = now + timedelta(minutes=10)
+    resend_available_at = now + timedelta(seconds=45)
+
+    target_phone = user.phone or phone_input
+
+    if existing_otp:
+        existing_otp.phone = target_phone
+        existing_otp.hashed_otp = hashed_val
+        existing_otp.salt = salt
+        existing_otp.attempts = 0
+        existing_otp.expires_at = expires_at
+        existing_otp.resend_available_at = resend_available_at
+        existing_otp.verified = False
+        existing_otp.created_at = now
+    else:
+        new_otp_rec = PasswordResetOTP(
+            user_id=user.id,
+            phone=target_phone,
+            hashed_otp=hashed_val,
+            salt=salt,
+            attempts=0,
+            max_attempts=5,
+            expires_at=expires_at,
+            resend_available_at=resend_available_at,
+            verified=False,
+            created_at=now,
+        )
+        db.add(new_otp_rec)
+
+    # Dispatch SMS notification
+    sms_text = (
+        f"Aarogya Drishti: మీ పాస్‌వర్డ్ రీసెట్ OTP: {otp_code}. "
+        f"ఇది 10 నిమిషాలు మాత్రమే చెల్లుబాటు అవుతుంది. / "
+        f"Your password reset OTP is {otp_code}. Valid for 10 minutes."
+    )
+    sms_res = await sms_adapter.send_sms(target_phone, sms_text, message_type="password_reset_otp")
+
+    notif_log = NotificationLog(
+        recipient_phone=target_phone,
+        message_type="password_reset_otp",
+        content=f"Password reset OTP sent to user {user.username}",
+        provider=sms_res.get("provider", "sms_adapter"),
+        provider_message_id=sms_res.get("provider_message_id"),
+        delivery_status=sms_res.get("delivery_status", "sent"),
+    )
+    db.add(notif_log)
+
+    audit = AuditEvent(
+        user_id=user.id,
+        action="FORGOT_PASSWORD_OTP_REQUESTED",
+        entity_type="User",
+        entity_id=str(user.id),
+        details=f"Password reset OTP requested for {user.username} ({mask_phone_number(target_phone)})."
+    )
+    db.add(audit)
+    db.commit()
+
+    return ForgotPasswordRequestResponse(
+        success=True,
+        message="OTP sent successfully to registered mobile number.",
+        masked_phone=mask_phone_number(target_phone),
+        cooldown_seconds=45,
+        demo_otp=otp_code
+    )
+
+@router.post("/forgot-password/reset", response_model=ForgotPasswordResetResponse)
+def reset_forgot_password(payload: ForgotPasswordResetPayload, db: Session = Depends(get_db)):
+    phone_input = payload.phone.strip()
+    digits = "".join(c for c in phone_input if c.isdigit())
+    if len(digits) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please provide a valid 10-digit mobile number."
+        )
+
+    if payload.new_password != payload.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password and confirm password do not match."
+        )
+
+    if len(payload.new_password) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 4 characters long."
+        )
+
+    user = find_user_by_phone(db, phone_input)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No registered account found with phone number ending in {digits[-10:]}."
+        )
+
+    reset_rec = db.query(PasswordResetOTP).filter(PasswordResetOTP.user_id == user.id).first()
+    if not reset_rec:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active password reset request found. Please request an OTP first."
+        )
+
+    now = datetime.now(timezone.utc)
+    expiry = reset_rec.expires_at
+    if expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=timezone.utc)
+
+    if now > expiry:
+        db.delete(reset_rec)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The OTP has expired. Please request a new OTP."
+        )
+
+    if reset_rec.attempts >= reset_rec.max_attempts:
+        db.delete(reset_rec)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many incorrect OTP attempts. For security, please request a fresh OTP."
+        )
+
+    otp_clean = payload.otp_code.strip()
+    if not verify_otp_hash(otp_clean, reset_rec.salt, reset_rec.hashed_otp):
+        reset_rec.attempts += 1
+        db.commit()
+        remaining = max(0, reset_rec.max_attempts - reset_rec.attempts)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid OTP code. {remaining} attempt(s) remaining."
+        )
+
+    # Valid OTP verified! Update user's password securely
+    user.hashed_password = get_password_hash(payload.new_password)
+    db.delete(reset_rec)
+
+    audit = AuditEvent(
+        user_id=user.id,
+        action="PASSWORD_RESET_SUCCESS",
+        entity_type="User",
+        entity_id=str(user.id),
+        details=f"User {user.username} ({user.full_name}) successfully reset their password via OTP."
+    )
+    db.add(audit)
+    db.commit()
+
+    return ForgotPasswordResetResponse(
+        success=True,
+        message="Password reset successfully. You can now sign in with your new password.",
+        phone=user.phone or phone_input
     )

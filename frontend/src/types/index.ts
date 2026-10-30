@@ -43,6 +43,20 @@ export interface EmployeeRegisterPayload {
   password: string;
 }
 
+export interface ForgotPasswordRequestResponse {
+  success: boolean;
+  message: string;
+  masked_phone: string;
+  cooldown_seconds: number;
+  demo_otp?: string;
+}
+
+export interface ForgotPasswordResetResponse {
+  success: boolean;
+  message: string;
+  phone: string;
+}
+
 export interface AuthState {
   user: User | null;
   token: string | null;

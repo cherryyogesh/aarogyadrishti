@@ -25,6 +25,7 @@ from app.models.entities import (
     Investigation,
     NavigationTask,
     AuditEvent,
+    PasswordResetOTP,
 )
 
 __all__ = [
@@ -54,4 +55,5 @@ __all__ = [
     "Investigation",
     "NavigationTask",
     "AuditEvent",
+    "PasswordResetOTP",
 ]

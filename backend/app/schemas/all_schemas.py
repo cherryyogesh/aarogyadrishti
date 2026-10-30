@@ -61,6 +61,28 @@ class StaffMemberResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
+class ForgotPasswordRequestPayload(BaseModel):
+    phone: str
+
+class ForgotPasswordRequestResponse(BaseModel):
+    success: bool
+    message: str
+    masked_phone: str
+    cooldown_seconds: int = 45
+    demo_otp: Optional[str] = None
+
+class ForgotPasswordResetPayload(BaseModel):
+    phone: str
+    otp_code: str
+    new_password: str
+    confirm_password: str
+
+class ForgotPasswordResetResponse(BaseModel):
+    success: bool
+    message: str
+    phone: str
+
+
 # ----------------- Patient Schemas -----------------
 class PatientCreate(BaseModel):
     full_name: str

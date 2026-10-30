@@ -592,3 +592,21 @@ class AuditEvent(Base):
     details = Column(Text, nullable=True)
     ip_address = Column(String(50), nullable=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+class PasswordResetOTP(Base):
+    __tablename__ = "password_reset_otps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    phone = Column(String(20), nullable=False, index=True)
+    hashed_otp = Column(String(255), nullable=False)
+    salt = Column(String(100), nullable=False)
+    attempts = Column(Integer, default=0)
+    max_attempts = Column(Integer, default=5)
+    expires_at = Column(DateTime, nullable=False)
+    resend_available_at = Column(DateTime, nullable=False)
+    verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+

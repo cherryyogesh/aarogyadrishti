@@ -3,7 +3,8 @@ import {
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
   StaffMember, EmployeeRegisterPayload,
-  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload
+  MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload,
+  ForgotPasswordRequestResponse, ForgotPasswordResetResponse
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -77,6 +78,20 @@ class ApiService {
     });
     this.setToken(res.access_token);
     return this.getMe();
+  }
+
+  async requestForgotPasswordOtp(phone: string): Promise<ForgotPasswordRequestResponse> {
+    return this.request<ForgotPasswordRequestResponse>('/auth/forgot-password/request-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+  }
+
+  async resetForgotPassword(phone: string, otp_code: string, new_password: string, confirm_password: string): Promise<ForgotPasswordResetResponse> {
+    return this.request<ForgotPasswordResetResponse>('/auth/forgot-password/reset', {
+      method: 'POST',
+      body: JSON.stringify({ phone, otp_code, new_password, confirm_password }),
+    });
   }
 
   async getStaffRoster(role?: string, mandal?: string): Promise<StaffMember[]> {

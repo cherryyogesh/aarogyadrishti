@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations, LANGUAGES } from '../../i18n/translations';
 import { LanguageCode, User, UserRole } from '../../types';
-import { CheckCircle2, Globe, UserPlus, LogIn, Phone, Building2, MapPin } from 'lucide-react';
+import {
+  CheckCircle2, Globe, UserPlus, LogIn, Phone,
+  KeyRound, ArrowLeft, ShieldCheck, RefreshCw
+} from 'lucide-react';
 import { AarogyaLogo } from '../../components/AarogyaLogo';
 import { ASR_DISTRICT_MANDALS } from '../../constants/mandals';
 
@@ -34,16 +37,14 @@ const PHC_CENTRES_MAP: Record<string, string> = {
 
 export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLanguageChange }) => {
   const t = translations[currentLang] || translations.en;
-  const isTe = currentLang === 'te';
-  const isHi = currentLang === 'hi';
   const tr = (teText: string, enText: string, hiText: string) => {
     if (currentLang === 'te') return teText;
     if (currentLang === 'hi') return hiText;
     return enText;
   };
 
-  // Mode: 'login' or 'register'
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  // Mode: 'login' | 'register' | 'forgot_password'
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot_password'>('login');
 
   // Sign In State
   const [identifier, setIdentifier] = useState('');
@@ -59,9 +60,28 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
   const [regState, setRegState] = useState('Andhra Pradesh');
   const [regPassword, setRegPassword] = useState('');
 
+  // Forgot Password State
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState<'request_otp' | 'verify_reset'>('request_otp');
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleMandalChange = (mandal: string) => {
     setRegMandal(mandal);
@@ -85,7 +105,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
         setRegPhcName('District Medical & Health Office (DM&HO), Alluri Sitharama Raju');
       }
     } else {
-      // chw or phc_staff
       setRegPhcName(PHC_CENTRES_MAP[regMandal] || `${regMandal} Primary Health Centre`);
     }
   };
@@ -175,6 +194,83 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     }
   };
 
+  const handleRequestOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    const cleanPhone = forgotPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setError(t.reg_phone_req || tr('దయచేసి సరైన 10 అంకెల మొబైల్ నంబరు నమోదు చేయండి.', 'Please enter a valid 10-digit mobile number.', 'कृपया 10 अंकों का मान्य मोबाइल नंबर दर्ज करें।'));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await api.requestForgotPasswordOtp(forgotPhone.trim());
+      setMaskedPhone(res.masked_phone);
+      if (res.demo_otp) {
+        setDemoOtp(res.demo_otp);
+      }
+      setCooldown(res.cooldown_seconds || 45);
+      setForgotStep('verify_reset');
+      setSuccessMsg(tr(
+        `OTP మీ రిజిస్టర్డ్ మొబైల్ ${res.masked_phone} కు పంపబడింది.`,
+        `OTP has been sent to your registered mobile ${res.masked_phone}.`,
+        `ओटीपी आपके पंजीकृत मोबाइल ${res.masked_phone} पर भेजा गया है।`
+      ));
+    } catch (err: any) {
+      setError(err.message || tr('OTP పంపడంలో సమస్య ఎదురైంది. మొబైల్ నంబరు సరిచూసుకోండి.', 'Failed to send OTP. Please check mobile number.', 'ओटीपी भेजने में विफल रहा। कृपया फोन नंबर जांचें।'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    const cleanOtp = forgotOtp.trim();
+    if (cleanOtp.length !== 6) {
+      setError(tr('దయచేసి సరైన 6 అంకెల OTP కోడ్ నమోదు చేయండి.', 'Please enter the valid 6-digit OTP code.', 'कृपया सही 6 अंकों का ओटीपी कोड दर्ज करें।'));
+      return;
+    }
+
+    if (!forgotNewPassword || forgotNewPassword.length < 4) {
+      setError(t.pwd_min_length || tr('పాస్‌వర్డ్ కనీసం 4 అక్షరాలు ఉండాలి.', 'Password must be at least 4 characters long.', 'पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।'));
+      return;
+    }
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setError(t.pwd_mismatch || tr('కొత్త పాస్‌వర్డ్ మరియు కన్ఫర్మ్ పాస్‌వర్డ్ సరిపోలడం లేదు.', 'New password and confirm password do not match.', 'नया पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते।'));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.resetForgotPassword(
+        forgotPhone.trim(),
+        cleanOtp,
+        forgotNewPassword,
+        forgotConfirmPassword
+      );
+      setSuccessMsg(t.pwd_reset_success || tr('పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది! కొత్త పాస్‌వర్డ్‌తో లాగిన్ అవ్వండి.', 'Password reset successfully! Please sign in with your new password.', 'पासवर्ड सफलतापूर्वक रीसेट हो गया! कृपया अपने नए पासवर्ड से लॉगिन करें।'));
+      // Pre-fill login identifier with phone number
+      setIdentifier(forgotPhone.trim());
+      setPassword('');
+      setForgotOtp('');
+      setForgotNewPassword('');
+      setForgotConfirmPassword('');
+      setForgotStep('request_otp');
+      setDemoOtp(null);
+      setAuthMode('login');
+    } catch (err: any) {
+      setError(err.message || tr('పాస్‌వర్డ్ రీసెట్ విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.', 'Password reset failed. Please check OTP and details.', 'पासवर्ड रीसेट विफल रहा। कृपया विवरण जांचें।'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -198,7 +294,8 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
         backdropFilter: 'blur(8px)',
         padding: '0.35rem 0.75rem',
         borderRadius: '24px',
-        border: '1px solid rgba(255, 255, 255, 0.15)'
+        border: '1px solid rgba(255, 255, 255, 0.15)',
+        zIndex: 10
       }}>
         <Globe size={15} color="#5EEAD4" />
         <select
@@ -238,64 +335,66 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
           <AarogyaLogo size="large" lightText={false} showSubtitle={true} currentLang={currentLang} />
         </div>
 
-        {/* Tab Switcher: Sign In vs Register */}
-        <div style={{
-          display: 'flex',
-          background: '#F1F5F9',
-          borderRadius: '12px',
-          padding: '4px',
-          marginBottom: '1.5rem'
-        }}>
-          <button
-            type="button"
-            onClick={() => { setAuthMode('login'); setError(null); }}
-            style={{
-              flex: 1,
-              padding: '0.65rem 0.5rem',
-              borderRadius: '9px',
-              border: 'none',
-              background: authMode === 'login' ? '#FFFFFF' : 'transparent',
-              color: authMode === 'login' ? '#0F172A' : '#64748B',
-              fontWeight: authMode === 'login' ? 700 : 500,
-              fontSize: '0.85rem',
-              boxShadow: authMode === 'login' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.45rem',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <LogIn size={15} color={authMode === 'login' ? '#0D9488' : '#64748B'} />
-            <span>{t.tab_employee_signin || tr('ఉద్యోగుల లాగిన్', 'Employee Sign In', 'कर्मचारी लॉगिन')}</span>
-          </button>
+        {/* Tab Switcher: Sign In vs Register (only when not in forgot_password mode) */}
+        {authMode !== 'forgot_password' && (
+          <div style={{
+            display: 'flex',
+            background: '#F1F5F9',
+            borderRadius: '12px',
+            padding: '4px',
+            marginBottom: '1.5rem'
+          }}>
+            <button
+              type="button"
+              onClick={() => { setAuthMode('login'); setError(null); }}
+              style={{
+                flex: 1,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: authMode === 'login' ? '#FFFFFF' : 'transparent',
+                color: authMode === 'login' ? '#0F172A' : '#64748B',
+                fontWeight: authMode === 'login' ? 700 : 500,
+                fontSize: '0.85rem',
+                boxShadow: authMode === 'login' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <LogIn size={15} color={authMode === 'login' ? '#0D9488' : '#64748B'} />
+              <span>{t.tab_employee_signin || tr('ఉద్యోగుల లాగిన్', 'Employee Sign In', 'कर्मचारी लॉगिन')}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => { setAuthMode('register'); setError(null); }}
-            style={{
-              flex: 1,
-              padding: '0.65rem 0.5rem',
-              borderRadius: '9px',
-              border: 'none',
-              background: authMode === 'register' ? '#FFFFFF' : 'transparent',
-              color: authMode === 'register' ? '#0F172A' : '#64748B',
-              fontWeight: authMode === 'register' ? 700 : 500,
-              fontSize: '0.85rem',
-              boxShadow: authMode === 'register' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.45rem',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <UserPlus size={15} color={authMode === 'register' ? '#0D9488' : '#64748B'} />
-            <span>{t.tab_employee_register || tr('నూతన సిబ్బంది నమోదు', 'New Staff Register', 'नया स्टाफ पंजीकरण')}</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => { setAuthMode('register'); setError(null); }}
+              style={{
+                flex: 1,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '9px',
+                border: 'none',
+                background: authMode === 'register' ? '#FFFFFF' : 'transparent',
+                color: authMode === 'register' ? '#0F172A' : '#64748B',
+                fontWeight: authMode === 'register' ? 700 : 500,
+                fontSize: '0.85rem',
+                boxShadow: authMode === 'register' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <UserPlus size={15} color={authMode === 'register' ? '#0D9488' : '#64748B'} />
+              <span>{t.tab_employee_register || tr('నూతన సిబ్బంది నమోదు', 'New Staff Register', 'नया स्टाफ पंजीकरण')}</span>
+            </button>
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -357,9 +456,34 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
               </div>
 
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                  {t.login_password}
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                    {t.login_password}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('forgot_password');
+                      setError(null);
+                      setSuccessMsg(null);
+                      if (identifier && identifier.replace(/\D/g, '').length >= 10) {
+                        setForgotPhone(identifier);
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0D9488',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {t.link_forgot_password || tr('పాస్‌వర్డ్ మర్చిపోయారా?', 'Forgot Password?', 'पासवर्ड भूल गए?')}
+                  </button>
+                </div>
                 <input
                   type="password"
                   className="form-control"
@@ -387,9 +511,38 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
               >
                 {loading ? (t.login_authenticating || tr('ప్రాసెస్ అవుతోంది...', 'Authenticating...', 'प्रमाणित हो रहा है...')) : (t.login_submit || tr('లాగిన్ అవ్వండి', 'Sign In to Portal', 'लॉगिन करें'))}
               </button>
+
+              {/* Forgot Password bottom shortcut */}
+              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('forgot_password');
+                    setError(null);
+                    setSuccessMsg(null);
+                    if (identifier && identifier.replace(/\D/g, '').length >= 10) {
+                      setForgotPhone(identifier);
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0F766E',
+                    fontSize: '0.84rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                >
+                  <KeyRound size={15} />
+                  <span>{t.link_forgot_password || tr('పాస్‌వర్డ్ మర్చిపోయారా? (Forgot Password)', 'Forgot Password?', 'पासवर्ड भूल गए?')}</span>
+                </button>
+              </div>
             </form>
           </div>
-        ) : (
+        ) : authMode === 'register' ? (
           /* -------------------- REGISTRATION MODE -------------------- */
           <div>
             <form onSubmit={handleRegisterSubmit}>
@@ -568,6 +721,285 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 </button>
               </div>
             </form>
+          </div>
+        ) : (
+          /* -------------------- FORGOT PASSWORD MODE -------------------- */
+          <div>
+            {/* Back to Sign In Link */}
+            <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login');
+                  setError(null);
+                  setSuccessMsg(null);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  background: 'none',
+                  border: 'none',
+                  color: '#0D9488',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>{t.back_to_login || tr('తిరిగి లాగిన్‌కి వెళ్లండి', 'Back to Sign In', 'वापस लॉगिन पर जाएं')}</span>
+              </button>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '20px',
+                background: '#F0FDFA',
+                color: '#0F766E',
+                fontSize: '0.75rem',
+                fontWeight: 600
+              }}>
+                <ShieldCheck size={14} />
+                <span>{tr('సురక్షిత OTP ధృవీకరణ', 'Secure OTP Verification', 'सुरक्षित ओटीपी सत्यापन')}</span>
+              </div>
+            </div>
+
+            {/* Header Icon & Title */}
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #0D9488 0%, #0284C7 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 0.75rem auto',
+                boxShadow: '0 4px 12px rgba(13, 148, 136, 0.25)'
+              }}>
+                <KeyRound size={24} color="#FFFFFF" />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.35rem 0' }}>
+                {t.forgot_pwd_title || tr('పాస్‌వర్డ్ రీసెట్', 'Reset Password', 'पासवर्ड रीसेट करें')}
+              </h3>
+              <p style={{ fontSize: '0.84rem', color: '#64748B', margin: 0, lineHeight: 1.4 }}>
+                {forgotStep === 'request_otp'
+                  ? (t.forgot_step1_instruction || tr('మీ అధికారిక మొబైల్ నంబరును నమోదు చేసి OTPని పొందండి.', 'Enter your registered mobile number to receive a verification OTP.', 'सत्यापन ओटीपी प्राप्त करने के लिए अपना पंजीकृत मोबाइल नंबर दर्ज करें।'))
+                  : (t.forgot_step2_instruction || tr('మీ మొబైల్‌కు పంపిన 6 అంకెల OTP మరియు కొత్త పాస్‌వర్డ్‌ను నమోదు చేయండి.', 'Enter the 6-digit OTP sent to your mobile and your new password.', 'अपने मोबाइल पर भेजा गया 6 अंकों का ओटीपी और नया पासवर्ड दर्ज करें।'))
+                }
+              </p>
+            </div>
+
+            {/* Step 1: Request OTP */}
+            {forgotStep === 'request_otp' ? (
+              <form onSubmit={handleRequestOtp}>
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
+                    {t.patient_phone || tr('రిజిస్టర్డ్ మొబైల్ నంబర్', 'Registered Mobile Number', 'पंजीकृत मोबाइल नंबर')} *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="tel"
+                      className="form-control"
+                      value={forgotPhone}
+                      onChange={(e) => setForgotPhone(e.target.value)}
+                      placeholder={tr('ఉదా: 9848011001', 'e.g. 9848011001', 'उदा: 9848011001')}
+                      autoFocus
+                      required
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.35rem' }}>
+                    {tr(
+                      'మీ ఆరోగ్య దృష్టి ఖాతాకు అనుసంధానించబడిన 10 అంకెల మొబైల్ నంబరును నమోదు చేయండి.',
+                      'Enter the 10-digit mobile number linked with your healthcare account.',
+                      'अपने स्वास्थ्य देखभाल खाते से जुड़ा 10 अंकों का मोबाइल नंबर दर्ज करें।'
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    fontSize: '0.98rem',
+                    fontWeight: 700,
+                    padding: '0.8rem',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #0D9488 0%, #0284C7 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <Phone size={17} />
+                  <span>{loading ? (t.btn_sending_otp || tr('OTP పంపబడుతోంది...', 'Sending OTP...', 'ओटीपी भेजा जा रहा है...')) : (t.btn_send_otp || tr('OTP పంపండి', 'Send OTP', 'ओटीपी भेजें'))}</span>
+                </button>
+              </form>
+            ) : (
+              /* Step 2: Enter OTP, New Password & Confirm Password */
+              <form onSubmit={handleResetPassword}>
+                {/* Demo OTP Helper Notice */}
+                {demoOtp && (
+                  <div style={{
+                    background: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: '10px',
+                    padding: '0.65rem 0.85rem',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '0.82rem',
+                    color: '#1E40AF'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: 700 }}>{tr('డెమో మోడ్ OTP: ', 'Demo OTP: ', 'डेमो ओटीपी: ')}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', letterSpacing: '0.12em', color: '#1D4ED8' }}>{demoOtp}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForgotOtp(demoOtp)}
+                      style={{
+                        background: '#DBEAFE',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: '#1D4ED8',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        padding: '0.25rem 0.6rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {tr('ఆటో-ఫిల్', 'Auto-fill', 'ऑटो-भरें')}
+                    </button>
+                  </div>
+                )}
+
+                {/* OTP Code Input */}
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="form-label" style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                      {t.field_otp_code || tr('6 అంకెల OTP కోడ్', '6-Digit OTP Code', '6 अंकों का ओटीपी कोड')} *
+                    </label>
+                    <button
+                      type="button"
+                      disabled={cooldown > 0 || loading}
+                      onClick={() => handleRequestOtp()}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: cooldown > 0 ? '#94A3B8' : '#0D9488',
+                        fontSize: '0.76rem',
+                        fontWeight: 600,
+                        cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem'
+                      }}
+                    >
+                      <RefreshCw size={12} />
+                      <span>
+                        {cooldown > 0
+                          ? `${t.btn_resend_otp || 'Resend OTP'} (${cooldown}s)`
+                          : (t.btn_resend_otp || 'Resend OTP')}
+                      </span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={forgotOtp}
+                    maxLength={6}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="123456"
+                    style={{
+                      textAlign: 'center',
+                      letterSpacing: '0.35em',
+                      fontSize: '1.25rem',
+                      fontWeight: 700,
+                      fontFamily: 'monospace'
+                    }}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {/* New Password */}
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
+                    {t.field_new_password || tr('కొత్త పాస్‌వర్డ్', 'New Password', 'नया पासवर्ड')} *
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
+                    {t.field_confirm_password || tr('పాస్‌వర్డ్ మళ్లీ నమోదు చేయండి', 'Confirm New Password', 'नया पासवर्ड पुनः दर्ज करें')} *
+                  </label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                  {forgotNewPassword && forgotConfirmPassword && forgotNewPassword !== forgotConfirmPassword && (
+                    <span style={{ fontSize: '0.74rem', color: '#DC2626', marginTop: '0.25rem', display: 'block' }}>
+                      ⚠️ {t.pwd_mismatch || tr('పాస్‌వర్డ్‌లు సరిపోలడం లేదు.', 'Passwords do not match.', 'पासवर्ड मेल नहीं खाते।')}
+                    </span>
+                  )}
+                  {forgotNewPassword && forgotConfirmPassword && forgotNewPassword === forgotConfirmPassword && (
+                    <span style={{ fontSize: '0.74rem', color: '#16A34A', marginTop: '0.25rem', display: 'block' }}>
+                      ✓ {tr('పాస్‌వర్డ్‌లు సరిపోలాయి.', 'Passwords match.', 'पासवर्ड मेल खाते हैं।')}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading || (forgotNewPassword !== forgotConfirmPassword && forgotConfirmPassword.length > 0)}
+                  style={{
+                    width: '100%',
+                    fontSize: '0.98rem',
+                    fontWeight: 700,
+                    padding: '0.8rem',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #0D9488 0%, #0284C7 100%)',
+                    border: 'none',
+                    boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <CheckCircle2 size={17} />
+                  <span>
+                    {loading
+                      ? (t.btn_verifying_saving || tr('ధృవీకరించి సేవ్ చేస్తోంది...', 'Verifying & Saving...', 'सत्यापित और सहेजा जा रहा है...'))
+                      : (t.btn_verify_reset_pwd || tr('OTP ధృవీకరించి పాస్‌వర్డ్ సేవ్ చేయండి', 'Verify OTP & Save New Password', 'ओटीपी सत्यापित करें और नया पासवर्ड सहेजें'))}
+                  </span>
+                </button>
+              </form>
+            )}
           </div>
         )}
       </div>
