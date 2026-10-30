@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
 import { translations, LANGUAGES } from './i18n/translations';
-import { LanguageCode, User, Screening } from './types';
+import { LanguageCode, User, Screening, AppNotification } from './types';
+import { NotificationDrawer } from './features/notifications/NotificationDrawer';
 import { LoginView } from './features/auth/LoginView';
 import { DashboardView } from './features/dashboard/DashboardView';
 import { PatientsView } from './features/patients/PatientsView';
@@ -31,6 +32,10 @@ export const App: React.FC = () => {
   const [authChecking, setAuthChecking] = useState(true);
   const [activeRoute, setActiveRoute] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Live Notifications & Regular Updates State
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Cross-screen state: Pre-selected screening for appointment booking
   const [preSelectedScreening, setPreSelectedScreening] = useState<Screening | null>(null);
@@ -70,6 +75,71 @@ export const App: React.FC = () => {
     };
     checkAuth();
   }, []);
+
+  // Live Real-Time Healthcare Notifications & Periodic Sync (every 30 seconds)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let isMounted = true;
+    const loadNotifications = async (triggerDesktopAlert = false) => {
+      try {
+        const items = await api.listNotifications();
+        if (!isMounted) return;
+
+        setNotifications(prev => {
+          if (triggerDesktopAlert && items.length > 0) {
+            const prevIds = new Set(prev.map(p => p.id));
+            const newItems = items.filter(it => !prevIds.has(it.id));
+            if (newItems.length > 0 && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              const latest = newItems[0];
+              const title = currentLang === 'te' ? latest.title_te : currentLang === 'hi' ? latest.title_hi : latest.title;
+              const msg = currentLang === 'te' ? latest.message_te : currentLang === 'hi' ? latest.message_hi : latest.message;
+              try {
+                new Notification(title, {
+                  body: msg,
+                  icon: '/assets/logo-192.png'
+                });
+              } catch (err) {
+                console.warn('Native notification suppressed:', err);
+              }
+            }
+          }
+          return items;
+        });
+      } catch (e) {
+        console.error('Error fetching notifications:', e);
+      }
+    };
+
+    loadNotifications(false);
+
+    // Regular interval to push updates periodically
+    const interval = setInterval(() => {
+      loadNotifications(true);
+    }, 30000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [currentUser, currentLang]);
+
+  const handleMarkNotificationRead = async (id?: string) => {
+    setNotifications(prev =>
+      prev.map(n => (!id || n.id === id ? { ...n, is_read: true } : n))
+    );
+    try {
+      await api.markNotificationRead(id);
+    } catch (e) {
+      console.error('Error marking notification read:', e);
+    }
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const unreadNotificationCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = () => {
     api.setToken(null);
@@ -458,11 +528,22 @@ export const App: React.FC = () => {
           </div>
 
           <div className="header-right">
-            {/* Notification Bell */}
-            <div className="header-notif-btn" title="3 Notifications">
+            {/* Live Interactive Notification Bell Button */}
+            <button
+              type="button"
+              className="header-notif-btn"
+              onClick={() => setShowNotifications(prev => !prev)}
+              title={currentLang === 'te' ? 'నోటిఫికేషన్లు & హెచ్చరికలు' : currentLang === 'hi' ? 'सूचनाएं एवं अलर्ट' : 'Notifications & Alerts'}
+              aria-label="Open notifications"
+              style={{ cursor: 'pointer', position: 'relative' }}
+            >
               <Bell size={17} />
-              <span className="header-notif-badge">3</span>
-            </div>
+              {unreadNotificationCount > 0 && (
+                <span className="header-notif-badge">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
+            </button>
             {/* Language Selector */}
             <div className="lang-select-pill">
               <Globe size={15} color="var(--teal-primary)" />
@@ -640,6 +721,21 @@ export const App: React.FC = () => {
             </button>
           </div>
         </footer>
+
+        {/* Interactive Notification Center Drawer */}
+        <NotificationDrawer
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+          currentLang={currentLang}
+          user={currentUser}
+          notifications={notifications}
+          onMarkRead={handleMarkNotificationRead}
+          onClearAll={handleClearAllNotifications}
+          onNavigate={navigateTo}
+          onRefresh={() => {
+            api.listNotifications().then(setNotifications).catch(console.error);
+          }}
+        />
 
         {/* Mobile Bottom Navigation Bar (Tailored to Role) */}
         <nav className="mobile-bottom-nav">

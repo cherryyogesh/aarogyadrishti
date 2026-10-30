@@ -501,3 +501,18 @@ export interface ConfigStatus {
     max_upload_mb: number;
   };
 }
+
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  title_te: string;
+  title_hi: string;
+  message: string;
+  message_te: string;
+  message_hi: string;
+  type: 'urgent' | 'screening' | 'appointment' | 'queue' | 'advisory' | 'system';
+  target_route?: string;
+  is_read: boolean;
+  created_at: string;
+}

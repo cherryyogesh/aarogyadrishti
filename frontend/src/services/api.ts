@@ -4,7 +4,8 @@ import {
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
   StaffMember, EmployeeRegisterPayload,
   MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload,
-  ForgotPasswordRequestResponse, ForgotPasswordResetResponse
+  ForgotPasswordRequestResponse, ForgotPasswordResetResponse,
+  AppNotification
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -539,6 +540,24 @@ class ApiService {
     return this.request<any>('/config/ai-keys', {
       method: 'POST',
       body: JSON.stringify({ provider: 'medgemma_local', api_key: '' }),
+    });
+  }
+
+  async listNotifications(): Promise<AppNotification[]> {
+    return this.request<AppNotification[]>('/notifications/list');
+  }
+
+  async markNotificationRead(notificationId?: string): Promise<any> {
+    return this.request<any>('/notifications/mark-read', {
+      method: 'POST',
+      body: JSON.stringify({ notification_id: notificationId || null }),
+    });
+  }
+
+  async sendTestNotification(title?: string, message?: string): Promise<AppNotification> {
+    return this.request<AppNotification>('/notifications/test', {
+      method: 'POST',
+      body: JSON.stringify({ title, message }),
     });
   }
 }
