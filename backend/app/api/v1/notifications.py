@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.models.entities import User, Screening, Appointment, DoctorQueueItem
-from app.core.security import get_current_user
+from app.models.entities import User, Screening, Appointment, AppointmentStatus
+from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["Notifications & Alerts"])
 
@@ -79,7 +79,9 @@ async def list_notifications(
             ))
 
     # 2. Check Doctor Queue for waiting patients
-    queue_items = db.query(DoctorQueueItem).filter(DoctorQueueItem.status == "waiting").all()
+    queue_items = db.query(Appointment).filter(
+        Appointment.status.in_([AppointmentStatus.WAITING_FOR_DOCTOR, AppointmentStatus.CHECKED_IN])
+    ).all()
     if queue_items:
         q_count = len(queue_items)
         first_q = queue_items[0]
