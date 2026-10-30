@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../../services/api';
 import { translations, LANGUAGES } from '../../i18n/translations';
 import { LanguageCode, User, UserRole } from '../../types';
-import { Shield, UserCheck, Stethoscope, Activity, FileText, CheckCircle2, Globe, UserPlus, LogIn, Phone, Building2, MapPin } from 'lucide-react';
+import { CheckCircle2, Globe, UserPlus, LogIn, Phone, Building2, MapPin } from 'lucide-react';
 import { AarogyaLogo } from '../../components/AarogyaLogo';
 
 interface Props {
@@ -29,57 +29,6 @@ const PHC_CENTRES_MAP: Record<string, string> = {
   'Ananthagiri': 'Ananthagiri Primary Health Centre'
 };
 
-const DEMO_ACCOUNTS = [
-  {
-    role: 'chw',
-    email: 'chw@aarogya.gov.in',
-    phone: '9848011001',
-    pass: 'ChwPass@2026',
-    labelEn: 'ASHA / Village Health Worker (CHW)',
-    labelTe: 'ఆశా / విలేజ్ హెల్త్ వర్కర్ (ASHA / CHW)',
-    subtitleEn: 'Field registration, visual screening & patient follow-up',
-    subtitleTe: 'గ్రామస్థాయి నమోదు, నోటి స్క్రీనింగ్ & ఫాలోఅప్',
-    icon: UserCheck,
-    color: '#0D9488'
-  },
-  {
-    role: 'phc_staff',
-    email: 'mo@aarogya.gov.in',
-    phone: '9848011002',
-    pass: 'PhcPass@2026',
-    labelEn: 'PHC Staff / Medical Officer (MO)',
-    labelTe: 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్ (PHC Staff / MO)',
-    subtitleEn: 'Clinical review, AI override, appointments & OTP check-in',
-    subtitleTe: 'కేసుల సమీక్ష, AI ఓవర్‌రైడ్, అపాయింట్‌మెంట్లు & OTP చెక్-ఇన్',
-    icon: Stethoscope,
-    color: '#15803D'
-  },
-  {
-    role: 'doctor',
-    email: 'doctor@aarogya.gov.in',
-    phone: '9848011003',
-    pass: 'DocPass@2026',
-    labelEn: 'Doctors',
-    labelTe: 'వైద్యులు (Doctors)',
-    subtitleEn: 'Live waiting queue & teleconsultation for oral, ENT, eye, and skin conditions',
-    subtitleTe: 'ప్రత్యక్ష వెయిటింగ్ క్యూ & నోరు, చెవి, కంటి, చర్మ సమస్యల టెలికన్సల్టేషన్',
-    icon: Activity,
-    color: '#7E22CE'
-  },
-  {
-    role: 'admin',
-    email: 'admin@aarogya.gov.in',
-    phone: '9848011005',
-    pass: 'AdminPass@2026',
-    labelEn: 'DMHO (District Medical & Health Officer)',
-    labelTe: 'DMHO (డిస్ట్రిక్ట్ మెడికల్ & హెల్త్ ఆఫీసర్)',
-    subtitleEn: 'Mandal-level screening analytics & system audit trail',
-    subtitleTe: 'మండలాల వారీగా స్క్రీనింగ్ నివేదికలు & భద్రతా ఆడిట్',
-    icon: Shield,
-    color: '#BE123C'
-  },
-];
-
 export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLanguageChange }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
@@ -88,8 +37,8 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   // Sign In State
-  const [identifier, setIdentifier] = useState('chw@aarogya.gov.in');
-  const [password, setPassword] = useState('ChwPass@2026');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
 
   // Register State
   const [regFullName, setRegFullName] = useState('');
@@ -215,11 +164,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSelectDemo = (acc: typeof DEMO_ACCOUNTS[0]) => {
-    setIdentifier(acc.email);
-    setPassword(acc.pass);
   };
 
   return (
@@ -435,67 +379,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {loading ? (isTe ? 'ప్రాసెస్ అవుతోంది...' : 'Authenticating...') : t.login_submit}
               </button>
             </form>
-
-            {/* Quick Demo Selector */}
-            <div style={{ marginTop: '1.85rem', borderTop: '1px solid #E2E8F0', paddingTop: '1.25rem' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span>🔑</span>
-                <span>{t.login_demo_hint}</span>
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                {DEMO_ACCOUNTS.map((acc) => {
-                  const Icon = acc.icon;
-                  const isSelected = identifier === acc.email || identifier === acc.phone;
-                  const label = isTe ? acc.labelTe : acc.labelEn;
-                  const sub = isTe ? acc.subtitleTe : acc.subtitleEn;
-
-                  return (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      onClick={() => handleSelectDemo(acc)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.65rem 0.9rem',
-                        borderRadius: '10px',
-                        border: `1.5px solid ${isSelected ? acc.color : '#E2E8F0'}`,
-                        background: isSelected ? `${acc.color}12` : '#F8FAFC',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          background: `${acc.color}20`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          <Icon size={17} color={acc.color} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: isSelected ? acc.color : '#1E293B' }}>
-                            {label}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.1rem' }}>
-                            {sub} • 📱 {acc.phone}
-                          </div>
-                        </div>
-                      </div>
-                      {isSelected && <CheckCircle2 size={18} color={acc.color} style={{ flexShrink: 0 }} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         ) : (
           /* -------------------- REGISTRATION MODE -------------------- */
