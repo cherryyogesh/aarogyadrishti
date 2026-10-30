@@ -22,7 +22,7 @@ import { AarogyaLogo } from './components/AarogyaLogo';
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
   MessageSquare, BarChart3, Shield, LogOut, Menu,
-  X, Globe, UserCheck, FlaskConical, FileCheck
+  X, Globe, UserCheck, FlaskConical, FileCheck, Bell
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -387,6 +387,15 @@ export const App: React.FC = () => {
           </button>
         </nav>
 
+        {/* Sidebar Village Graphic from Reference UI */}
+        <div className="sidebar-village-container">
+          <img
+            src="/assets/sidebar_village.png"
+            alt="Healthy Village Healthy Andhra"
+            className="sidebar-village-img"
+          />
+        </div>
+
         {/* Sidebar Footer with Role Designation (No Individual Names) */}
         <div className="sidebar-footer">
           <div className="user-profile-badge">
@@ -441,7 +450,19 @@ export const App: React.FC = () => {
             </h2>
           </div>
 
+          {/* Reference UI Tagline */}
+          <div className="header-tagline">
+            <span style={{ fontSize: '1.15rem' }}>🍃</span>
+            <span>Better Health. Brighter Tomorrow.</span>
+            <span style={{ fontSize: '1.15rem' }}>🍃</span>
+          </div>
+
           <div className="header-right">
+            {/* Notification Bell */}
+            <div className="header-notif-btn" title="3 Notifications">
+              <Bell size={17} />
+              <span className="header-notif-badge">3</span>
+            </div>
             {/* Language Selector */}
             <div className="lang-select-pill">
               <Globe size={15} color="var(--teal-primary)" />
@@ -481,6 +502,13 @@ export const App: React.FC = () => {
                 <LogOut size={14} />
               </button>
             </div>
+
+            {/* Government State Emblem */}
+            <img
+              src="/assets/ap_state_emblem.png"
+              alt="Government of Andhra Pradesh"
+              className="header-state-emblem"
+            />
           </div>
         </header>
 
@@ -587,6 +615,31 @@ export const App: React.FC = () => {
             />
           )}
         </main>
+
+        {/* Bottom Status Bar from Reference UI */}
+        <footer className="desktop-footer-bar">
+          <div className="footer-left">
+            <span className="footer-gov">Government of Andhra Pradesh</span>
+            <span className="footer-divider">|</span>
+            <span className="footer-sub">Aarogya Drishti</span>
+          </div>
+          <div className="footer-right">
+            <span className="footer-online">
+              <span className="online-dot" />
+              Online
+            </span>
+            <span className="footer-sync">
+              Last Sync: 10:30 AM
+            </span>
+            <button
+              className="footer-refresh-btn"
+              onClick={() => window.location.reload()}
+              title="Refresh"
+            >
+              🔄
+            </button>
+          </div>
+        </footer>
 
         {/* Mobile Bottom Navigation Bar (Tailored to Role) */}
         <nav className="mobile-bottom-nav">

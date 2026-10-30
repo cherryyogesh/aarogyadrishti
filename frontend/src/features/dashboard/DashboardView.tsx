@@ -58,25 +58,38 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
     <div>
       {/* Welcome Hero Banner (No Personal Names) */}
       <div style={{
-        background: 'linear-gradient(135deg, #0A192F 0%, #0F2A4A 50%, #0D9488 100%)',
+        background: `linear-gradient(90deg, rgba(2, 75, 90, 0.92) 0%, rgba(3, 81, 94, 0.85) 50%, rgba(7, 159, 147, 0.75) 100%), url('/assets/dashboard_hero_banner.jpg') center/cover no-repeat`,
         borderRadius: '18px',
         padding: '1.75rem 2rem',
         color: '#FFFFFF',
         marginBottom: '1.75rem',
-        boxShadow: 'var(--shadow-md)',
+        boxShadow: '0 8px 24px -4px rgba(2, 75, 90, 0.18)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1.25rem'
+        gap: '1.25rem',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <span className={`role-chip ${user.role}`}>
               {roleTitle}
             </span>
             <span style={{ fontSize: '0.8rem', color: '#5EEAD4', fontWeight: 600 }}>
               • {user.phc_name || (user.role === 'admin' ? 'ITDA Paderu HQ' : 'Alluri Sitharama Raju District')}
+            </span>
+            <span style={{
+              fontSize: '0.74rem',
+              background: 'rgba(255, 255, 255, 0.18)',
+              padding: '0.15rem 0.55rem',
+              borderRadius: '20px',
+              color: '#FFFFFF',
+              letterSpacing: '0.03em',
+              fontWeight: 600
+            }}>
+              Connect • Screen • Care • Follow-up
             </span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
@@ -153,8 +166,8 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
 
       {/* Metrics Grid */}
       <div className="grid-cards">
-        <div className="metric-card">
-          <div className="metric-icon-wrap" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
+        <div className="metric-card metric-card-mint">
+          <div className="metric-icon-wrap" style={{ backgroundColor: '#DCFCE7', color: '#047857' }}>
             <Activity size={26} />
           </div>
           <div>
@@ -165,8 +178,8 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-icon-wrap" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
+        <div className="metric-card metric-card-blue">
+          <div className="metric-icon-wrap" style={{ backgroundColor: '#DBEAFE', color: '#1D4ED8' }}>
             <AlertTriangle size={26} />
           </div>
           <div>
@@ -177,8 +190,8 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-icon-wrap" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+        <div className="metric-card metric-card-green">
+          <div className="metric-icon-wrap" style={{ backgroundColor: '#E0F2FE', color: '#0369A1' }}>
             <Clock size={26} />
           </div>
           <div>
@@ -189,7 +202,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card metric-card-purple">
           <div className="metric-icon-wrap" style={{ backgroundColor: '#F3E8FF', color: '#7E22CE' }}>
             <CheckCircle size={26} />
           </div>
