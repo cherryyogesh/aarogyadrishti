@@ -335,7 +335,7 @@ async def request_forgot_password_otp(payload: ForgotPasswordRequestPayload, db:
         f"ఇది 10 నిమిషాలు మాత్రమే చెల్లుబాటు అవుతుంది. / "
         f"Your password reset OTP is {otp_code}. Valid for 10 minutes."
     )
-    sms_res = await sms_adapter.send_sms(target_phone, sms_text, message_type="password_reset_otp")
+    sms_res = await sms_adapter.send_sms(target_phone, sms_text, message_type="password_reset_otp", otp_code=otp_code)
 
     notif_log = NotificationLog(
         recipient_phone=target_phone,
@@ -361,8 +361,7 @@ async def request_forgot_password_otp(payload: ForgotPasswordRequestPayload, db:
         success=True,
         message="OTP sent successfully to registered mobile number.",
         masked_phone=mask_phone_number(target_phone),
-        cooldown_seconds=45,
-        demo_otp=otp_code
+        cooldown_seconds=45
     )
 
 @router.post("/forgot-password/reset", response_model=ForgotPasswordResetResponse)

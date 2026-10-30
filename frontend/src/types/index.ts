@@ -48,7 +48,6 @@ export interface ForgotPasswordRequestResponse {
   message: string;
   masked_phone: string;
   cooldown_seconds: number;
-  demo_otp?: string;
 }
 
 export interface ForgotPasswordResetResponse {

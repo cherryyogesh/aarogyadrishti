@@ -67,7 +67,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [forgotStep, setForgotStep] = useState<'request_otp' | 'verify_reset'>('request_otp');
   const [maskedPhone, setMaskedPhone] = useState('');
-  const [demoOtp, setDemoOtp] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
   const [loading, setLoading] = useState(false);
@@ -208,15 +207,12 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     try {
       const res = await api.requestForgotPasswordOtp(forgotPhone.trim());
       setMaskedPhone(res.masked_phone);
-      if (res.demo_otp) {
-        setDemoOtp(res.demo_otp);
-      }
       setCooldown(res.cooldown_seconds || 45);
       setForgotStep('verify_reset');
       setSuccessMsg(tr(
-        `OTP మీ రిజిస్టర్డ్ మొబైల్ ${res.masked_phone} కు పంపబడింది.`,
-        `OTP has been sent to your registered mobile ${res.masked_phone}.`,
-        `ओटीपी आपके पंजीकृत मोबाइल ${res.masked_phone} पर भेजा गया है।`
+        `OTP మీ రిజిస్టర్డ్ మొబైల్ ${res.masked_phone} కు పంపబడింది. దయచేసి SMS తనిఖీ చేయండి.`,
+        `OTP has been sent to your registered mobile ${res.masked_phone}. Please check your SMS.`,
+        `ओटीपी आपके पंजीकृत मोबाइल ${res.masked_phone} पर भेजा गया है। कृपया अपना एसएमएस देखें।`
       ));
     } catch (err: any) {
       setError(err.message || tr('OTP పంపడంలో సమస్య ఎదురైంది. మొబైల్ నంబరు సరిచూసుకోండి.', 'Failed to send OTP. Please check mobile number.', 'ओटीपी भेजने में विफल रहा। कृपया फोन नंबर जांचें।'));
@@ -262,7 +258,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
       setForgotNewPassword('');
       setForgotConfirmPassword('');
       setForgotStep('request_otp');
-      setDemoOtp(null);
       setAuthMode('login');
     } catch (err: any) {
       setError(err.message || tr('పాస్‌వర్డ్ రీసెట్ విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.', 'Password reset failed. Please check OTP and details.', 'पासवर्ड रीसेट विफल रहा। कृपया विवरण जांचें।'));
@@ -845,43 +840,6 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
             ) : (
               /* Step 2: Enter OTP, New Password & Confirm Password */
               <form onSubmit={handleResetPassword}>
-                {/* Demo OTP Helper Notice */}
-                {demoOtp && (
-                  <div style={{
-                    background: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                    borderRadius: '10px',
-                    padding: '0.65rem 0.85rem',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontSize: '0.82rem',
-                    color: '#1E40AF'
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: 700 }}>{tr('డెమో మోడ్ OTP: ', 'Demo OTP: ', 'डेमो ओटीपी: ')}</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem', letterSpacing: '0.12em', color: '#1D4ED8' }}>{demoOtp}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setForgotOtp(demoOtp)}
-                      style={{
-                        background: '#DBEAFE',
-                        border: 'none',
-                        borderRadius: '6px',
-                        color: '#1D4ED8',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        padding: '0.25rem 0.6rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {tr('ఆటో-ఫిల్', 'Auto-fill', 'ऑटो-भरें')}
-                    </button>
-                  </div>
-                )}
-
                 {/* OTP Code Input */}
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

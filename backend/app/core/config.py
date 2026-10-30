@@ -25,10 +25,14 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 15
 
     # SMS & OTP Integration
-    SMS_PROVIDER: str = os.getenv("SMS_PROVIDER", "synthetic")  # synthetic, twilio, dlt
+    SMS_PROVIDER: str = os.getenv("SMS_PROVIDER", "auto")  # auto, twilio, fast2sms, msg91, dlt, synthetic
     TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "")
+    FAST2SMS_API_KEY: str = os.getenv("FAST2SMS_API_KEY", "")
+    MSG91_AUTH_KEY: str = os.getenv("MSG91_AUTH_KEY", "")
+    MSG91_SENDER_ID: str = os.getenv("MSG91_SENDER_ID", "AARDRI")
+    MSG91_TEMPLATE_ID: str = os.getenv("MSG91_TEMPLATE_ID", "")
     DLT_API_KEY: str = os.getenv("DLT_API_KEY", "")
     DLT_SENDER_ID: str = os.getenv("DLT_SENDER_ID", "AARDRI")
     DLT_ENTITY_ID: str = os.getenv("DLT_ENTITY_ID", "")

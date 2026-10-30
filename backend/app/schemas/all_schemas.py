@@ -69,7 +69,6 @@ class ForgotPasswordRequestResponse(BaseModel):
     message: str
     masked_phone: str
     cooldown_seconds: int = 45
-    demo_otp: Optional[str] = None
 
 class ForgotPasswordResetPayload(BaseModel):
     phone: str

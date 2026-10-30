@@ -1,3 +1,5 @@
+from app.integrations.sms.adapter import sms_adapter
+
 def test_forgot_password_invalid_phone(client):
     resp = client.post("/api/v1/auth/forgot-password/request-otp", json={
         "phone": "123"
@@ -21,8 +23,12 @@ def test_forgot_password_complete_flow(client):
     data = req_resp.json()
     assert data["success"] is True
     assert "masked_phone" in data
-    assert "demo_otp" in data
-    otp_code = data["demo_otp"]
+    # Security: demo_otp is NOT returned in response
+    assert "demo_otp" not in data
+
+    # Real OTP sent via SMS adapter
+    otp_code = sms_adapter.last_sent_otp
+    assert otp_code is not None
     assert len(otp_code) == 6
 
     # 2. Test password mismatch
