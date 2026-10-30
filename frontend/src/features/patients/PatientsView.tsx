@@ -25,7 +25,7 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
   const [phone, setPhone] = useState('+91 ');
   const [preferredLang, setPreferredLang] = useState('te');
   const [village, setVillage] = useState('');
-  const [mandal, setMandal] = useState('G. Madugula (Ganagaraju Madugula)');
+  const [mandal, setMandal] = useState(ASR_DISTRICT_MANDALS[0].name);
   const [consentGranted, setConsentGranted] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
@@ -304,9 +304,9 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                 </div>
               </div>
 
-              {/* Mandal Dropdown (11 Mandals of ASR District) */}
+              {/* Mandal Dropdown (11 Mandals of ASR District in Ascending Order A-Z) */}
               <div className="form-group">
-                <label className="form-label">{currentLang === 'te' ? 'మండలం (ASR District Mandal) *' : 'Mandal (Alluri Sitharama Raju District) *'}</label>
+                <label className="form-label">{currentLang === 'te' ? 'మండలం (ASR District Mandal) *' : currentLang === 'hi' ? 'मंडल (अल्लूरी सीताराम राजू ज़िला) *' : 'Mandal (Alluri Sitharama Raju District) *'}</label>
                 <select
                   className="form-control"
                   value={mandal}
@@ -315,7 +315,7 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                 >
                   {ASR_DISTRICT_MANDALS.map((m) => (
                     <option key={m.id} value={m.name}>
-                      {currentLang === 'te' ? `${m.nameTe} (${m.name})` : m.name}
+                      {currentLang === 'te' ? `${m.nameTe} (${m.name})` : currentLang === 'hi' ? `${m.nameHi} (${m.name})` : m.name}
                     </option>
                   ))}
                 </select>

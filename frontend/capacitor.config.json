@@ -9,7 +9,10 @@
   },
   "plugins": {
     "Camera": {
-      "permissions": ["camera", "photos"]
+      "permissions": [
+        "camera",
+        "photos"
+      ]
     },
     "SplashScreen": {
       "launchShowDuration": 1500,

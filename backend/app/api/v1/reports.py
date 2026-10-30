@@ -31,26 +31,36 @@ def get_district_analytics(
     mandal_counts = {
         "Ananthagiri": 0,
         "Araku Valley": 0,
-        "Chintapalle": 0,
+        "Chinthapalli": 0,
         "Dumbriguda": 0,
-        "G. Madugula (Ganagaraju Madugula)": 0,
-        "Gudem Kotha Veedhi (G.K. Veedhi)": 0,
+        "G. Madugula (Gangaraju Madugula)": 0,
+        "G.K Veedhi (Gudem Kotha Veedhi)": 0,
         "Hukumpeta": 0,
         "Koyyuru": 0,
-        "Munchingi Puttu": 0,
-        "Paderu": 0,
-        "Peda Bayalu": 0
+        "Munchangiputtu": 0,
+        "Paderu (Headquarters)": 0,
+        "Pedhabayalu": 0
     }
 
     alias_map = {
-        "g. madugula": "G. Madugula (Ganagaraju Madugula)",
-        "ganagaraju madugula": "G. Madugula (Ganagaraju Madugula)",
-        "chintapalli": "Chintapalle",
-        "gudem kotha veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
-        "g.k. veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
-        "gk veedhi": "Gudem Kotha Veedhi (G.K. Veedhi)",
-        "munchingiputtu": "Munchingi Puttu",
-        "pedabayalu": "Peda Bayalu",
+        "g. madugula": "G. Madugula (Gangaraju Madugula)",
+        "g. madugula (ganagaraju madugula)": "G. Madugula (Gangaraju Madugula)",
+        "ganagaraju madugula": "G. Madugula (Gangaraju Madugula)",
+        "gangaraju madugula": "G. Madugula (Gangaraju Madugula)",
+        "chintapalli": "Chinthapalli",
+        "chintapalle": "Chinthapalli",
+        "gudem kotha veedhi": "G.K Veedhi (Gudem Kotha Veedhi)",
+        "gudem kotha veedhi (g.k. veedhi)": "G.K Veedhi (Gudem Kotha Veedhi)",
+        "g.k. veedhi": "G.K Veedhi (Gudem Kotha Veedhi)",
+        "g.k veedhi": "G.K Veedhi (Gudem Kotha Veedhi)",
+        "gk veedhi": "G.K Veedhi (Gudem Kotha Veedhi)",
+        "munchingiputtu": "Munchangiputtu",
+        "munchingi puttu": "Munchangiputtu",
+        "pedabayalu": "Pedhabayalu",
+        "peda bayalu": "Pedhabayalu",
+        "paderu": "Paderu (Headquarters)",
+        "paderu (headquarters)": "Paderu (Headquarters)",
+        "paderu (head quarters)": "Paderu (Headquarters)",
     }
 
     mandal_rows = db.query(Patient.mandal, func.count(Screening.id))\
@@ -144,7 +154,19 @@ def get_district_analytics(
     total_navigators = db.query(User).filter(User.role == UserRole.NAVIGATOR).count()
     total_staff = db.query(User).count()
 
-    mandals_list = ["G. Madugula", "Paderu", "Araku Valley", "Chintapalli", "Dumbriguda", "Ananthagiri"]
+    mandals_list = [
+        "Ananthagiri",
+        "Araku Valley",
+        "Chinthapalli",
+        "Dumbriguda",
+        "G. Madugula (Gangaraju Madugula)",
+        "G.K Veedhi (Gudem Kotha Veedhi)",
+        "Hukumpeta",
+        "Koyyuru",
+        "Munchangiputtu",
+        "Paderu (Headquarters)",
+        "Pedhabayalu"
+    ]
     workforce_by_mandal = {}
     for m in mandals_list:
         phc_count = db.query(PHC).filter(PHC.mandal.ilike(f"%{m}%")).count()

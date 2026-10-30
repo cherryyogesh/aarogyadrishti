@@ -331,7 +331,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
             <option value="all">{tr('అన్ని మండలాలు (All 11 Mandals)', 'All 11 Mandals', 'सभी 11 मंडल')}</option>
             {ASR_DISTRICT_MANDALS.map((m) => (
               <option key={m.id} value={m.id}>
-                {isTe ? `${m.nameTe} (${m.name})` : m.name}
+                {currentLang === 'te' ? `${m.nameTe} (${m.name})` : currentLang === 'hi' ? `${m.nameHi} (${m.name})` : m.name}
               </option>
             ))}
           </select>

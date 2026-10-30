@@ -4,6 +4,7 @@ import { translations, LANGUAGES } from '../../i18n/translations';
 import { LanguageCode, User, UserRole } from '../../types';
 import { CheckCircle2, Globe, UserPlus, LogIn, Phone, Building2, MapPin } from 'lucide-react';
 import { AarogyaLogo } from '../../components/AarogyaLogo';
+import { ASR_DISTRICT_MANDALS } from '../../constants/mandals';
 
 interface Props {
   currentLang: LanguageCode;
@@ -11,22 +12,24 @@ interface Props {
   onLanguageChange?: (lang: LanguageCode) => void;
 }
 
-const MANDALS_LIST = [
-  'G. Madugula',
-  'Paderu',
-  'Araku Valley',
-  'Chintapalli',
-  'Dumbriguda',
-  'Ananthagiri'
-];
+const MANDALS_LIST: string[] = ASR_DISTRICT_MANDALS.map(m => m.name);
 
 const PHC_CENTRES_MAP: Record<string, string> = {
-  'G. Madugula': 'G. Madugula Primary Health Centre',
-  'Paderu': 'Paderu Community Health Centre / Area Hospital',
+  'Ananthagiri': 'Ananthagiri Primary Health Centre',
   'Araku Valley': 'Araku Valley Area Hospital',
-  'Chintapalli': 'Chintapalli Community Health Centre',
+  'Chinthapalli': 'Chinthapalli Community Health Centre',
+  'Chintapalli': 'Chinthapalli Community Health Centre',
   'Dumbriguda': 'Dumbriguda Primary Health Centre',
-  'Ananthagiri': 'Ananthagiri Primary Health Centre'
+  'G. Madugula (Gangaraju Madugula)': 'G. Madugula Primary Health Centre',
+  'G. Madugula': 'G. Madugula Primary Health Centre',
+  'G.K Veedhi (Gudem Kotha Veedhi)': 'G.K Veedhi Primary Health Centre',
+  'G.K Veedhi': 'G.K Veedhi Primary Health Centre',
+  'Hukumpeta': 'Hukumpeta Primary Health Centre',
+  'Koyyuru': 'Koyyuru Primary Health Centre',
+  'Munchangiputtu': 'Munchangiputtu Primary Health Centre',
+  'Paderu (Headquarters)': 'Paderu Community Health Centre / Area Hospital',
+  'Paderu': 'Paderu Community Health Centre / Area Hospital',
+  'Pedhabayalu': 'Pedhabayalu Primary Health Centre'
 };
 
 export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLanguageChange }) => {
@@ -50,8 +53,8 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
   const [regFullName, setRegFullName] = useState('');
   const [regRole, setRegRole] = useState<UserRole>('chw');
   const [regPhone, setRegPhone] = useState('');
-  const [regMandal, setRegMandal] = useState('G. Madugula');
-  const [regPhcName, setRegPhcName] = useState(PHC_CENTRES_MAP['G. Madugula']);
+  const [regMandal, setRegMandal] = useState(MANDALS_LIST[0]);
+  const [regPhcName, setRegPhcName] = useState(PHC_CENTRES_MAP[MANDALS_LIST[0]]);
   const [regDistrict, setRegDistrict] = useState('Alluri Sitharama Raju');
   const [regState, setRegState] = useState('Andhra Pradesh');
   const [regPassword, setRegPassword] = useState('');
@@ -439,7 +442,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                   />
                 </div>
 
-                {/* Mandal */}
+                {/* Mandal (11 Mandals in Ascending Order A-Z) */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
                     {(t.field_mandal || tr('మండలం', 'Mandal', 'मंडल'))} *
@@ -450,8 +453,10 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     onChange={(e) => handleMandalChange(e.target.value)}
                     required
                   >
-                    {MANDALS_LIST.map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                    {ASR_DISTRICT_MANDALS.map((m) => (
+                      <option key={m.id} value={m.name}>
+                        {currentLang === 'te' ? `${m.nameTe} (${m.name})` : currentLang === 'hi' ? `${m.nameHi} (${m.name})` : m.name}
+                      </option>
                     ))}
                   </select>
                 </div>

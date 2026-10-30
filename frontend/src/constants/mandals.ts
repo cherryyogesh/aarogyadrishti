@@ -2,6 +2,7 @@ export interface MandalItem {
   id: string;
   name: string;
   nameTe: string;
+  nameHi: string;
   aliases: string[];
 }
 
@@ -10,67 +11,94 @@ export const ASR_DISTRICT_MANDALS: MandalItem[] = [
     id: 'Ananthagiri',
     name: 'Ananthagiri',
     nameTe: 'అనంతగిరి',
+    nameHi: 'अनंतगिरि',
     aliases: ['Ananthagiri', 'Anantagiri']
   },
   {
     id: 'Araku Valley',
     name: 'Araku Valley',
     nameTe: 'అరకు లోయ',
+    nameHi: 'अराकू वैली',
     aliases: ['Araku Valley', 'Araku', 'Arakuvalley']
   },
   {
-    id: 'Chintapalle',
-    name: 'Chintapalle',
+    id: 'Chinthapalli',
+    name: 'Chinthapalli',
     nameTe: 'చింతపల్లి',
-    aliases: ['Chintapalle', 'Chintapalli']
+    nameHi: 'चिंतापल्ली',
+    aliases: ['Chinthapalli', 'Chintapalli', 'Chintapalle']
   },
   {
     id: 'Dumbriguda',
     name: 'Dumbriguda',
     nameTe: 'డుంబ్రిగుడ',
+    nameHi: 'डुम्ब्रिगुडा',
     aliases: ['Dumbriguda']
   },
   {
-    id: 'G. Madugula (Ganagaraju Madugula)',
-    name: 'G. Madugula (Ganagaraju Madugula)',
+    id: 'G. Madugula (Gangaraju Madugula)',
+    name: 'G. Madugula (Gangaraju Madugula)',
     nameTe: 'జి. మాడుగుల (గంగరాజు మాడుగుల)',
-    aliases: ['G. Madugula', 'Ganagaraju Madugula', 'G.Madugula', 'G Madugula']
+    nameHi: 'जी. माडुगुला (गंगाराजू माडुगुला)',
+    aliases: [
+      'G. Madugula (Gangaraju Madugula)',
+      'G. Madugula (Ganagaraju Madugula)',
+      'G. Madugula',
+      'Gangaraju Madugula',
+      'Ganagaraju Madugula',
+      'G.Madugula',
+      'G Madugula'
+    ]
   },
   {
-    id: 'Gudem Kotha Veedhi (G.K. Veedhi)',
-    name: 'Gudem Kotha Veedhi (G.K. Veedhi)',
-    nameTe: 'గూడెం కొత్త వీధి (జి.కె. వీధి)',
-    aliases: ['Gudem Kotha Veedhi', 'G.K. Veedhi', 'GK Veedhi', 'G.K.Veedhi', 'Gudem Kothaveedhi']
+    id: 'G.K Veedhi (Gudem Kotha Veedhi)',
+    name: 'G.K Veedhi (Gudem Kotha Veedhi)',
+    nameTe: 'జి.కె. వీధి (గూడెం కొత్త వీధి)',
+    nameHi: 'जी.के. वीधि (गुडेम कोत्ता वीधि)',
+    aliases: [
+      'G.K Veedhi (Gudem Kotha Veedhi)',
+      'G.K Veedhi',
+      'GK Veedhi',
+      'G.K. Veedhi',
+      'Gudem Kotha Veedhi (G.K. Veedhi)',
+      'Gudem Kotha Veedhi',
+      'Gudem Kothaveedhi'
+    ]
   },
   {
     id: 'Hukumpeta',
     name: 'Hukumpeta',
     nameTe: 'హుకుంపేట',
+    nameHi: 'हुकुंपेटा',
     aliases: ['Hukumpeta', 'Hukumpet']
   },
   {
     id: 'Koyyuru',
     name: 'Koyyuru',
     nameTe: 'కొయ్యూరు',
+    nameHi: 'कोय्यूरु',
     aliases: ['Koyyuru', 'Koyyur']
   },
   {
-    id: 'Munchingi Puttu',
-    name: 'Munchingi Puttu',
+    id: 'Munchangiputtu',
+    name: 'Munchangiputtu',
     nameTe: 'ముంచంగిపుట్టు',
-    aliases: ['Munchingi Puttu', 'Munchingiputtu', 'Munchingput']
+    nameHi: 'मुंचंगिपुट्टू',
+    aliases: ['Munchangiputtu', 'Munchingi Puttu', 'Munchingiputtu', 'Munchingput']
   },
   {
-    id: 'Paderu',
-    name: 'Paderu',
-    nameTe: 'పాడేరు',
-    aliases: ['Paderu']
+    id: 'Paderu (Headquarters)',
+    name: 'Paderu (Headquarters)',
+    nameTe: 'పాడేరు (ప్రధాన కార్యాలయం)',
+    nameHi: 'पाडेरू (मुख्यालय)',
+    aliases: ['Paderu (Headquarters)', 'Paderu', 'Paderu (Head quarters)', 'Paderu (head quaters)']
   },
   {
-    id: 'Peda Bayalu',
-    name: 'Peda Bayalu',
+    id: 'Pedhabayalu',
+    name: 'Pedhabayalu',
     nameTe: 'పెదబయలు',
-    aliases: ['Peda Bayalu', 'Pedabayalu']
+    nameHi: 'पेदबयालु',
+    aliases: ['Pedhabayalu', 'Peda Bayalu', 'Pedabayalu']
   }
 ];
 

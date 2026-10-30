@@ -204,7 +204,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
               <option value="all">{tr('అన్ని మండలాలు (All 11 Mandals)', 'All 11 Mandals', 'सभी 11 मंडल (All Mandals)')}</option>
               {ASR_DISTRICT_MANDALS.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {isTe ? `${m.nameTe} (${m.name})` : m.name}
+                  {currentLang === 'te' ? `${m.nameTe} (${m.name})` : currentLang === 'hi' ? `${m.nameHi} (${m.name})` : m.name}
                 </option>
               ))}
             </select>
@@ -369,7 +369,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
                 }}
               >
                 <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0F172A', marginBottom: '0.4rem' }}>
-                  {isTe ? mItem.nameTe : mItem.name}
+                  {currentLang === 'te' ? mItem.nameTe : currentLang === 'hi' ? mItem.nameHi : mItem.name}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.6 }}>
                   <div>🏥 <strong>{mandalData.phcs ?? 1}</strong> {tr('పీహెచ్‌సీ కేంద్రం', 'PHC Centre', 'पीएचसी केंद्र')}</div>
