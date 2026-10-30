@@ -290,9 +290,6 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                     <option value="te">తెలుగు (Telugu)</option>
                     <option value="en">English</option>
                     <option value="hi">हिन्दी (Hindi)</option>
-                    <option value="ta">தமிழ் (Tamil)</option>
-                    <option value="ml">മലയാളം (Malayalam)</option>
-                    <option value="kn">ಕನ್ನಡ (Kannada)</option>
                   </select>
                 </div>
                 <div className="form-group">

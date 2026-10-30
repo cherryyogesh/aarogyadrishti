@@ -323,9 +323,6 @@ class LLMClinicalEngine:
         lang_names = {
             "te": "Telugu (తెలుగు)",
             "hi": "Hindi (हिन्दी)",
-            "ta": "Tamil (தமிழ்)",
-            "kn": "Kannada (ಕನ್ನಡ)",
-            "ml": "Malayalam (മലയാളം)",
             "en": "English"
         }
         target_lang = lang_names.get(language, "Telugu and English")

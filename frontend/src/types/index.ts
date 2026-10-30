@@ -1,6 +1,6 @@
 export type UserRole = 'chw' | 'phc_staff' | 'doctor' | 'navigator' | 'admin';
 
-export type LanguageCode = 'te' | 'en' | 'hi' | 'ta' | 'ml' | 'kn';
+export type LanguageCode = 'te' | 'en' | 'hi';
 
 export interface User {
   id: number;

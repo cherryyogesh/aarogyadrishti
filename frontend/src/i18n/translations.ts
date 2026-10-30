@@ -4,9 +4,6 @@ export const LANGUAGES: { code: LanguageCode; label: string; nativeName: string 
   { code: 'te', label: 'Telugu', nativeName: 'తెలుగు' },
   { code: 'en', label: 'English', nativeName: 'English' },
   { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'ta', label: 'Tamil', nativeName: 'தமிழ்' },
-  { code: 'ml', label: 'Malayalam', nativeName: 'മലയാളം' },
-  { code: 'kn', label: 'Kannada', nativeName: 'ಕನ್ನಡ' },
 ];
 
 const rawTranslations: Record<LanguageCode, Record<string, string>> = {
@@ -472,111 +469,6 @@ const rawTranslations: Record<LanguageCode, Record<string, string>> = {
     photo_capture_title: 'फोटो गुणवत्ता परीक्षण (OpenCV)',
     chat_title: 'आरोग्य मित्र — एआई स्वास्थ्य सहायक',
     chat_disclaimer: 'अस्वीकरण: यह केवल सूचनात्मक मार्गदर्शन है। यह कैंसर का निदान नहीं करता है। किसी भी अल्सर के लिए डॉक्टर से मिलें।'
-  },
-
-  ta: {
-    app_title: 'ஆரோக்ய த்ரிஷ்டி',
-    app_subtitle: 'வாய்வழி புற்றுநோய் கண்டறிதல் மற்றும் டெலிமெடிசின்',
-    role_chw: 'ஆஷா பணியாளர் (ASHA / CHW)',
-    role_phc_staff: 'PHC மருத்துவ அலுவலர் (PHC Staff / MO)',
-    role_doctor: 'மருத்துவர்கள் (Doctors)',
-    role_navigator: 'நோயாளி வழிகாட்டி (Patient Navigator)',
-    role_admin: 'DMHO (மாவட்ட தலைமை மருத்துவ அலுவலர்)',
-
-    nav_dashboard: 'டாஷ்போர்டு',
-    nav_patients: 'நோயாளிகள்',
-    nav_screening: 'வாய்வழி பரிசோதனை',
-    nav_phc_cases: 'வழக்கு மதிப்பாய்வு',
-    nav_investigations: 'பயாப்ஸி & ஆய்வக பதிவுகள்',
-    nav_referrals: 'பரிந்துரை சீட்டுகள்',
-    nav_navigation: 'பழங்குடி நோயாளி வழிகாட்டுதல் (108)',
-    nav_appointments: 'முன்பதிவுகள்',
-    nav_otp_checkin: 'OTP செக்-இன்',
-    nav_doctor_queue: 'மருத்துவர் காத்திருப்பு வரிசை',
-    nav_chatbot: 'ஆரோக்ய மித்ரா AI',
-    nav_reports: 'மாவட்ட அறிக்கைகள்',
-    nav_audit: 'பாதுகாப்பு தணிக்கை',
-    nav_logout: 'வெளியேறு',
-
-    login_title: 'ஆரோக்ய த்ரிஷ்டி போர்டல் உள்நுழைவு',
-    login_subtitle: 'அங்கீகரிக்கப்பட்ட சுகாதார பணியாளர் உள்நுழைவு',
-    login_username: 'பயனர்பெயர் / மின்னஞ்சல்',
-    login_password: 'கடவுச்சொல்',
-    login_submit: 'உள்நுழைக',
-    login_demo_hint: 'டெமோ கணக்கைத் தேர்ந்தெடுக்கவும்:',
-    patient_search_placeholder: 'நோயாளி ஐடி அல்லது பெயர் மூலம் தேடுக...',
-    chat_title: 'ஆரோக்ய மித்ரா AI உதவியாளர்',
-    chat_disclaimer: 'பொறுப்புத் துறப்பு: இது மருத்துவ நோயறிதல் அல்ல. புற்றுநோயைக் கண்டறியாது.'
-  },
-
-  ml: {
-    app_title: 'ആരോഗ്യ ദൃഷ്ടി',
-    app_subtitle: 'കമ്മ്യൂണിറ്റി ഓറൽ ഹെൽത്ത് സ്ക്രീനിംഗും ടെലിമെഡിസിനും',
-    role_chw: 'ആശ പ്രവർത്തക (ASHA / CHW)',
-    role_phc_staff: 'പിഎച്ച്സി മെഡിക്കൽ ഓഫീസർ (PHC Staff / MO)',
-    role_doctor: 'ഡോക്ടർമാർ (Doctors)',
-    role_navigator: 'പേഷ്യന്റ് നാവിഗേറ്റർ (Patient Navigator)',
-    role_admin: 'ഡിഎംഎച്ച്ഒ (ജില്ലാ മെഡിക്കൽ ഓഫീസർ)',
-
-    nav_dashboard: 'ഡാഷ്‌ബോർഡ്',
-    nav_patients: 'രോഗികൾ',
-    nav_screening: 'ഓറൽ സ്ക്രീനിംഗ്',
-    nav_phc_cases: 'കേസ് പരിശോധന',
-    nav_investigations: 'ബയോപ്സി & ലാബ് റിപ്പോർട്ടുകൾ',
-    nav_referrals: 'റഫറൽ സ്ലിപ്പുകൾ',
-    nav_navigation: 'ട്രൈബൽ നാവിഗേഷൻ (108)',
-    nav_appointments: 'അപ്പോയിന്റ്മെന്റുകൾ',
-    nav_otp_checkin: 'ഒടിപി ചെക്ക്-ഇൻ',
-    nav_doctor_queue: 'ഡോക്ടർ കാത്തിരിപ്പ് നിര',
-    nav_chatbot: 'ആരോഗ്യ മൈത്ര AI',
-    nav_reports: 'ജില്ലാ റിപ്പോർട്ടുകൾ',
-    nav_audit: 'സുരക്ഷാ ഓഡിറ്റ്',
-    nav_logout: 'പുറത്തുകടക്കുക',
-
-    login_title: 'ആരോഗ്യ ദൃഷ്ടി ലോഗിൻ',
-    login_subtitle: 'അംഗീകൃത ആരോഗ്യ പ്രവർത്തകർക്കായി',
-    login_username: 'യൂസർനെയിം / ഇമെയിൽ',
-    login_password: 'പാസ്‌വേഡ്',
-    login_submit: 'സൈൻ ഇൻ ചെയ്യുക',
-    login_demo_hint: 'ഡെമോ അക്കൗണ്ട് തിരഞ്ഞെടുക്കുക:',
-    patient_search_placeholder: 'പേഷ്യന്റ് ഐഡി തിരയുക...',
-    chat_title: 'ആരോഗ്യ മിത്ര AI അസിസ്റ്റന്റ്',
-    chat_disclaimer: 'നിരാകരണം: ഇതൊരു മെഡിക്കൽ രോഗനിർണയമല്ല. ക്യാൻസർ നിർണ്ണയിക്കാനാവില്ല.'
-  },
-
-  kn: {
-    app_title: 'ಆರೋಗ್ಯ ದೃಷ್ಟಿ',
-    app_subtitle: 'ಸಮುದಾಯ ಬಾಯಿ ಆರೋಗ್ಯ ತಪಾಸಣೆ ಮತ್ತು ಟೆಲಿಮೆಡಿಸಿನ್',
-    role_chw: 'ಆಶಾ ಕಾರ್ಯಕರ್ತೆ (ASHA / CHW)',
-    role_phc_staff: 'ಪಿಎಚ್‌ಸಿ ವೈದ್ಯಾಧಿಕಾರಿ (PHC Staff / MO)',
-    role_doctor: 'ವೈದ್ಯರು (Doctors)',
-    role_navigator: 'ರೋಗಿ ಮಾರ್ಗದರ್ಶಿ (Patient Navigator)',
-    role_admin: 'ಡಿಎಂಎಚ್‌ಒ (ಜಿಲ್ಲಾ ಆರೋಗ್ಯಾಧಿಕಾರಿ)',
-
-    nav_dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್',
-    nav_patients: 'ರೋಗಿಗಳು',
-    nav_screening: 'ಬಾಯಿ ತಪಾಸಣೆ ಮತ್ತು ಫೋಟೋಗಳು',
-    nav_phc_cases: 'ಪ್ರಕರಣ ಪರಿಶೀಲನೆ',
-    nav_investigations: 'ಬಯಾಪ್ಸಿ ಮತ್ತು ಲ್ಯಾಬ್ ದಾಖಲೆಗಳು',
-    nav_referrals: 'ರೆಫರಲ್ ಸ್ಲಿಪ್‌ಗಳು',
-    nav_navigation: 'ಬುಡಕಟ್ಟು ರೋಗಿ ಮಾರ್ಗದರ್ಶನ (108)',
-    nav_appointments: 'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಳು',
-    nav_otp_checkin: 'ಒಟಿಪಿ ಚೆಕ್-ಇನ್',
-    nav_doctor_queue: 'ವೈದ್ಯರ ಕಾಯುವಿಕೆ ಸರದಿ',
-    nav_chatbot: 'ಆರೋಗ್ಯ ಮೈತ್ರ AI',
-    nav_reports: 'ಜಿಲ್ಲಾ ವರದಿಗಳು',
-    nav_audit: 'ಭದ್ರತಾ ಆಡಿಟ್',
-    nav_logout: 'ಲಾಗ್ ಔಟ್',
-
-    login_title: 'ಆರೋಗ್ಯ ದೃಷ್ಟಿ ಲಾಗಿನ್',
-    login_subtitle: 'ಅಧಿಕೃತ ಆರೋಗ್ಯ ಸಿಬ್ಬಂದಿಗೆ ಸೈನ್ ಇನ್',
-    login_username: 'ಬಳಕೆದಾರ ಹೆಸರು / ಇಮೇಲ್',
-    login_password: 'ಪಾಸ್‌ವರ್ಡ್',
-    login_submit: 'ಸೈನ್ ಇನ್',
-    login_demo_hint: 'ಡೆಮೊ ಖಾತೆ ಆಯ್ಕೆಮಾಡಿ:',
-    patient_search_placeholder: 'ರೋಗಿಯ ಐಡಿ ಹುಡುಕಿ...',
-    chat_title: 'ಆರೋಗ್ಯ ಮಿತ್ರ AI ಸಹಾಯಕ',
-    chat_disclaimer: 'ಹಕ್ಕುತ್ಯಾಗ: ಇದು ವೈದ್ಯಕೀಯ ರೋಗನಿರ್ಣಯವಲ್ಲ. ಕ್ಯಾನ್ಸರ್ ನಿರ್ಣಯಿಸುವುದಿಲ್ಲ.'
   }
 };
 
