@@ -32,6 +32,12 @@ const PHC_CENTRES_MAP: Record<string, string> = {
 export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLanguageChange }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   // Mode: 'login' or 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -85,25 +91,25 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     switch (role) {
       case 'doctor':
         return {
-          label: isTe ? 'ఆసుపత్రి / మెడికల్ ఇన్స్టిట్యూట్ / క్లినిక్ పేరు' : 'Hospital / Medical Centre / Department',
-          placeholder: isTe ? 'ఉదా: డిస్ట్రిక్ట్ హాస్పిటల్ పాడేరు / ఏరియా హాస్పిటల్ / స్పెషాలిటీ క్లినిక్' : 'e.g. District Hospital Paderu / Area Hospital / Specialist Medical Centre',
-          hint: isTe ? 'వైద్యులు సంప్రదింపులు అందించే ఆసుపత్రి లేదా క్లినిక్ (నోరు, కన్ను, చెవి, చర్మం తదితర విభాగాలు)' : 'Hospital, Area Hospital, or Clinic where you practice (Mouth, Ear, Eyes, Skin, etc.)',
+          label: tr('ఆసుపత్రి / మెడికల్ ఇన్స్టిట్యూట్ / క్లినిక్ పేరు', 'Hospital / Medical Centre / Department', 'अस्पताल / चिकित्सा केंद्र / विभाग का नाम'),
+          placeholder: tr('ఉదా: డిస్ట్రిక్ట్ హాస్పిటల్ పాడేరు / ఏరియా హాస్పిటల్ / స్పెషాలిటీ క్లినిక్', 'e.g. District Hospital Paderu / Area Hospital / Specialist Medical Centre', 'उदा: जिला अस्पताल पाडेरू / एरिया अस्पताल / विशेषज्ञ क्लिनिक'),
+          hint: tr('వైద్యులు సంప్రదింపులు అందించే ఆసుపత్రి లేదా క్లినిక్ (నోరు, కన్ను, చెవి, చర్మం తదితర విభాగాలు)', 'Hospital, Area Hospital, or Clinic where you practice (Mouth, Ear, Eyes, Skin, etc.)', 'अस्पताल, एरिया अस्पताल या क्लिनिक जहां आप परामर्श देते हैं (मुख, कान, आंख, त्वचा आदि)'),
           icon: '🏥'
         };
       case 'admin':
         return {
-          label: isTe ? 'జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO Directorate)' : 'District Health Office / Administrative Directorate',
-          placeholder: isTe ? 'ఉదా: జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO), అల్లూరి సీతారామరాజు జిల్లా' : 'e.g. District Medical & Health Office (DM&HO), Alluri Sitharama Raju District',
-          hint: isTe ? 'జిల్లా ముఖ్య ఆరోగ్య పరిపాలనా కార్యాలయం' : 'District health administration headquarters',
+          label: tr('జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO Directorate)', 'District Health Office / Administrative Directorate', 'जिला चिकित्सा एवं स्वास्थ्य कार्यालय (DM&HO निदेशालय)'),
+          placeholder: tr('ఉదా: జిల్లా వైద్య & ఆరోగ్య కార్యాలయం (DM&HO), అల్లూరి సీతారామరాజు జిల్లా', 'e.g. District Medical & Health Office (DM&HO), Alluri Sitharama Raju District', 'उदा: जिला चिकित्सा एवं स्वास्थ्य कार्यालय (DM&HO), अल्लूरी सीताराम राजू जिला'),
+          hint: tr('జిల్లా ముఖ్య ఆరోగ్య పరిపాలనా కార్యాలయం', 'District health administration headquarters', 'जिला मुख्य स्वास्थ्य प्रशासनिक कार्यालय'),
           icon: '🏛️'
         };
       case 'phc_staff':
       case 'chw':
       default:
         return {
-          label: isTe ? 'పీహెచ్‌సీ కేంద్రం (Primary Health Centre)' : 'Primary Health Centre (PHC)',
-          placeholder: isTe ? 'ఉదా: జి. మాడుగుల ప్రాథమిక ఆరోగ్య కేంద్రం' : 'e.g. G. Madugula Primary Health Centre',
-          hint: isTe ? 'గ్రామ స్క్రీనింగ్ & ప్రాథమిక సేవల కోసం కేటాయించిన పీహెచ్‌సీ' : 'Assigned PHC centre for community health screening & local care',
+          label: tr('పీహెచ్‌సీ కేంద్రం (Primary Health Centre)', 'Primary Health Centre (PHC)', 'प्राथमिक स्वास्थ्य केंद्र (PHC)'),
+          placeholder: tr('ఉదా: జి. మాడుగుల ప్రాథమిక ఆరోగ్య కేంద్రం', 'e.g. G. Madugula Primary Health Centre', 'उदा: जी. माडुगुला प्राथमिक स्वास्थ्य केंद्र'),
+          hint: tr('గ్రామ స్క్రీనింగ్ & ప్రాథమిక సేవల కోసం కేటాయించిన పీహెచ్‌సీ', 'Assigned PHC centre for community health screening & local care', 'सामुदायिक स्क्रीनिंग और प्राथमिक सेवाओं के लिए निर्धारित PHC'),
           icon: '🩺'
         };
     }
@@ -119,7 +125,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
       const user = await api.getMe();
       onLoginSuccess(user);
     } catch (err: any) {
-      setError(err.message || (isTe ? 'లాగిన్ విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.' : 'Authentication failed. Please check credentials.'));
+      setError(err.message || t.login_failed || tr('లాగిన్ విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.', 'Authentication failed. Please check credentials.', 'लॉगिन विफल रहा। कृपया क्रेडेंशियल जांचें।'));
     } finally {
       setLoading(false);
     }
@@ -131,15 +137,15 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     setSuccessMsg(null);
 
     if (!regFullName.trim()) {
-      setError(isTe ? 'దయచేసి పూర్తి పేరు నమోదు చేయండి.' : 'Please enter full name.');
+      setError(t.reg_name_req || tr('దయచేసి పూర్తి పేరు నమోదు చేయండి.', 'Please enter full name.', 'कृपया पूरा नाम दर्ज करें।'));
       return;
     }
     if (!regPhone.trim() || regPhone.replace(/\D/g, '').length < 10) {
-      setError(isTe ? 'దయచేసి సరైన 10 అంకెల మొబైల్ నంబరు నమోదు చేయండి.' : 'Please enter a valid 10-digit mobile number.');
+      setError(t.reg_phone_req || tr('దయచేసి సరైన 10 అంకెల మొబైల్ నంబరు నమోదు చేయండి.', 'Please enter a valid 10-digit mobile number.', 'कृपया 10 अंकों का मान्य मोबाइल नंबर दर्ज करें।'));
       return;
     }
     if (!regPassword || regPassword.length < 4) {
-      setError(isTe ? 'పాస్‌వర్డ్ కనీసం 4 అక్షరాలు ఉండాలి.' : 'Password must be at least 4 characters.');
+      setError(t.reg_pwd_req || tr('పాస్‌వర్డ్ కనీసం 4 అక్షరాలు ఉండాలి.', 'Password must be at least 4 characters.', 'पासवर्ड कम से कम 4 अक्षरों का होना चाहिए।'));
       return;
     }
 
@@ -155,12 +161,12 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
         state: regState,
         password: regPassword
       });
-      setSuccessMsg(isTe ? `నమోదు విజయవంతమైంది! స్వాగతం, ${user.full_name}` : `Registration successful! Welcome, ${user.full_name}`);
+      setSuccessMsg((t.reg_success || tr('నమోదు విజయవంతమైంది! స్వాగతం, ', 'Registration successful! Welcome, ', 'पंजीकरण सफल रहा! स्वागत है, ')) + user.full_name);
       setTimeout(() => {
         onLoginSuccess(user);
       }, 500);
     } catch (err: any) {
-      setError(err.message || (isTe ? 'నమోదు విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.' : 'Registration failed. Please check details.'));
+      setError(err.message || t.reg_failed || tr('నమోదు విఫలమైంది. దయచేసి వివరాలు సరిచూసుకోండి.', 'Registration failed. Please check details.', 'पंजीकरण विफल रहा। कृपया विवरण जांचें।'));
     } finally {
       setLoading(false);
     }
@@ -259,7 +265,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
             }}
           >
             <LogIn size={15} color={authMode === 'login' ? '#0D9488' : '#64748B'} />
-            <span>{t.tab_employee_signin || (isTe ? 'ఉద్యోగుల లాగిన్' : 'Employee Sign In')}</span>
+            <span>{t.tab_employee_signin || tr('ఉద్యోగుల లాగిన్', 'Employee Sign In', 'कर्मचारी लॉगिन')}</span>
           </button>
 
           <button
@@ -284,7 +290,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
             }}
           >
             <UserPlus size={15} color={authMode === 'register' ? '#0D9488' : '#64748B'} />
-            <span>{t.tab_employee_register || (isTe ? 'నూతన సిబ్బంది నమోదు' : 'New Staff Register')}</span>
+            <span>{t.tab_employee_register || tr('నూతన సిబ్బంది నమోదు', 'New Staff Register', 'नया स्टाफ पंजीकरण')}</span>
           </button>
         </div>
 
@@ -330,7 +336,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
             <form onSubmit={handleLoginSubmit}>
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                  {t.field_mobile_number || (isTe ? 'మొబైల్ నంబరు లేదా ఈమెయిల్' : 'Mobile Number or Email')}
+                  {t.field_mobile_number || tr('మొబైల్ నంబరు లేదా ఈమెయిల్', 'Mobile Number or Email', 'मोबाइल नंबर या आधिकारिक ईमेल')}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -338,12 +344,12 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     className="form-control"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={isTe ? 'ఉదా: 9848011001 లేదా chw@aarogya.gov.in' : 'e.g. 9848011001 or chw@aarogya.gov.in'}
+                    placeholder={t.login_mobile_placeholder || tr('ఉదా: 9848011001 లేదా chw@aarogya.gov.in', 'e.g. 9848011001 or chw@aarogya.gov.in', 'उदा: 9848011001 या chw@aarogya.gov.in')}
                     required
                   />
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.25rem' }}>
-                  {isTe ? 'రిజిస్టర్ చేసుకున్న మొబైల్ నంబరు లేదా అధికారిక ఈమెయిల్‌తో లాగిన్ అవ్వండి.' : 'Sign in using your 10-digit registered mobile number or email.'}
+                  {t.login_mobile_hint || tr('రిజిస్టర్ చేసుకున్న మొబైల్ నంబరు లేదా అధికారిక ఈమెయిల్‌తో లాగిన్ అవ్వండి.', 'Sign in using your 10-digit registered mobile number or email.', 'अपने 10 अंकों के पंजीकृत मोबाइल नंबर या ईमेल से लॉगिन करें।')}
                 </div>
               </div>
 
@@ -376,7 +382,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                   boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)'
                 }}
               >
-                {loading ? (isTe ? 'ప్రాసెస్ అవుతోంది...' : 'Authenticating...') : t.login_submit}
+                {loading ? (t.login_authenticating || tr('ప్రాసెస్ అవుతోంది...', 'Authenticating...', 'प्रमाणित हो रहा है...')) : (t.login_submit || tr('లాగిన్ అవ్వండి', 'Sign In to Portal', 'लॉगिन करें'))}
               </button>
             </form>
           </div>
@@ -388,14 +394,14 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Full Name */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_full_name || (isTe ? 'పూర్తి పేరు' : 'Employee Full Name')} *
+                    {(t.field_full_name || tr('పూర్తి పేరు', 'Employee Full Name', 'कर्मचारी का पूरा नाम'))} *
                   </label>
                   <input
                     type="text"
                     className="form-control"
                     value={regFullName}
                     onChange={(e) => setRegFullName(e.target.value)}
-                    placeholder="e.g. Anasuya Devi / Dr. K. Rao"
+                    placeholder={tr('ఉదా: కె. అనసూయ / డా. కె. రావు', 'e.g. Anasuya Devi / Dr. K. Rao', 'उदा: अनसूया देवी / डॉ. के. राव')}
                     required
                   />
                 </div>
@@ -403,7 +409,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Role */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_role || (isTe ? 'అధికారిక హోదా' : 'Official Role')} *
+                    {(t.field_role || tr('అధికారిక హోదా', 'Official Role', 'आधिकारिक पद'))} *
                   </label>
                   <select
                     className="form-control"
@@ -411,24 +417,24 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     onChange={(e) => handleRoleChange(e.target.value as UserRole)}
                     required
                   >
-                    <option value="chw">{isTe ? 'ఆశా / విలేజ్ హెల్త్ వర్కర్ (ASHA / CHW)' : 'ASHA / Village Health Worker (CHW)'}</option>
-                    <option value="phc_staff">{isTe ? 'PHC స్టాఫ్ / మెడికల్ ఆఫీసర్ (PHC Staff / MO)' : 'PHC Staff / Medical Officer (MO)'}</option>
-                    <option value="doctor">{isTe ? 'వైద్యులు (Doctors)' : 'Doctors'}</option>
-                    <option value="admin">{isTe ? 'DMHO (డిస్ట్రిక్ట్ మెడికల్ & హెల్త్ ఆఫీసర్)' : 'DMHO (District Medical & Health Officer)'}</option>
+                    <option value="chw">{t.role_chw}</option>
+                    <option value="phc_staff">{t.role_phc_staff}</option>
+                    <option value="doctor">{t.role_doctor}</option>
+                    <option value="admin">{t.role_admin}</option>
                   </select>
                 </div>
 
                 {/* Mobile Number */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_mobile_number || (isTe ? 'మొబైల్ నంబరు' : 'Mobile Number')} *
+                    {(t.field_mobile_number || tr('మొబైల్ నంబరు', 'Mobile Number', 'मोबाइल नंबर'))} *
                   </label>
                   <input
                     type="tel"
                     className="form-control"
                     value={regPhone}
                     onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="e.g. 98490 12345"
+                    placeholder={tr('ఉదా: 98490 12345', 'e.g. 98490 12345', 'उदा: 98490 12345')}
                     required
                   />
                 </div>
@@ -436,7 +442,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Mandal */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_mandal || (isTe ? 'మండలం' : 'Mandal')} *
+                    {(t.field_mandal || tr('మండలం', 'Mandal', 'मंडल'))} *
                   </label>
                   <select
                     className="form-control"
@@ -478,7 +484,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* District */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_district || (isTe ? 'జిల్లా' : 'District')}
+                    {t.field_district || tr('జిల్లా', 'District', 'ज़िला')}
                   </label>
                   <input
                     type="text"
@@ -492,7 +498,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* State */}
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_state || (isTe ? 'రాష్ట్రం' : 'State')}
+                    {t.field_state || tr('రాష్ట్రం', 'State', 'राज्य')}
                   </label>
                   <input
                     type="text"
@@ -506,7 +512,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 {/* Password */}
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label" style={{ fontWeight: 600, color: '#334155' }}>
-                    {t.field_password || (isTe ? 'లాగిన్ పాస్‌వర్డ్' : 'Create Password')} *
+                    {(t.field_password || tr('లాగిన్ పాస్‌వర్డ్', 'Create Password', 'लॉगिन पासवर्ड'))} *
                   </label>
                   <input
                     type="password"
@@ -535,8 +541,8 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                 }}
               >
                 {loading
-                  ? (isTe ? 'నమోదు అవుతోంది...' : 'Registering Employee...')
-                  : (t.btn_register_submit || (isTe ? 'నమోదు చేసి లాగిన్ అవ్వండి' : 'Register Employee & Sign In'))}
+                  ? (t.reg_submitting || tr('నమోదు అవుతోంది...', 'Registering Employee...', 'पंजीकरण हो रहा है...'))
+                  : (t.btn_register_submit || tr('నమోదు చేసి లాగిన్ అవ్వండి', 'Register Employee & Sign In', 'पंजीकरण करें और लॉगिन करें'))}
               </button>
 
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
@@ -553,7 +559,7 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
                     textDecoration: 'underline'
                   }}
                 >
-                  {isTe ? 'ఇప్పటికే ఖాతా ఉందా? లాగిన్ అవ్వండి' : 'Already have an account? Sign In'}
+                  {t.already_have_account || tr('ఇప్పటికే ఖాతా ఉందా? లాగిన్ అవ్వండి', 'Already have an account? Sign In', 'क्या आपके पास पहले से खाता है? लॉगिन करें')}
                 </button>
               </div>
             </form>

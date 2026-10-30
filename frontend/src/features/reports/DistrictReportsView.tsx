@@ -17,6 +17,12 @@ interface Props {
 export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   const [analytics, setAnalytics] = useState<DistrictAnalytics | null>(null);
   const [staffRoster, setStaffRoster] = useState<StaffMember[]>([]);
@@ -48,7 +54,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       <div style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B' }}>
         <div style={{ display: 'inline-block', width: '32px', height: '32px', border: '3px solid #0D9488', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         <div style={{ marginTop: '1rem', fontWeight: 600 }}>
-          {isTe ? 'జిల్లా ఆరోగ్య గణాంకాలు & సిబ్బంది సమాచారం లోడ్ అవుతోంది...' : 'Loading district workforce analytics and health facilities...'}
+          {tr('జిల్లా ఆరోగ్య గణాంకాలు & సిబ్బంది సమాచారం లోడ్ అవుతోంది...', 'Loading district workforce analytics and health facilities...', 'जिला स्वास्थ्य कार्यबल और प्राथमिक स्वास्थ्य केंद्र लोड हो रहे हैं...')}
         </div>
       </div>
     );
@@ -71,15 +77,15 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'chw':
-        return { label: isTe ? 'ఆశా కార్యకర్త (CHW)' : 'ASHA / CHW', bg: '#CCFBF1', color: '#0F766E' };
+        return { label: tr('ఆశా కార్యకర్త (CHW)', 'ASHA / CHW', 'आशा कार्यकर्ता (CHW)'), bg: '#CCFBF1', color: '#0F766E' };
       case 'phc_staff':
-        return { label: isTe ? 'పీహెచ్‌సీ స్టాఫ్ / MO' : 'PHC Staff / MO', bg: '#DCFCE7', color: '#15803D' };
+        return { label: tr('పీహెచ్‌సీ స్టాఫ్ / MO', 'PHC Staff / MO', 'पीएचसी स्टाफ / MO'), bg: '#DCFCE7', color: '#15803D' };
       case 'doctor':
-        return { label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors', bg: '#F3E8FF', color: '#7E22CE' };
+        return { label: tr('వైద్యులు (Doctors)', 'Doctors', 'चिकित्सक / डॉक्टर'), bg: '#F3E8FF', color: '#7E22CE' };
       case 'navigator':
-        return { label: isTe ? 'పేషెంట్ నేవిగేటర్' : 'Patient Navigator', bg: '#FEF3C7', color: '#B45309' };
+        return { label: tr('పేషెంట్ నేవిగేటర్', 'Patient Navigator', 'रोगी नेविगेटर'), bg: '#FEF3C7', color: '#B45309' };
       case 'admin':
-        return { label: isTe ? 'DMHO వైద్యాధికారి' : 'DMHO Admin', bg: '#FFE4E6', color: '#BE123C' };
+        return { label: tr('DMHO వైద్యాధికారి', 'DMHO Admin', 'डीएमएचओ अधिकारी'), bg: '#FFE4E6', color: '#BE123C' };
       default:
         return { label: role, bg: '#F1F5F9', color: '#475569' };
     }
@@ -91,7 +97,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       <div style={{ marginBottom: '1.75rem' }}>
         <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <Shield size={24} color="#0D9488" />
-          {t.nav_reports} • {isTe ? 'DMHO జిల్లా ఆరోగ్య పర్యవేక్షణ & సిబ్బంది డాష్‌బోర్డ్' : 'DMHO Health Workforce & Facilities Monitoring'}
+          {t.nav_reports} • {tr('DMHO జిల్లా ఆరోగ్య పర్యవేక్షణ & సిబ్బంది డాష్‌బోర్డ్', 'DMHO Health Workforce & Facilities Monitoring', 'डीएमएचओ स्वास्थ्य कार्यबल और सुविधाएं निगरानी')}
         </h2>
         <p style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '0.25rem' }}>
           {isTe
@@ -104,7 +110,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       <div style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Users size={18} color="#0D9488" />
-          {isTe ? 'ఆరోగ్య సిబ్బంది & పీహెచ్‌సీ కేంద్రాల స్థితి (Workforce & Facilities)' : 'Health Workforce & Primary Health Centres Status'}
+          {tr('ఆరోగ్య సిబ్బంది & పీహెచ్‌సీ కేంద్రాల స్థితి (Workforce & Facilities)', 'Health Workforce & Primary Health Centres Status', 'स्वास्थ्य कार्यबल एवं प्राथमिक स्वास्थ्य केंद्र स्थिति')}
         </h3>
       </div>
 
@@ -118,7 +124,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div className="metric-val" style={{ color: '#0F766E' }}>{analytics.total_asha_workers ?? staffRoster.filter(s => s.role === 'chw').length}</div>
             <div className="metric-label">{t.dmho_total_asha || (isTe ? 'మొత్తం ఆశా కార్యకర్తలు' : 'Total ASHA Workers')}</div>
             <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
-              {isTe ? 'గ్రామస్థాయి నోటి స్క్రీనింగ్ & ఫీల్డ్ టీమ్' : 'Village-level screening & oral health field team'}
+              {tr('గ్రామస్థాయి నోటి స్క్రీనింగ్ & ఫీల్డ్ టీమ్', 'Village-level screening & oral health field team', 'ग्राम स्तर पर मुख स्क्रीनिंग एवं फील्ड टीम')}
             </div>
           </div>
         </div>
@@ -132,7 +138,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div className="metric-val" style={{ color: '#0284C7' }}>{analytics.total_phcs ?? 6}</div>
             <div className="metric-label">{t.dmho_total_phcs || (isTe ? 'మొత్తం PHC కేంద్రాలు' : 'Total PHC Centres')}</div>
             <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
-              {isTe ? 'పాడేరు ఏజెన్సీ పరిధిలోని 6 మండలాల్లో క్రియాశీలం' : 'Active across all 6 ITDA agency mandals'}
+              {tr('పాడేరు ఏజెన్సీ పరిధిలోని 6 మండలాల్లో క్రియాశీలం', 'Active across all 6 ITDA agency mandals', 'पाडेरू एजेंसी के सभी 6 मंडलों में सक्रिय')}
             </div>
           </div>
         </div>
@@ -146,7 +152,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div className="metric-val" style={{ color: '#7E22CE' }}>{analytics.total_doctors ?? staffRoster.filter(s => s.role === 'doctor' || s.role === 'phc_staff').length}</div>
             <div className="metric-label">{t.dmho_total_doctors || (isTe ? 'అందుబాటులో ఉన్న వైద్యులు' : 'Doctors Available')}</div>
             <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.2rem' }}>
-              {isTe ? 'పీహెచ్‌సీ మెడికల్ ఆఫీసర్లు & ఆంకాలజిస్టులు' : 'PHC Medical Officers & Oral Specialists'}
+              {tr('పీహెచ్‌సీ మెడికల్ ఆఫీసర్లు & ఆంకాలజిస్టులు', 'PHC Medical Officers & Oral Specialists', 'पीएचसी चिकित्सा अधिकारी और विशेषज्ञ')}
             </div>
           </div>
         </div>
@@ -159,7 +165,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <Users size={20} color="var(--teal-primary)" />
             {t.dmho_staff_roster || (isTe ? 'జిల్లా ఆరోగ్య సిబ్బంది డైరెక్టరీ & లైవ్ రోస్టర్' : 'District Healthcare Staff Directory & Workforce Roster')}
             <span style={{ fontSize: '0.8rem', background: '#E2E8F0', padding: '0.2rem 0.6rem', borderRadius: '12px', marginLeft: '0.5rem', fontWeight: 600 }}>
-              {filteredStaff.length} {isTe ? 'మంది సిబ్బంది' : 'Registered Staff'}
+              {filteredStaff.length} {tr('మంది సిబ్బంది', 'Registered Staff', 'पंजीकृत कर्मचारी')}
             </span>
           </div>
 
@@ -168,7 +174,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder={isTe ? 'పేరు, మొబైల్ లేదా పీహెచ్‌సీ శోధించండి...' : 'Search by name, mobile, PHC...'}
+                placeholder={tr('పేరు, మొబైల్ లేదా పీహెచ్‌సీ శోధించండి...', 'Search by name, mobile, PHC...', 'नाम, मोबाइल या पीएचसी खोजें...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -195,7 +201,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
                 color: '#334155'
               }}
             >
-              <option value="all">{isTe ? 'అన్ని మండలాలు (All 11 Mandals)' : 'All 11 Mandals'}</option>
+              <option value="all">{tr('అన్ని మండలాలు (All 11 Mandals)', 'All 11 Mandals', 'सभी 11 मंडल (All Mandals)')}</option>
               {ASR_DISTRICT_MANDALS.map((m) => (
                 <option key={m.id} value={m.id}>
                   {isTe ? `${m.nameTe} (${m.name})` : m.name}
@@ -208,11 +214,11 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
         {/* Role Filter Chips */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
           {[
-            { id: 'all', label: isTe ? 'అందరూ (All)' : 'All Staff' },
-            { id: 'chw', label: isTe ? 'ఆశా కార్యకర్తలు (ASHA)' : 'ASHA / CHWs' },
-            { id: 'phc_staff', label: isTe ? 'పీహెచ్‌సీ సిబ్బంది (PHC Staff)' : 'PHC Staff' },
-            { id: 'doctor', label: isTe ? 'వైద్యులు (Doctors)' : 'Doctors & Specialists' },
-            { id: 'admin', label: isTe ? 'DMHO అధికారులు' : 'District Admin' }
+            { id: 'all', label: tr('అందరూ (All)', 'All Staff', 'सभी स्टाफ (All)') },
+            { id: 'chw', label: tr('ఆశా కార్యకర్తలు (ASHA)', 'ASHA / CHWs', 'आशा कार्यकर्ता (ASHA)') },
+            { id: 'phc_staff', label: tr('పీహెచ్‌సీ సిబ్బంది (PHC Staff)', 'PHC Staff', 'पीएचसी स्टाफ (PHC Staff)') },
+            { id: 'doctor', label: tr('వైద్యులు (Doctors)', 'Doctors & Specialists', 'डॉक्टर एवं विशेषज्ञ (Doctors)') },
+            { id: 'admin', label: tr('DMHO అధికారులు', 'District Admin', 'डीएमएचओ अधिकारी (Admin)') }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -240,19 +246,19 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           <table className="table" style={{ width: '100%', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', color: '#475569', textAlign: 'left' }}>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'ఉద్యోగి పేరు (Employee Name)' : 'Employee Name'}</th>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'అధికారిక హోదా (Role)' : 'Official Role'}</th>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'మొబైల్ నంబరు (Mobile)' : 'Mobile Number'}</th>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'పీహెచ్‌సీ కేంద్రం (PHC Facility)' : 'Assigned PHC Centre'}</th>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'మండలం & జిల్లా' : 'Mandal & District'}</th>
-                <th style={{ padding: '0.75rem 1rem' }}>{isTe ? 'స్థితి' : 'Status'}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('ఉద్యోగి పేరు (Employee Name)', 'Employee Name', 'कर्मचारी का नाम')}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('అధికారిక హోదా (Role)', 'Official Role', 'आधिकारिक पद')}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('మొబైల్ నంబరు (Mobile)', 'Mobile Number', 'मोबाइल नंबर')}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('పీహెచ్‌సీ కేంద్రం (PHC Facility)', 'Assigned PHC Centre', 'निर्धारित पीएचसी केंद्र')}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('మండలం & జిల్లా', 'Mandal & District', 'मंडल और ज़िला')}</th>
+                <th style={{ padding: '0.75rem 1rem' }}>{tr('స్థితి', 'Status', 'स्थिति')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredStaff.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#94A3B8' }}>
-                    {isTe ? 'ఈ శోధనకు సరిపోలే సిబ్బంది వివరాలు లేవు.' : 'No staff members match the selected filter.'}
+                    {tr('ఈ శోధనకు సరిపోలే సిబ్బంది వివరాలు లేవు.', 'No staff members match the selected filter.', 'कोई कर्मचारी इस फ़िल्टर से मेल नहीं खाता।')}
                   </td>
                 </tr>
               ) : (
@@ -322,7 +328,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
                             background: staff.is_active ? '#22C55E' : '#94A3B8',
                             boxShadow: staff.is_active ? '0 0 6px #22C55E' : 'none'
                           }} />
-                          {staff.is_active ? (isTe ? 'క్రియాశీలం / అందుబాటులో' : 'Active / On Duty') : 'Inactive'}
+                          {staff.is_active ? tr('క్రియాశీలం / అందుబాటులో', 'Active / On Duty', 'सक्रिय / ड्यूटी पर') : 'Inactive'}
                         </span>
                       </td>
                     </tr>
@@ -338,7 +344,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       <div className="card" style={{ marginBottom: '1.75rem' }}>
         <div className="card-title" style={{ marginBottom: '1rem' }}>
           <BarChart3 size={20} color="var(--teal-primary)" />
-          {isTe ? 'మండలాల వారీగా PHC కేంద్రాలు, ఆశా సిబ్బంది & స్క్రీనింగ్ వివరాలు' : 'Mandal-Wise PHC Centres, ASHA Workers & Screening Coverage'}
+          {tr('మండలాల వారీగా PHC కేంద్రాలు, ఆశా సిబ్బంది & స్క్రీనింగ్ వివరాలు', 'Mandal-Wise PHC Centres, ASHA Workers & Screening Coverage', 'मंडल-वार पीएचसी केंद्र, आशा कार्यकर्ता और कवरेज')}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
@@ -366,11 +372,11 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
                   {isTe ? mItem.nameTe : mItem.name}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.6 }}>
-                  <div>🏥 <strong>{mandalData.phcs ?? 1}</strong> {isTe ? 'పీహెచ్‌సీ కేంద్రం' : 'PHC Centre'}</div>
-                  <div>👩‍⚕️ <strong>{mandalData.asha_workers ?? 1}</strong> {isTe ? 'ఆశా వర్కర్లు' : 'ASHA Workers'}</div>
-                  <div>🩺 <strong>{mandalData.doctors ?? 1}</strong> {isTe ? 'వైద్యులు' : 'Doctors'}</div>
+                  <div>🏥 <strong>{mandalData.phcs ?? 1}</strong> {tr('పీహెచ్‌సీ కేంద్రం', 'PHC Centre', 'पीएचसी केंद्र')}</div>
+                  <div>👩‍⚕️ <strong>{mandalData.asha_workers ?? 1}</strong> {tr('ఆశా వర్కర్లు', 'ASHA Workers', 'आशा कार्यकर्ता')}</div>
+                  <div>🩺 <strong>{mandalData.doctors ?? 1}</strong> {tr('వైద్యులు', 'Doctors', 'डॉक्टर')}</div>
                   <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed #CBD5E1', color: '#0D9488', fontWeight: 700 }}>
-                    📋 {mandalData.screenings ?? 0} {isTe ? 'స్క్రీనింగ్‌లు' : 'Screenings'}
+                    📋 {mandalData.screenings ?? 0} {tr('స్క్రీనింగ్‌లు', 'Screenings', 'स्क्रीनिंग')}
                   </div>
                 </div>
               </div>
@@ -383,7 +389,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
       <div style={{ marginBottom: '0.75rem' }}>
         <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1E293B', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Activity size={18} color="#0D9488" />
-          {isTe ? 'క్లినికల్ స్క్రీనింగ్ & క్యాన్సర్ ముందస్తు నిర్ధారణ నివేదికలు' : 'Oral Cancer Screening & Clinical Outcomes'}
+          {tr('క్లినికల్ స్క్రీనింగ్ & క్యాన్సర్ ముందస్తు నిర్ధారణ నివేదికలు', 'Oral Cancer Screening & Clinical Outcomes', 'मुख कैंसर स्क्रीनिंग एवं नैदानिक परिणाम')}
         </h3>
       </div>
 
@@ -394,7 +400,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           </div>
           <div>
             <div className="metric-val">{analytics.total_screenings}</div>
-            <div className="metric-label">{isTe ? 'మొత్తం నోటి స్క్రీనింగ్‌లు' : 'Total Screenings Recorded'}</div>
+            <div className="metric-label">{tr('మొత్తం నోటి స్క్రీనింగ్‌లు', 'Total Screenings Recorded', 'कुल मुख स्क्रीनिंग दर्ज')}</div>
           </div>
         </div>
 
@@ -404,7 +410,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           </div>
           <div>
             <div className="metric-val">{analytics.verified_arrivals_count}</div>
-            <div className="metric-label">{isTe ? 'OTP ద్వారా ధృవీకరించబడిన రాకలు' : 'Verified Arrivals via OTP'}</div>
+            <div className="metric-label">{tr('OTP ద్వారా ధృవీకరించబడిన రాకలు', 'Verified Arrivals via OTP', 'ओटीपी द्वारा सत्यापित आगमन')}</div>
           </div>
         </div>
 
@@ -414,7 +420,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           </div>
           <div>
             <div className="metric-val">{analytics.average_wait_duration_minutes}m</div>
-            <div className="metric-label">{isTe ? 'సగటు రోగి నిరీక్షణ సమయం' : 'Average Patient Wait Duration'}</div>
+            <div className="metric-label">{tr('సగటు రోగి నిరీక్షణ సమయం', 'Average Patient Wait Duration', 'औसत रोगी प्रतीक्षा समय')}</div>
           </div>
         </div>
 
@@ -424,7 +430,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
           </div>
           <div>
             <div className="metric-val">{analytics.sms_delivery_rate_percent}%</div>
-            <div className="metric-label">{isTe ? 'SMS డెలివరీ విజయం' : 'SMS Delivery Queue Rate'}</div>
+            <div className="metric-label">{tr('SMS డెలివరీ విజయం', 'SMS Delivery Queue Rate', 'एसएमएस डिलीवरी दर')}</div>
           </div>
         </div>
       </div>
@@ -434,14 +440,14 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
         <div className="metric-card" style={{ borderLeft: '4px solid #F59E0B' }}>
           <div>
             <div className="metric-val" style={{ color: '#D97706' }}>{analytics.precancers_detected ?? 1}</div>
-            <div className="metric-label">{isTe ? 'కనుగొన్న OPMD ముందస్తు మచ్చలు (ల్యూకోప్లాకియా/OSMF)' : 'OPMD Precancers Detected (Leukoplakia/OSMF)'}</div>
+            <div className="metric-label">{tr('కనుగొన్న OPMD ముందస్తు మచ్చలు (ల్యూకోప్లాకియా/OSMF)', 'OPMD Precancers Detected (Leukoplakia/OSMF)', 'पहचाने गए पूर्व-कैंसर (ल्यूकोप्लाकिया/OSMF)')}</div>
           </div>
         </div>
 
         <div className="metric-card" style={{ borderLeft: '4px solid #EF4444' }}>
           <div>
             <div className="metric-val" style={{ color: '#DC2626' }}>{analytics.cancers_confirmed ?? 0}</div>
-            <div className="metric-label">{isTe ? 'ధృవీకరించబడిన మాలిగ్నెన్సీలు (OSCC)' : 'Pathology Confirmed Malignancies (OSCC)'}</div>
+            <div className="metric-label">{tr('ధృవీకరించబడిన మాలిగ్నెన్సీలు (OSCC)', 'Pathology Confirmed Malignancies (OSCC)', 'पुष्टि की गई विकृतियां (OSCC)')}</div>
           </div>
         </div>
 
@@ -450,14 +456,14 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
             <div className="metric-val" style={{ color: '#0284C7' }}>
               {(analytics.biopsies_completed ?? 1)} / {(analytics.biopsies_pending ?? 0) + (analytics.biopsies_completed ?? 1)}
             </div>
-            <div className="metric-label">{isTe ? 'బయాప్సీ పరీక్షల పురోగతి (పూర్తయినవి / సూచించినవి)' : 'Biopsies Completed vs Advised'}</div>
+            <div className="metric-label">{tr('బయాప్సీ పరీక్షల పురోగతి (పూర్తయినవి / సూచించినవి)', 'Biopsies Completed vs Advised', 'बायोप्सी पूर्ण बनाम अनुशंसित')}</div>
           </div>
         </div>
 
         <div className="metric-card" style={{ borderLeft: '4px solid #7C3AED' }}>
           <div>
             <div className="metric-val" style={{ color: '#7C3AED' }}>{analytics.referrals_count ?? 1}</div>
-            <div className="metric-label">{isTe ? 'జిల్లా ఆసుపత్రికి రిఫరల్ స్లిప్‌లు' : 'Specialist Referrals Issued'}</div>
+            <div className="metric-label">{tr('జిల్లా ఆసుపత్రికి రిఫరల్ స్లిప్‌లు', 'Specialist Referrals Issued', 'जारी की गई विशेषज्ञ रेफरल पर्चियां')}</div>
           </div>
         </div>
       </div>

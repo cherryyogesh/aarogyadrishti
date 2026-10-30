@@ -24,6 +24,12 @@ export const MytraAssessmentView: React.FC<Props> = ({
   showClinicianReviewForm = true
 }) => {
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   // Clinician Review Form State
   const [reviewDecision, setReviewDecision] = useState<'approved' | 'amended' | 'rejected'>('approved');
@@ -42,7 +48,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clinicianNotes.trim()) {
-      alert(isTe ? 'దయచేసి డాక్టర్ క్లినికల్ నోట్స్ నమోదు చేయండి' : 'Please provide clinical notes for this review.');
+      alert(tr('దయచేసి డాక్టర్ క్లినికల్ నోట్స్ నమోదు చేయండి', 'Please provide clinical notes for this review.', 'कृपया इस समीक्षा के लिए नैदानिक नोट्स प्रदान करें।'));
       return;
     }
 
@@ -80,7 +86,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
           bg: '#FEE2E2',
           border: '#DC2626',
           text: '#991B1B',
-          label: isTe ? 'అత్యవసర ఆసుపత్రి సంరక్షణ' : 'URGENT HOSPITAL CARE',
+          label: tr('అత్యవసర ఆసుపత్రి సంరక్షణ', 'URGENT HOSPITAL CARE', 'अत्यवश्यक अस्पताल देखभाल'),
           icon: AlertTriangle
         };
       case 'prompt_assessment':
@@ -88,7 +94,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
           bg: '#FEF3C7',
           border: '#D97706',
           text: '#92400E',
-          label: isTe ? 'సత్వర వైద్య పరీక్ష అవసరం (48-72 గంటల్లో)' : 'PROMPT MEDICAL ASSESSMENT',
+          label: tr('సత్వర వైద్య పరీక్ష అవసరం (48-72 గంటల్లో)', 'PROMPT MEDICAL ASSESSMENT', 'शीघ्र चिकित्सा जांच आवश्यक (48-72 घंटों में)'),
           icon: Clock
         };
       case 'routine_review':
@@ -97,7 +103,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
           bg: '#E0F2FE',
           border: '#0284C7',
           text: '#075985',
-          label: isTe ? 'సాధారణ పీహెచ్‌సీ సమీక్ష' : 'ROUTINE PHC REVIEW',
+          label: tr('సాధారణ పీహెచ్‌సీ సమీక్ష', 'ROUTINE PHC REVIEW', 'सामान्य पीएचसी समीक्षा'),
           icon: CheckCircle2
         };
     }
@@ -228,7 +234,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
           <ShieldAlert size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div>
             <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {isTe ? 'వైద్య రక్షణ మార్గదర్శకం (Clinical Safety Guardrail)' : 'Clinical Safety & Diagnostic Boundary'}
+              {tr('వైద్య రక్షణ మార్గదర్శకం (Clinical Safety Guardrail)', 'Clinical Safety & Diagnostic Boundary', 'चिकित्सा सुरक्षा दिशानिर्देश एवं सीमाएं')}
             </div>
             <div style={{ fontSize: '0.82rem', color: '#78350F', marginTop: '0.25rem', lineHeight: 1.5 }}>
               {assessment.cancer_safety_notice || (isTe
@@ -260,7 +266,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                 <Users size={18} color="#0D9488" />
                 <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0F172A' }}>
-                  {isTe ? 'బహుళ వినియోగదారుల సమగ్ర వివరణ (Universal Multi-Stakeholder Views)' : 'Universal Healthcare Multi-Stakeholder Perspective'}
+                  {tr('బహుళ వినియోగదారుల సమగ్ర వివరణ (Universal Multi-Stakeholder Views)', 'Universal Healthcare Multi-Stakeholder Perspective', 'सार्वभौमिक बहु-हितधारक दृष्टिकोण')}
                 </h4>
               </div>
               <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.15rem' }}>
@@ -273,10 +279,10 @@ export const MytraAssessmentView: React.FC<Props> = ({
             {/* Stakeholder Selector Tabs */}
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {[
-                { id: 'all', label: isTe ? '👥 అందరికీ (All)' : '👥 All Views' },
-                { id: 'patient', label: isTe ? '🗣️ రోగి (Patient)' : '🗣️ Patient & Family' },
-                { id: 'asha', label: isTe ? '👩‍⚕️ ఆశా (ASHA)' : '👩‍⚕️ ASHA & Field' },
-                { id: 'doctor', label: isTe ? '🩺 డాక్టర్ (Doctor)' : '🩺 Clinician Dossier' }
+                { id: 'all', label: tr('👥 అందరికీ (All)', '👥 All Views', '👥 सभी (All)') },
+                { id: 'patient', label: tr('🗣️ రోగి (Patient)', '🗣️ Patient & Family', '🗣️ रोगी एवं परिवार') },
+                { id: 'asha', label: tr('👩‍⚕️ ఆశా (ASHA)', '👩‍⚕️ ASHA & Field', '👩‍⚕️ आशा कार्यकर्ता') },
+                { id: 'doctor', label: tr('🩺 డాక్టర్ (Doctor)', '🩺 Clinician Dossier', '🩺 डॉक्टर डोजियर') }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -318,12 +324,12 @@ export const MytraAssessmentView: React.FC<Props> = ({
                     </h5>
                   </div>
                   <span style={{ background: '#DCFCE7', color: '#166534', padding: '0.15rem 0.55rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
-                    {isTe ? 'సులభమైన గ్రామీణ భాష' : 'Gentle Plain Language'}
+                    {tr('సులభమైన గ్రామీణ భాష', 'Gentle Plain Language', 'सरल एवं स्पष्ट भाषा')}
                   </span>
                 </div>
 
                 <div style={{ fontSize: '0.84rem', color: '#1E293B', lineHeight: 1.55, marginBottom: '0.65rem' }}>
-                  <strong>{isTe ? 'ఏమి కనిపిస్తోంది:' : 'What is seen:'}</strong>{' '}
+                  <strong>{tr('ఏమి కనిపిస్తోంది:', 'What is seen:', 'क्या दिखाई दे रहा है:')}</strong>{' '}
                   {assessment.stakeholder_views?.patient?.summary || (isTe
                     ? 'మీ నోటిలో లేదా నాలుకపై పుండు/మచ్చ కనిపిస్తోంది. ఇది సాధారణ విటమిన్ లోపం, ఆహార రాపిడి లేదా ఇతర కారణాల వల్ల కావచ్చు. కంగారు పడవలసిన అవసరం లేదు, జాగ్రత్తలు పాటించండి.'
                     : 'A visible oral mucosal sore or patch is observed. This can arise from nutritional deficiency, local trauma, or other conditions. Maintain calm self-care.')}
@@ -331,7 +337,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
 
                 <div style={{ background: '#F0FDF4', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.65rem' }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#166534', marginBottom: '0.35rem' }}>
-                    {isTe ? 'మీరు ఇంట్లో చేయవలసిన తక్షణ సంరక్షణ (Home Self-Care):' : 'Immediate Home Self-Care Steps:'}
+                    {tr('మీరు ఇంట్లో చేయవలసిన తక్షణ సంరక్షణ (Home Self-Care):', 'Immediate Home Self-Care Steps:', 'घर पर की जाने वाली तात्कालिक देखभाल:')}
                   </div>
                   <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#14532D', lineHeight: 1.6 }}>
                     {(assessment.stakeholder_views?.patient?.home_care || [
@@ -346,7 +352,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
                 </div>
 
                 <div style={{ fontSize: '0.8rem', color: '#047857', background: '#ECFDF5', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #10B981' }}>
-                  <strong>👉 {isTe ? 'డాక్టర్‌ను ఎందుకు సంప్రదించాలి:' : 'Why an in-person doctor checkup is needed:'}</strong>{' '}
+                  <strong>👉 {tr('డాక్టర్‌ను ఎందుకు సంప్రదించాలి:', 'Why an in-person doctor checkup is needed:', 'डॉक्टर से परामर्श क्यों आवश्यक है:')}</strong>{' '}
                   {assessment.stakeholder_views?.patient?.doctor_reason || (isTe
                     ? 'నోటిలోని ఏదైనా పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకుండా ఉంటే, సరైన చికిత్స కొరకు సమీప ప్రాథమిక ఆరోగ్య కేంద్రం (PHC) వైద్యుడిని సంప్రదించాలి. ముందస్తు పరీక్ష ఆరోగ్యాన్ని కాపాడుతుంది.'
                     : 'Any mouth ulcer persisting longer than 14 days requires an in-person PHC doctor examination to verify healing and prescribe targeted treatment.')}
@@ -371,13 +377,13 @@ export const MytraAssessmentView: React.FC<Props> = ({
                     </h5>
                   </div>
                   <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '0.15rem 0.55rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 700 }}>
-                    {isTe ? 'ఫీల్డ్ చెక్‌లిస్ట్' : 'Field Protocol Checklist'}
+                    {tr('ఫీల్డ్ చెక్‌లిస్ట్', 'Field Protocol Checklist', 'फील्ड प्रोटोकॉल चेकलिस्ट')}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
-                    {isTe ? 'అత్యవసర ప్రాధాన్యత (Priority Urgency):' : 'Action Urgency Level:'}
+                    {tr('అత్యవసర ప్రాధాన్యత (Priority Urgency):', 'Action Urgency Level:', 'कार्रवाई प्राथमिकता स्तर:')}
                   </span>
                   <span style={{
                     background: urgencyBadge.bg,
@@ -394,7 +400,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
 
                 <div style={{ background: '#F0F9FF', borderRadius: '8px', padding: '0.65rem 0.85rem', marginBottom: '0.65rem' }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0369A1', marginBottom: '0.35rem' }}>
-                    {isTe ? 'ఫీల్డ్ చెక్‌లిస్ట్ (రోగిని అడగవలసిన ప్రశ్నలు):' : 'Field Screening Questions (Check with Patient):'}
+                    {tr('ఫీల్డ్ చెక్‌లిస్ట్ (రోగిని అడగవలసిన ప్రశ్నలు):', 'Field Screening Questions (Check with Patient):', 'फील्ड स्क्रीनिंग प्रश्न (रोगी से पूछें):')}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                     {(assessment.stakeholder_views?.asha?.field_checklist || [
@@ -413,7 +419,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
                 </div>
 
                 <div style={{ fontSize: '0.8rem', color: '#0369A1', background: '#F0F9FF', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #0284C7' }}>
-                  <strong>{isTe ? 'తదుపరి చర్య (Action Step):' : 'Next Action Step:'}</strong>{' '}
+                  <strong>{tr('తదుపరి చర్య (Action Step):', 'Next Action Step:', 'अगला कदम:')}</strong>{' '}
                   {assessment.stakeholder_views?.asha?.referral_step || (isTe
                     ? '48–72 గంటల్లో సమీప ప్రాథమిక ఆరోగ్య కేంద్రం (PHC) వైద్యాధికారికి అపాయింట్‌మెంట్ బుక్ చేసి, అవసరమైతే రవాణా సమన్వయం చేయండి.'
                     : 'Schedule an in-person PHC Medical Officer assessment within 48–72 hours; assist with patient navigation.')}
@@ -479,7 +485,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
         <div style={{ marginBottom: '1.3rem', paddingBottom: '1.1rem', borderBottom: '1px solid #F1F5F9' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ color: '#0D9488' }}>A.</span> {isTe ? 'ఫొటో నాణ్యత పరిశీలన (Image Quality)' : 'Image Quality Assessment'}
+              <span style={{ color: '#0D9488' }}>A.</span> {tr('ఫొటో నాణ్యత పరిశీలన (Image Quality)', 'Image Quality Assessment', 'फोटो गुणवत्ता मूल्यांकन')}
             </h4>
             <span style={{
               fontSize: '0.74rem',
@@ -489,7 +495,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
               backgroundColor: assessment.image_quality?.status === 'adequate' ? '#DCFCE7' : '#FEE2E2',
               color: assessment.image_quality?.status === 'adequate' ? '#15803D' : '#991B1B'
             }}>
-              {assessment.image_quality?.status === 'adequate' ? (isTe ? 'స్పష్టమైన నాణ్యత' : 'Adequate for Analysis') : (isTe ? 'పునఃపరిశీలన అవసరం' : 'Quality Limited')}
+              {assessment.image_quality?.status === 'adequate' ? tr('స్పష్టమైన నాణ్యత', 'Adequate for Analysis', 'स्पष्ट गुणवत्ता') : tr('పునఃపరిశీలన అవసరం', 'Quality Limited', 'पुनः जांच आवश्यक')}
             </span>
           </div>
 
@@ -499,7 +505,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
 
           {assessment.image_quality?.limitations && assessment.image_quality.limitations.length > 0 && (
             <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '0.6rem 0.8rem', fontSize: '0.78rem', color: '#64748B' }}>
-              <strong>{isTe ? 'నాణ్యత పరిమితులు' : 'Quality Limitations'}:</strong>
+              <strong>{tr('నాణ్యత పరిమితులు', 'Quality Limitations', 'गुणवत्ता सीमाएं')}:</strong>
               <ul style={{ margin: '0.25rem 0 0 0', paddingLeft: '1.2rem' }}>
                 {assessment.image_quality.limitations.map((lim, idx) => (
                   <li key={idx}>{lim}</li>
@@ -512,7 +518,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
         {/* SECTION B: Visible Observations */}
         <div style={{ marginBottom: '1.3rem', paddingBottom: '1.1rem', borderBottom: '1px solid #F1F5F9' }}>
           <h4 style={{ margin: '0 0 0.6rem 0', fontSize: '0.92rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#0D9488' }}>B.</span> {isTe ? 'ప్రత్యక్షంగా కనిపించే అంశాలు (Visible Observations)' : 'Direct Visible Observations'}
+            <span style={{ color: '#0D9488' }}>B.</span> {tr('ప్రత్యక్షంగా కనిపించే అంశాలు (Visible Observations)', 'Direct Visible Observations', 'प्रत्यक्ष दृश्य अवलोकन')}
           </h4>
           <p style={{ margin: '0 0 0.6rem 0', fontSize: '0.78rem', color: '#64748B', fontStyle: 'italic' }}>
             {isTe
@@ -546,7 +552,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
         {/* SECTION C: Possible Explanations */}
         <div style={{ marginBottom: '1.3rem', paddingBottom: '1.1rem', borderBottom: '1px solid #F1F5F9' }}>
           <h4 style={{ margin: '0 0 0.6rem 0', fontSize: '0.92rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#0D9488' }}>C.</span> {isTe ? 'ప్రాథమిక కారణాలు (Possible Medical Explanations)' : 'Possible Medical Explanations'}
+            <span style={{ color: '#0D9488' }}>C.</span> {tr('ప్రాథమిక కారణాలు (Possible Medical Explanations)', 'Possible Medical Explanations', 'संभावित चिकित्सीय कारण')}
           </h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
             {assessment.possible_explanations && assessment.possible_explanations.map((expl, idx) => (
@@ -564,7 +570,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
                 </div>
                 {expl.limitations && expl.limitations.length > 0 && (
                   <div style={{ fontSize: '0.74rem', color: '#64748B', borderTop: '1px dashed #CBD5E1', paddingTop: '0.35rem' }}>
-                    <strong>{isTe ? 'పరిమితి' : 'Limitation'}:</strong> {expl.limitations.join(' ')}
+                    <strong>{tr('పరిమితి', 'Limitation', 'सीमा')}:</strong> {expl.limitations.join(' ')}
                   </div>
                 )}
               </div>
@@ -575,7 +581,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
         {/* SECTION D: Additional Information Required */}
         <div style={{ marginBottom: '1.3rem', paddingBottom: '1.1rem', borderBottom: '1px solid #F1F5F9' }}>
           <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.92rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#0D9488' }}>D.</span> {isTe ? 'అవసరమైన అదనపు సమాచారం (Missing Clinical Information)' : 'Additional Clinical Information Required'}
+            <span style={{ color: '#0D9488' }}>D.</span> {tr('అవసరమైన అదనపు సమాచారం (Missing Clinical Information)', 'Additional Clinical Information Required', 'आवश्यक अतिरिक्त नैदानिक जानकारी')}
           </h4>
           <div style={{ background: '#F8FAFC', borderRadius: '8px', padding: '0.75rem 1rem' }}>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.82rem', color: '#475569', lineHeight: 1.6 }}>
@@ -589,7 +595,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
         {/* SECTION E: Recommended Next Step */}
         <div style={{ marginBottom: '1.3rem', paddingBottom: '1.1rem', borderBottom: '1px solid #F1F5F9' }}>
           <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.92rem', fontWeight: 800, color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#0D9488' }}>E.</span> {isTe ? 'సిఫార్సు చేయబడిన తదుపరి చర్య (Recommended Next Step)' : 'Recommended Next Step & Clinical Action'}
+            <span style={{ color: '#0D9488' }}>E.</span> {tr('సిఫార్సు చేయబడిన తదుపరి చర్య (Recommended Next Step)', 'Recommended Next Step & Clinical Action', 'अनुशंसित अगला चिकित्सीय कदम')}
           </h4>
           <div style={{
             background: urgencyBadge.bg,
@@ -601,7 +607,7 @@ export const MytraAssessmentView: React.FC<Props> = ({
               {assessment.recommended_next_step}
             </div>
             <div style={{ fontSize: '0.8rem', color: urgencyBadge.text, marginTop: '0.25rem', opacity: 0.9 }}>
-              <strong>{isTe ? 'హేతువు' : 'Clinical Grounding'}:</strong> {assessment.urgency_reason}
+              <strong>{tr('హేతువు', 'Clinical Grounding', 'नैदानिक आधार')}:</strong> {assessment.urgency_reason}
             </div>
           </div>
         </div>

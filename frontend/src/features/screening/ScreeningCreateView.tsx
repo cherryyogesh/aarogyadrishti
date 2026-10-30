@@ -484,6 +484,12 @@ export const CLINICAL_CONFIGS: Record<string, ClinicalCategoryConfig> = {
 export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScreeningCreated }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | ''>('');
   const [category, setCategory] = useState('mouth');
@@ -934,7 +940,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
           <CheckCircle2 size={40} />
         </div>
         <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', margin: '0 0 0.5rem' }}>
-          {isTe ? 'స్క్రీనింగ్ విజయవంతంగా నమోదైంది & లీడ్ సృష్టించబడింది!' : 'Screening Successfully Recorded & Care Lead Generated!'}
+          {tr('స్క్రీనింగ్ విజయవంతంగా నమోదైంది & లీడ్ సృష్టించబడింది!', 'Screening Successfully Recorded & Care Lead Generated!', 'स्क्रीनिंग सफलतापूर्वक दर्ज की गई और केयर लीड तैयार हुई!')}
         </h2>
 
         {/* Patient Registration ID & Reference Badges */}
@@ -948,7 +954,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
             fontWeight: 800,
             fontSize: '0.95rem'
           }}>
-            🆔 {isTe ? 'రోగి రిజిస్ట్రేషన్ ID:' : 'Patient Reg ID:'} {successResult.patient_id_display || 'AD-ASR-10023'}
+            🆔 {tr('రోగి రిజిస్ట్రేషన్ ID:', 'Patient Reg ID:', 'रोगी पंजीकरण ID:')} {successResult.patient_id_display || 'AD-ASR-10023'}
           </div>
           <div style={{
             background: '#F1F5F9',
@@ -1007,7 +1013,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
           <div style={{ marginTop: '1.25rem', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '1rem' }}>
             <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#1E293B', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Sparkles size={16} color="var(--teal-primary)" />
-              {isTe ? 'ఆరోగ్య మిత్ర లీడ్ తదుపరి దశలు (Care Continuum Steps):' : 'Arogya Mitra Lead Progression Steps:'}
+              {tr('ఆరోగ్య మిత్ర లీడ్ తదుపరి దశలు (Care Continuum Steps):', 'Arogya Mitra Lead Progression Steps:', 'आरोग्य मित्र लीड अनुवर्ती कदम:')}
             </div>
             <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.82rem', color: '#475569', lineHeight: 1.6 }}>
               <li><strong>Step 1 (Immediate):</strong> Patient received SMS with Registration ID {successResult.patient_id_display || 'AD-ASR-10023'}.</li>
@@ -1032,7 +1038,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               setSymptoms('');
             }}
           >
-            {isTe ? 'మరొక స్క్రీనింగ్ నమోదు చేయండి' : 'Create Another Screening'}
+            {tr('మరొక స్క్రీనింగ్ నమోదు చేయండి', 'Create Another Screening', 'एक और स्क्रीनिंग दर्ज करें')}
           </button>
         </div>
       </div>
@@ -1187,7 +1193,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                   }}
                   title="Generate or update symptoms description using these clinical findings"
                 >
-                  ⚡ {isTe ? 'లక్షణాల్లోకి జతచేయి' : 'Sync to Symptoms'}
+                  ⚡ {tr('లక్షణాల్లోకి జతచేయి', 'Sync to Symptoms', 'लक्षणों में जोड़ें')}
                 </button>
               </div>
             </div>
@@ -1369,7 +1375,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                 {uploading ? 'Analyzing Image Quality...' : t.photo_take_btn}
               </div>
               <div style={{ fontSize: '0.84rem', color: '#64748B', marginTop: '0.4rem' }}>
-                {isTe ? 'కెమెరాతో లైవ్ ఫొటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి' : 'Tap here to choose Live Camera or Upload existing files'}
+                {tr('కెమెరాతో లైవ్ ఫొటో తీయండి లేదా గ్యాలరీ నుండి ఎంచుకోండి', 'Tap here to choose Live Camera or Upload existing files', 'लाइव कैमरा से फोटो लें या गैलरी से चुनें')}
               </div>
               <div style={{ marginTop: '0.85rem', display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}>
@@ -1579,7 +1585,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                       }}
                     >
                       {isAiSpeaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                      <span>{isAiSpeaking ? (isTe ? 'వాయిస్ ఆపండి' : 'Stop Audio') : (isTe ? 'AI వాయిస్ వినండి' : 'Listen to AI Analysis')}</span>
+                      <span>{isAiSpeaking ? tr('వాయిస్ ఆపండి', 'Stop Audio', 'ऑडियो बंद करें') : tr('AI వాయిస్ వినండి', 'Listen to AI Analysis', 'AI विश्लेषण सुनें')}</span>
                     </button>
                   )}
                 </div>
@@ -1941,7 +1947,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                       title={t.photo_live_native_cam || 'Native App'}
                     >
                       <Camera size={18} />
-                      <span>{isTe ? 'యాప్' : 'Native'}</span>
+                      <span>{tr('యాప్', 'Native', 'ऐप')}</span>
                     </button>
                   </div>
                 )}
@@ -1966,7 +1972,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
               required
               value={symptoms}
               onChange={(e) => setSymptoms(e.target.value)}
-              placeholder={isTe ? 'ఉదా: ఎడమ బుగ్గ లోపలి భాగంలో 3 వారాలుగా తుడవలేని తెల్లని మచ్చ, కారం తిన్నప్పుడు మంట...' : 'e.g. Persistent non-scrapable white patch on left inner cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks...'}
+              placeholder={tr('ఉదా: ఎడమ బుగ్గ లోపలి భాగంలో 3 వారాలుగా తుడవలేని తెల్లని మచ్చ, కారం తిన్నప్పుడు మంట...', 'e.g. Persistent non-scrapable white patch on left inner cheek (buccal mucosa) with burning sensation on eating spicy food for 3 weeks...', 'उदा: बाएं भीतरी गाल पर 3 सप्ताह से न छूटने वाला सफेद पैच, तीखा खाने पर तेज जलन...')}
             />
           </div>
 

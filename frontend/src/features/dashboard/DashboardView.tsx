@@ -17,6 +17,12 @@ interface Props {
 export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   const [screenings, setScreenings] = useState<Screening[]>([]);
   const [waitingQueue, setWaitingQueue] = useState<DoctorQueueItem[]>([]);
@@ -74,7 +80,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
             </span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-            {isTe ? `నమస్కారం, ${user.full_name}` : `Welcome, ${user.full_name}`}
+            {tr(`నమస్కారం, ${user.full_name}`, `Welcome, ${user.full_name}`, `नमस्ते, ${user.full_name}`)}
           </h2>
           <p style={{ fontSize: '0.88rem', color: '#CBD5E1', marginTop: '0.25rem' }}>
             {roleTitle} • {user.phc_name || `${user.mandal || 'G. Madugula'} PHC`} • {user.district || 'Alluri Sitharama Raju District'}
@@ -140,7 +146,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
 
           <button className="btn btn-secondary" onClick={() => onNavigate('chatbot')}>
             <MessageSquare size={18} />
-            {isTe ? 'మిత్ర AI' : 'Mitra AI'}
+            {tr('మిత్ర AI', 'Mitra AI', 'मित्र AI')}
           </button>
         </div>
       </div>
@@ -154,7 +160,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           <div>
             <div className="metric-val">{screenings.length}</div>
             <div className="metric-label">
-              {isTe ? 'మొత్తం స్క్రీనింగ్‌లు' : 'Total Screenings Logged'}
+              {tr('మొత్తం స్క్రీనింగ్‌లు', 'Total Screenings Logged', 'कुल दर्ज स्क्रीनिंग')}
             </div>
           </div>
         </div>
@@ -166,7 +172,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           <div>
             <div className="metric-val">{awaitingReviewCount}</div>
             <div className="metric-label">
-              {isTe ? 'PHC సమీక్ష కొరకు వేచి ఉన్నవి' : 'Cases Awaiting PHC Review'}
+              {tr('PHC సమీక్ష కొరకు వేచి ఉన్నవి', 'Cases Awaiting PHC Review', 'पीएचसी समीक्षा के लिए लंबित मामले')}
             </div>
           </div>
         </div>
@@ -178,7 +184,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           <div>
             <div className="metric-val">{waitingQueue.length}</div>
             <div className="metric-label">
-              {isTe ? 'డాక్టర్ క్యూలో వేచి ఉన్న రోగులు' : 'Patients in Doctor Queue'}
+              {tr('డాక్టర్ క్యూలో వేచి ఉన్న రోగులు', 'Patients in Doctor Queue', 'डॉक्टर कतार में प्रतीक्षारत मरीज')}
             </div>
           </div>
         </div>
@@ -190,7 +196,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
           <div>
             <div className="metric-val">100%</div>
             <div className="metric-label">
-              {isTe ? 'డేటాబేస్ పర్సిస్టెన్స్ (ACID)' : 'Database Persistence (ACID)'}
+              {tr('డేటాబేస్ పర్సిస్టెన్స్ (ACID)', 'Database Persistence (ACID)', 'डेटाबेस दृढ़ता (ACID)')}
             </div>
           </div>
         </div>
@@ -213,13 +219,13 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
         }}>
           <div>
             <div style={{ fontSize: '0.82rem', textTransform: 'uppercase', color: '#5EEAD4', fontWeight: 700, letterSpacing: '0.04em' }}>
-              {isTe ? 'DMHO జిల్లా ఆరోగ్య పర్యవేక్షణ' : 'DMHO Health Workforce Administration'}
+              {tr('DMHO జిల్లా ఆరోగ్య పర్యవేక్షణ', 'DMHO Health Workforce Administration', 'डीएमएचओ जिला स्वास्थ्य कार्यबल प्रशासन')}
             </div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: '0.2rem' }}>
-              {isTe ? 'అల్లూరి సీతారామరాజు జిల్లా ఆరోగ్య సిబ్బంది & పీహెచ్‌సీ కేంద్రాలు' : 'ASR District Staff Directory & PHC Facilities Coverage'}
+              {tr('అల్లూరి సీతారామరాజు జిల్లా ఆరోగ్య సిబ్బంది & పీహెచ్‌సీ కేంద్రాలు', 'ASR District Staff Directory & PHC Facilities Coverage', 'एएसआर जिला स्टाफ डायरेक्टरी और पीएचसी सुविधाएं')}
             </div>
             <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '0.2rem' }}>
-              {isTe ? 'పాడేరు ITDA పరిధిలోని ఆశా వర్కర్లు, వైద్యులు మరియు పీహెచ్‌సీలను పర్యవేక్షించండి.' : 'Monitor total ASHA workers, available doctors, and PHC centres across agency mandals.'}
+              {tr('పాడేరు ITDA పరిధిలోని ఆశా వర్కర్లు, వైద్యులు మరియు పీహెచ్‌సీలను పర్యవేక్షించండి.', 'Monitor total ASHA workers, available doctors, and PHC centres across agency mandals.', 'एजेंसी मंडलों में आशा कार्यकर्ताओं, डॉक्टरों और पीएचसी की निगरानी करें।')}
             </div>
           </div>
           <button
@@ -234,7 +240,7 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
               fontSize: '0.88rem'
             }}
           >
-            {isTe ? 'సిబ్బంది డైరెక్టరీ & నివేదికలు చూడండి' : 'View Staff Directory & Reports'} →
+            {tr('సిబ్బంది డైరెక్టరీ & నివేదికలు చూడండి', 'View Staff Directory & Reports', 'स्टाफ डायरेक्टरी और रिपोर्ट देखें')} →
           </button>
         </div>
       )}
@@ -266,14 +272,16 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
                 {t.doctor_patient_arrived}
               </h4>
               <p style={{ fontSize: '0.82rem', color: '#2563EB', marginTop: '0.15rem' }}>
-                {isTe
+                {currentLang === 'te'
                   ? `${waitingQueue.length} మంది రోగులు PHC క్లినిక్‌కు హాజరై OTP ద్వారా ధృవీకరించబడి వేచి ఉన్నారు (గైర్హాజరు కాదు).`
+                  : currentLang === 'hi'
+                  ? `${waitingQueue.length} मरीज पीएचसी क्लीनिक में उपस्थित हैं और ओटीपी द्वारा सत्यापित हैं (उपस्थित - अनुपस्थित नहीं)।`
                   : `${waitingQueue.length} patient(s) physically verified via OTP waiting in clinic (Present - Not Absent).`}
               </p>
             </div>
           </div>
           <button className="btn btn-primary" onClick={() => onNavigate('queue')}>
-            {isTe ? 'డాక్టర్ క్యూ తెరవండి' : 'Open Doctor Queue'} <ArrowRight size={16} />
+            {tr('డాక్టర్ క్యూ తెరవండి', 'Open Doctor Queue', 'डॉक्टर कतार खोलें')} <ArrowRight size={16} />
           </button>
         </div>
       )}
@@ -283,36 +291,36 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
         <div className="card-header">
           <div className="card-title">
             <Activity size={20} color="var(--teal-primary)" />
-            {isTe ? 'ఇటీవలి కమ్యూనిటీ ఓరల్ స్క్రీనింగ్‌లు' : 'Recent Community Oral Screenings'}
+            {tr('ఇటీవలి కమ్యూనిటీ ఓరల్ స్క్రీనింగ్‌లు', 'Recent Community Oral Screenings', 'हाल की सामुदायिक मुख स्क्रीनिंग')}
           </div>
           <button
             className="btn btn-secondary"
             style={{ minHeight: '34px', padding: '0.35rem 0.85rem' }}
             onClick={() => onNavigate(user.role === 'chw' ? 'screening' : 'phc_cases')}
           >
-            {isTe ? 'అన్నీ చూడండి' : 'View All'}
+            {tr('అన్నీ చూడండి', 'View All', 'सभी देखें')}
           </button>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
-            {isTe ? 'స్క్రీనింగ్ రికార్డులు లోడ్ అవుతున్నాయి...' : 'Loading screening records...'}
+            {tr('స్క్రీనింగ్ రికార్డులు లోడ్ అవుతున్నాయి...', 'Loading screening records...', 'स्क्रीनिंग रिकॉर्ड लोड हो रहे हैं...')}
           </div>
         ) : screenings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
-            {isTe ? 'ఇంకా స్క్రీనింగ్‌లు నమోదు కాలేదు. ప్రారంభించడానికి కొత్త స్క్రీనింగ్ ఎంచుకోండి.' : 'No screenings recorded yet. Tap "Create Screening" to begin.'}
+            {tr('ఇంకా స్క్రీనింగ్‌లు నమోదు కాలేదు. ప్రారంభించడానికి కొత్త స్క్రీనింగ్ ఎంచుకోండి.', 'No screenings recorded yet. Tap "Create Screening" to begin.', 'अभी तक कोई स्क्रीनिंग दर्ज नहीं की गई है। शुरू करने के लिए "नई स्क्रीनिंग" चुनें।')}
           </div>
         ) : (
           <div className="table-responsive">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>{isTe ? 'రిఫరెన్స్ ID' : 'Ref ID'}</th>
-                  <th>{isTe ? 'రోగి వివరాలు' : 'Patient'}</th>
-                  <th>{isTe ? 'నోటి భాగం / వర్గం' : 'Category'}</th>
-                  <th>{isTe ? 'నమోదైన లక్షణాలు' : 'Reported Symptoms'}</th>
-                  <th>{isTe ? 'స్థితి' : 'Status'}</th>
-                  <th>{isTe ? 'సమర్పించిన సమయం' : 'Submitted At'}</th>
+                  <th>{tr('రిఫరెన్స్ ID', 'Ref ID', 'रेफरेंस ID')}</th>
+                  <th>{tr('రోగి వివరాలు', 'Patient', 'रोगी विवरण')}</th>
+                  <th>{tr('నోటి భాగం / వర్గం', 'Category', 'श्रेणी / मुख भाग')}</th>
+                  <th>{tr('నమోదైన లక్షణాలు', 'Reported Symptoms', 'दर्ज लक्षण')}</th>
+                  <th>{tr('స్థితి', 'Status', 'स्थिति')}</th>
+                  <th>{tr('సమర్పించిన సమయం', 'Submitted At', 'दर्ज करने का समय')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -10,6 +10,12 @@ interface InvestigationsViewProps {
 
 export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentUser, currentLang = 'en' }) => {
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,10 +137,10 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
             }}>
-              {isTe ? 'ITDA పాడేరు హెల్త్‌కేర్ వ్యవస్థ' : 'ITDA Paderu Healthcare System'}
+              {tr('ITDA పాడేరు హెల్త్‌కేర్ వ్యవస్థ', 'ITDA Paderu Healthcare System', 'आईटीडीए पाडेरू स्वास्थ्य प्रणाली')}
             </span>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 700 }}>
-              {isTe ? 'బయాప్సీ & హిస్టోపాథాలజీ ట్రాకింగ్' : 'Biopsy & Lab Investigations Tracking'}
+              {tr('బయాప్సీ & హిస్టోపాథాలజీ ట్రాకింగ్', 'Biopsy & Lab Investigations Tracking', 'बायोप्सी और लैब जांच ट्रैकिंग')}
             </h2>
             <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.9rem' }}>
               {isTe
@@ -154,7 +160,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
               fontWeight: 600
             }}
           >
-            {isTe ? '🔄 రిఫ్రెష్' : '🔄 Refresh'}
+            {tr('🔄 రిఫ్రెష్', '🔄 Refresh', '🔄 रीफ्रेश')}
           </button>
         </div>
 
@@ -168,7 +174,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
           fontSize: '0.85rem',
           color: '#fca5a5'
         }}>
-          <strong>{isTe ? 'క్లినికల్ మార్గదర్శకాలు:' : 'CRITICAL CLINICAL BOUNDARY:'}</strong>{' '}
+          <strong>{tr('క్లినికల్ మార్గదర్శకాలు:', 'CRITICAL CLINICAL BOUNDARY:', 'महत्वपूर्ण नैदानिक नियम:')}</strong>{' '}
           {isTe
             ? 'నోటి ఫొటో లేదా AI సలహా బయాప్సీకి ప్రత్యామ్నాయం కాదు. అర్హత కలిగిన పాథాలజిస్ట్ కణజాల పరీక్ష ద్వారా మాత్రమే క్యాన్సర్ నిర్ధారణ జరుగుతుంది.'
             : 'An oral photograph or AI screening advisory NEVER substitutes for a clinically indicated biopsy and tissue pathology. Only a qualified pathologist and Medical Officer can confirm precancer or malignancy.'}
@@ -184,13 +190,13 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
         paddingBottom: '0.5rem'
       }}>
         {[
-          { key: 'all', label: isTe ? 'అన్ని బయాప్సీలు' : 'All Biopsies' },
-          { key: 'advised', label: isTe ? 'సిఫార్సు చేయబడినవి' : 'Advised' },
-          { key: 'scheduled', label: isTe ? 'షెడ్యూల్ అయినవి' : 'Scheduled' },
-          { key: 'sample_collected', label: isTe ? 'సేకరించినవి' : 'Collected' },
-          { key: 'report_pending', label: isTe ? 'ల్యాబ్ పెండింగ్' : 'Pending Lab' },
-          { key: 'report_received', label: isTe ? 'నివేదిక సిద్ధం' : 'Report Ready' },
-          { key: 'clinician_reviewed', label: isTe ? 'సమీక్ష పూర్తయినవి' : 'Signed by Clinician' }
+          { key: 'all', label: tr('అన్ని బయాప్సీలు', 'All Biopsies', 'सभी बायोप्सी') },
+          { key: 'advised', label: tr('సిఫార్సు చేయబడినవి', 'Advised', 'अनुशंसित') },
+          { key: 'scheduled', label: tr('షెడ్యూల్ అయినవి', 'Scheduled', 'निर्धारित') },
+          { key: 'sample_collected', label: tr('సేకరించినవి', 'Collected', 'नमूना एकत्रित') },
+          { key: 'report_pending', label: tr('ల్యాబ్ పెండింగ్', 'Pending Lab', 'लैब लंबित') },
+          { key: 'report_received', label: tr('నివేదిక సిద్ధం', 'Report Ready', 'रिपोर्ट तैयार') },
+          { key: 'clinician_reviewed', label: tr('సమీక్ష పూర్తయినవి', 'Signed by Clinician', 'समीक्षा पूर्ण') }
         ].map(tab => (
           <button
             key={tab.key}
@@ -348,7 +354,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
-                {isTe ? 'హిస్టోపాథాలజీ నివేదిక సమీక్ష' : 'Histopathology Biopsy Review'}
+                {tr('హిస్టోపాథాలజీ నివేదిక సమీక్ష', 'Histopathology Biopsy Review', 'हिस्टोपैथोलॉजी बायोप्सी समीक्षा')}
               </h3>
               <button
                 onClick={() => setSelectedInvestigation(null)}
@@ -367,60 +373,60 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
             <form onSubmit={handleSaveReview}>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                  {isTe ? 'పరిశీలన స్థితి' : 'Investigation State'}
+                  {tr('పరిశీలన స్థితి', 'Investigation State', 'जांच स्थिति')}
                 </label>
                 <select
                   value={newState}
                   onChange={e => setNewState(e.target.value)}
                   style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                 >
-                  <option value="advised">{isTe ? 'సిఫార్సు చేయబడింది' : 'Advised'}</option>
-                  <option value="scheduled">{isTe ? 'షెడ్యూల్ చేయబడింది' : 'Scheduled'}</option>
-                  <option value="sample_collected">{isTe ? 'నమూనా సేకరించబడింది' : 'Sample Collected'}</option>
-                  <option value="report_pending">{isTe ? 'ల్యాబ్ పరిశీలనలో ఉంది' : 'Report Pending'}</option>
-                  <option value="report_received">{isTe ? 'నివేదిక అందింది' : 'Report Received'}</option>
-                  <option value="clinician_reviewed">{isTe ? 'వైద్యులు సంతకం చేశారు' : 'Clinician Reviewed'}</option>
+                  <option value="advised">{tr('సిఫార్సు చేయబడింది', 'Advised', 'अनुशंसित')}</option>
+                  <option value="scheduled">{tr('షెడ్యూల్ చేయబడింది', 'Scheduled', 'निर्धारित')}</option>
+                  <option value="sample_collected">{tr('నమూనా సేకరించబడింది', 'Sample Collected', 'नमूना एकत्रित')}</option>
+                  <option value="report_pending">{tr('ల్యాబ్ పరిశీలనలో ఉంది', 'Report Pending', 'लैब में लंबित')}</option>
+                  <option value="report_received">{tr('నివేదిక అందింది', 'Report Received', 'रिपोर्ट प्राप्त हुई')}</option>
+                  <option value="clinician_reviewed">{tr('వైద్యులు సంతకం చేశారు', 'Clinician Reviewed', 'डॉक्टर द्वारा सत्यापित')}</option>
                 </select>
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                  {isTe ? 'నిర్ధారణ వర్గం' : 'Diagnostic Classification'}
+                  {tr('నిర్ధారణ వర్గం', 'Diagnostic Classification', 'नैदानिक वर्गीकरण')}
                 </label>
                 <select
                   value={newDiagnosis}
                   onChange={e => setNewDiagnosis(e.target.value)}
                   style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                 >
-                  <option value="benign">{isTe ? 'ప్రమాదకరం కానిది (Benign)' : 'Benign'}</option>
-                  <option value="precancer_leukoplakia">{isTe ? 'ల్యూకోప్లాకియా (Precancerous Leukoplakia)' : 'Precancerous Oral Leukoplakia'}</option>
-                  <option value="osmf">{isTe ? 'ఓరల్ సబ్-మ్యూకస్ ఫైబ్రోసిస్ (OSMF)' : 'Oral Submucous Fibrosis - OSMF'}</option>
-                  <option value="oscc_malignancy">{isTe ? 'ఓరల్ స్క్వామస్ సెల్ కార్సినోమా (OSCC Malignancy)' : 'Oral Squamous Cell Carcinoma - OSCC'}</option>
+                  <option value="benign">{tr('ప్రమాదకరం కానిది (Benign)', 'Benign', 'हानिरहित (Benign)')}</option>
+                  <option value="precancer_leukoplakia">{tr('ల్యూకోప్లాకియా (Precancerous Leukoplakia)', 'Precancerous Oral Leukoplakia', 'ल्यूकोप्लाकिया (पूर्व-कैंसर)')}</option>
+                  <option value="osmf">{tr('ఓరల్ సబ్-మ్యూకస్ ఫైబ్రోసిస్ (OSMF)', 'Oral Submucous Fibrosis - OSMF', 'ओरल सबम्यूकस फाइब्रोसिस (OSMF)')}</option>
+                  <option value="oscc_malignancy">{tr('ఓరల్ స్క్వామస్ సెల్ కార్సినోమా (OSCC Malignancy)', 'Oral Squamous Cell Carcinoma - OSCC', 'मुख कैंसर (OSCC Malignancy)')}</option>
                 </select>
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                  {isTe ? 'పాథాలజీ పరిశీలన' : 'Pathologist Finding'}
+                  {tr('పాథాలజీ పరిశీలన', 'Pathologist Finding', 'पैथोलॉजी निष्कर्ष')}
                 </label>
                 <input
                   type="text"
                   value={newFinding}
                   onChange={e => setNewFinding(e.target.value)}
-                  placeholder={isTe ? 'ఉదా: మోడరేట్ ఎపిథీలియల్ డిస్ప్లాసియాతో హైపర్‌కెరాటోసిస్' : 'e.g. Hyperkeratosis with moderate epithelial dysplasia'}
+                  placeholder={tr('ఉదా: మోడరేట్ ఎపిథీలియల్ డిస్ప్లాసియాతో హైపర్‌కెరాటోసిస్', 'e.g. Hyperkeratosis with moderate epithelial dysplasia', 'उदा: मध्यम एपिथीलियल डिसप्लेसिया के साथ हाइपरकेराटोसिस')}
                   style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
-                  {isTe ? 'హిస్టోపాథాలజీ సారాంశం / క్లినికల్ గమనికలు' : 'Microscopic Summary / Clinician Decision Notes'}
+                  {tr('హిస్టోపాథాలజీ సారాంశం / క్లినికల్ గమనికలు', 'Microscopic Summary / Clinician Decision Notes', 'माइक्रोस्कोपिक सारांश / डॉक्टर टिप्पणियां')}
                 </label>
                 <textarea
                   value={newSummary}
                   onChange={e => setNewSummary(e.target.value)}
                   rows={4}
-                  placeholder={isTe ? 'వివరణాత్మక హిస్టోలాజికల్ మూల్యాంకన గమనికలు...' : 'Detailed histological evaluation notes...'}
+                  placeholder={tr('వివరణాత్మక హిస్టోలాజికల్ మూల్యాంకన గమనికలు...', 'Detailed histological evaluation notes...', 'विस्तृत हिस्टोलॉजिकल मूल्यांकन टिप्पणियां...')}
                   style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                 />
               </div>
@@ -438,7 +444,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
                     cursor: 'pointer'
                   }}
                 >
-                  {isTe ? 'రద్దు' : 'Cancel'}
+                  {tr('రద్దు', 'Cancel', 'रद्द करें')}
                 </button>
                 <button
                   type="submit"
@@ -454,8 +460,8 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
                   }}
                 >
                   {updating
-                    ? (isTe ? 'భద్రపరుస్తోంది...' : 'Saving...')
-                    : (isTe ? 'సమీక్షను ధృవీకరించండి' : 'Sign & Finalize Review')}
+                    ? tr('భద్రపరుస్తోంది...', 'Saving...', 'सुरक्षित हो रहा है...')
+                    : tr('సమీక్షను ధృవీకరించండి', 'Sign & Finalize Review', 'समीक्षा सत्यापित करें')}
                 </button>
               </div>
             </form>

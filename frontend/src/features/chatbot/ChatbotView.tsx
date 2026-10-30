@@ -16,6 +16,12 @@ interface Props {
 export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -103,7 +109,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
     try {
       if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-        throw new Error(isTe ? 'ఈ బ్రౌజర్‌లో కెమెరా అందుబాటులో లేదు' : 'Direct screen camera not supported in this browser.');
+        throw new Error(tr('ఈ బ్రౌజర్‌లో కెమెరా అందుబాటులో లేదు', 'Direct screen camera not supported in this browser.', 'इस ब्राउज़र में कैमरा समर्थित नहीं है।'));
       }
       const constraints: MediaStreamConstraints = {
         video: {
@@ -121,13 +127,13 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       }
     } catch (err: any) {
       console.warn('Live screen camera error:', err);
-      let msg = isTe ? 'కెమెరా తెరవలేకపోయాము.' : 'Could not open device camera.';
+      let msg = tr('కెమెరా తెరవలేకపోయాము.', 'Could not open device camera.', 'डिवाइस कैमरा नहीं खोला जा सका।');
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         msg = isTe
           ? 'కెమెరా అనుమతి తిరస్కరించబడింది. దయచేసి బ్రౌజర్ సెట్టింగ్స్‌లో అనుమతి ఇవ్వండి.'
           : 'Camera permission denied. Please allow camera access in your browser.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        msg = isTe ? 'ఈ పరికరంలో కెమెరా కనుగొనబడలేదు.' : 'No camera found on this device.';
+        msg = tr('ఈ పరికరంలో కెమెరా కనుగొనబడలేదు.', 'No camera found on this device.', 'इस डिवाइस पर कोई कैमरा नहीं मिला।');
       }
       setCameraError(msg);
     }
@@ -299,7 +305,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      alert(isTe ? 'ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ ఇన్‌పుట్ అందుబాటులో లేదు' : 'Speech recognition not supported in this browser.');
+      alert(tr('ఈ బ్రౌజర్‌లో మైక్రోఫోన్ వాయిస్ ఇన్‌పుట్ అందుబాటులో లేదు', 'Speech recognition not supported in this browser.', 'इस ब्राउज़र में स्पीच रिकग्निशन समर्थित नहीं है।'));
       return;
     }
     if (isListening) {
@@ -541,7 +547,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 color: '#475569'
               }}>
                 <summary style={{ fontWeight: 700, cursor: 'pointer', color: '#0F766E' }}>
-                  💭 {isTe ? 'Google MedGemma 1.5 4B క్లినికల్ రీజనింగ్ ట్రేస్' : 'Google MedGemma 1.5 4B Clinical Reasoning Trace'}
+                  💭 {tr('Google MedGemma 1.5 4B క్లినికల్ రీజనింగ్ ట్రేస్', 'Google MedGemma 1.5 4B Clinical Reasoning Trace', 'Google MedGemma 1.5 4B नैदानिक तर्क ट्रेस')}
                 </summary>
                 <div style={{ marginTop: '0.4rem', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.73rem', background: '#FFFFFF', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', color: '#334155' }}>
                   {clean}
@@ -568,25 +574,25 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           if (isPatient) {
             borderColor = '#10B981';
             bgColor = '#F0FDF4';
-            badgeLabel = isTe ? '🗣️ రోగి & కుటుంబం (Patient View)' : '🗣️ Patient & Family';
+            badgeLabel = tr('🗣️ రోగి & కుటుంబం (Patient View)', '🗣️ Patient & Family', '🗣️ रोगी और परिवार');
             badgeBg = '#DCFCE7';
             badgeText = '#166534';
           } else if (isAsha) {
             borderColor = '#0284C7';
             bgColor = '#F0F9FF';
-            badgeLabel = isTe ? '👩‍⚕️ ఆశా కార్యకర్త (ASHA Checklist)' : '👩‍⚕️ ASHA & Field Staff';
+            badgeLabel = tr('👩‍⚕️ ఆశా కార్యకర్త (ASHA Checklist)', '👩‍⚕️ ASHA & Field Staff', '👩‍⚕️ आशा एवं फील्ड स्टाफ');
             badgeBg = '#E0F2FE';
             badgeText = '#0369A1';
           } else if (isDoctor) {
             borderColor = '#6366F1';
             bgColor = '#EEF2FF';
-            badgeLabel = isTe ? '🩺 వైద్యులు & స్పెషలిస్ట్ (Doctor Dossier)' : '🩺 Clinician Dossier';
+            badgeLabel = tr('🩺 వైద్యులు & స్పెషలిస్ట్ (Doctor Dossier)', '🩺 Clinician Dossier', '🩺 डॉक्टर और विशेषज्ञ');
             badgeBg = '#E0E7FF';
             badgeText = '#3730A3';
           } else if (isGuidelines) {
             borderColor = '#0D9488';
             bgColor = '#F8FAFC';
-            badgeLabel = isTe ? '📚 ప్రామాణిక మార్గదర్శకాలు' : '📚 Clinical Evidence';
+            badgeLabel = tr('📚 ప్రామాణిక మార్గదర్శకాలు', '📚 Clinical Evidence', '📚 नैदानिक साक्ष्य एवं दिशानिर्देश');
             badgeBg = '#CCFBF1';
             badgeText = '#0F766E';
           }
@@ -660,7 +666,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                {isTe ? 'ఆరోగ్య మైత్ర AI అసిస్టెంట్' : 'Aarogya Mytra AI'}
+                {tr('ఆరోగ్య మైత్ర AI అసిస్టెంట్', 'Aarogya Mytra AI', 'आरोग्य मित्र AI सहायक')}
               </h3>
               <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700 }}>
                 Google MedGemma 1.5 4B
@@ -713,11 +719,11 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               </button>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />
-                {isTe ? 'వాయిస్ + విజన్' : 'Vision + Voice'}
+                {tr('వాయిస్ + విజన్', 'Vision + Voice', 'विज़न + वॉइस')}
               </span>
             </div>
             <p style={{ fontSize: '0.76rem', color: '#64748B', margin: '2px 0 0' }}>
-              {isTe ? 'మల్టీమోడల్ మెడికల్ విజన్ & MoHFW ఎవిడెన్స్ ఆధారిత ఆరోగ్య సహాయకుడు' : 'Multimodal Medical Vision & Evidence-Grounded Clinical Health Assistant'}
+              {tr('మల్టీమోడల్ మెడికల్ విజన్ & MoHFW ఎవిడెన్స్ ఆధారిత ఆరోగ్య సహాయకుడు', 'Multimodal Medical Vision & Evidence-Grounded Clinical Health Assistant', 'मल्टीमॉडल मेडिकल विज़न और MoHFW साक्ष्य-आधारित स्वास्थ्य सहायक')}
             </p>
           </div>
         </div>
@@ -731,17 +737,17 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             title="Automatically read aloud AI responses using Speech Synthesis"
           >
             {autoSpeak ? <Volume2 size={14} color="#059669" /> : <VolumeX size={14} color="#64748B" />}
-            <span>{autoSpeak ? (isTe ? 'వాయిస్: ఆన్' : 'Auto-Speak: ON') : (isTe ? 'వాయిస్: ఆఫ్' : 'Auto-Speak')}</span>
+            <span>{autoSpeak ? tr('వాయిస్: ఆన్', 'Auto-Speak: ON', 'ऑटो-वॉइस: चालू') : tr('వాయిస్: ఆఫ్', 'Auto-Speak', 'ऑटो-वॉइस: बंद')}</span>
           </button>
 
           <button
             type="button"
             className="chat-header-action-btn"
             onClick={handleResetChat}
-            title={isTe ? 'కొత్త సంభాషణ ప్రారంభించండి' : 'Start Fresh Conversation'}
+            title={tr('కొత్త సంభాషణ ప్రారంభించండి', 'Start Fresh Conversation', 'नई बातचीत शुरू करें')}
           >
             <RefreshCw size={13} color="#64748B" />
-            <span>{isTe ? 'క్లియర్' : 'Reset'}</span>
+            <span>{tr('క్లియర్', 'Reset', 'रीसेट')}</span>
           </button>
         </div>
       </div>
@@ -757,13 +763,13 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         flexWrap: 'wrap'
       }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>
-          {isTe ? 'సమాచార వీక్షణ (Audience View):' : 'Audience View:'}
+          {tr('సమాచార వీక్షణ (Audience View):', 'Audience View:', 'दर्शकों का दृश्य:')}
         </span>
         {[
-          { id: 'all', label: isTe ? '👥 అందరికీ (All)' : '👥 All Cadres' },
-          { id: 'patient', label: isTe ? '🗣️ రోగులకు (Patient)' : '🗣️ Patients' },
-          { id: 'asha', label: isTe ? '👩‍⚕️ ఆశా వర్కర్లకు (ASHA)' : '👩‍⚕️ ASHA & Field' },
-          { id: 'doctor', label: isTe ? '🩺 డాక్టర్లకు (Doctor)' : '🩺 Doctors & PHC' }
+          { id: 'all', label: tr('👥 అందరికీ (All)', '👥 All Cadres', '👥 सभी (All)') },
+          { id: 'patient', label: tr('🗣️ రోగులకు (Patient)', '🗣️ Patients', '🗣️ रोगी (Patient)') },
+          { id: 'asha', label: tr('👩‍⚕️ ఆశా వర్కర్లకు (ASHA)', '👩‍⚕️ ASHA & Field', '👩‍⚕️ आशा कार्यकर्ता (ASHA)') },
+          { id: 'doctor', label: tr('🩺 డాక్టర్లకు (Doctor)', '🩺 Doctors & PHC', '🩺 डॉक्टर (Doctor)') }
         ].map((role) => (
           <button
             key={role.id}
@@ -836,7 +842,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 {!isUser && (
                   <div className="assistant-meta-header">
                     <Sparkles size={12} color="#0D9488" />
-                    <span>{isTe ? 'ఆరోగ్య మిత్ర AI' : 'Arogya Mitra AI'}</span>
+                    <span>{tr('ఆరోగ్య మిత్ర AI', 'Arogya Mitra AI', 'आरोग्य मित्र AI')}</span>
                   </div>
                 )}
 
@@ -851,7 +857,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                       title={speakingMsgId === m.id ? 'Stop speaking' : 'Listen via voice'}
                     >
                       {speakingMsgId === m.id ? <VolumeX size={13} /> : <Volume2 size={13} />}
-                      <span>{speakingMsgId === m.id ? (isTe ? 'మాట్లాడుతోంది...' : 'Speaking...') : (isTe ? 'వినండి' : 'Listen')}</span>
+                      <span>{speakingMsgId === m.id ? tr('మాట్లాడుతోంది...', 'Speaking...', 'बोल रहा है...') : tr('వినండి', 'Listen', 'सुनें')}</span>
                     </button>
 
                     <button
@@ -860,7 +866,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                       title="Copy advice text"
                     >
                       {copiedId === m.id ? <Check size={13} color="#059669" /> : <Copy size={13} />}
-                      <span>{copiedId === m.id ? (isTe ? 'కాపీ చేయబడింది' : 'Copied') : (isTe ? 'కాపీ' : 'Copy')}</span>
+                      <span>{copiedId === m.id ? tr('కాపీ చేయబడింది', 'Copied', 'कॉपी हो गया') : tr('కాపీ', 'Copy', 'कॉपी')}</span>
                     </button>
                   </div>
                 )}
@@ -876,7 +882,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 <span /><span /><span />
               </div>
               <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                {isTe ? 'ఆరోగ్య మిత్ర ఆలోచిస్తోంది...' : 'Arogya Mitra is analyzing...'}
+                {tr('ఆరోగ్య మిత్ర ఆలోచిస్తోంది...', 'Arogya Mitra is analyzing...', 'आरोग्य मित्र विश्लेषण कर रहा है...')}
               </span>
             </div>
           </div>
@@ -962,7 +968,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               fontSize: '0.85rem', fontWeight: 600, color: '#334155'
             }}
           >
-            <Camera size={16} color="var(--teal-primary)" /> {isTe ? 'కెమెరాతో తీయండి' : 'Take Photo'}
+            <Camera size={16} color="var(--teal-primary)" /> {tr('కెమెరాతో తీయండి', 'Take Photo', 'फोटो खींचें')}
           </button>
           <button
             type="button"
@@ -977,7 +983,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               fontSize: '0.85rem', fontWeight: 600, color: '#334155'
             }}
           >
-            <ImageIcon size={16} color="var(--teal-primary)" /> {isTe ? 'గ్యాలరీ నుండి ఎంచుకోండి' : 'Choose from Gallery'}
+            <ImageIcon size={16} color="var(--teal-primary)" /> {tr('గ్యాలరీ నుండి ఎంచుకోండి', 'Choose from Gallery', 'गैलरी से चुनें')}
           </button>
         </div>
       )}
@@ -997,14 +1003,14 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#DC2626', animation: 'pulse 1s infinite' }} />
-            <span>{isTe ? '🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి (తెలుగు / English)' : '🎙️ Listening... Speak now in Telugu or English'}</span>
+            <span>{tr('🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి (తెలుగు / English)', '🎙️ Listening... Speak now in Telugu or English', '🎙️ सुन रहा हूँ... बोलिए (हिंदी / English)')}</span>
           </div>
           <button
             type="button"
             onClick={toggleListening}
             style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontWeight: 700 }}
           >
-            {isTe ? 'ఆపండి' : 'Stop'}
+            {tr('ఆపండి', 'Stop', 'रोकें')}
           </button>
         </div>
       )}
@@ -1015,7 +1021,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <button
           type="button"
           className="chat-plus-btn"
-          title={isTe ? 'ఫొటో జోడించండి (+)' : 'Attach Image (+)'}
+          title={tr('ఫొటో జోడించండి (+)', 'Attach Image (+)', 'तस्वीर संलग्न करें (+)')}
           onClick={() => setShowPlusMenu(!showPlusMenu)}
         >
           <Plus size={20} />
@@ -1025,7 +1031,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <div className="chat-input-pill">
           <input
             type="text"
-            placeholder={isListening ? (isTe ? '🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి' : '🎙️ Listening... speak now') : t.chat_input_placeholder}
+            placeholder={isListening ? tr('🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి', '🎙️ Listening... speak now', '🎙️ सुन रहा हूँ... अब बोलें') : t.chat_input_placeholder}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={loading || uploadingAttachment}
@@ -1036,7 +1042,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             type="button"
             className={`chat-mic-btn ${isListening ? 'listening' : 'idle'}`}
             onClick={toggleListening}
-            title={isListening ? (isTe ? 'వాయిస్ ఆపండి' : 'Stop listening') : (isTe ? 'వాయిస్‌తో మాట్లాడండి' : 'Speak your question (Voice Input)')}
+            title={isListening ? tr('వాయిస్ ఆపండి', 'Stop listening', 'सुनना बंद करें') : tr('వాయిస్‌తో మాట్లాడండి', 'Speak your question (Voice Input)', 'बोलकर पूछें (वॉइस इनपुट)')}
           >
             {isListening ? <MicOff size={18} /> : <Mic size={18} />}
           </button>
@@ -1046,7 +1052,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <button
           type="submit"
           className="chat-send-btn"
-          title={isTe ? 'సందేశం పంపండి' : 'Send Message'}
+          title={tr('సందేశం పంపండి', 'Send Message', 'संदेश भेजें')}
           disabled={loading || uploadingAttachment || (!inputText.trim() && !attachedImage)}
         >
           <Send size={18} />

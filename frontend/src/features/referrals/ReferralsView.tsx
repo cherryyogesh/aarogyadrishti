@@ -10,6 +10,12 @@ interface ReferralsViewProps {
 
 export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, currentLang = 'en' }) => {
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
   const [referrals, setReferrals] = useState<ReferralSlip[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +45,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
       const data = await api.listReferrals();
       setReferrals(data);
     } catch (err: any) {
-      setError(err.message || (isTe ? 'రిఫరల్ రికార్డులను లోడ్ చేయడం విఫలమైంది' : 'Failed to load hospital referrals'));
+      setError(err.message || tr('రిఫరల్ రికార్డులను లోడ్ చేయడం విఫలమైంది', 'Failed to load hospital referrals', 'अस्पताल रेफरल लोड करना विफल रहा'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +59,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
   const handleCreateReferral = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPatientId) {
-      setCreateError(isTe ? 'దయచేసి రోగిని ఎంచుకోండి' : 'Please select a registered patient');
+      setCreateError(tr('దయచేసి రోగిని ఎంచుకోండి', 'Please select a registered patient', 'कृपया एक पंजीकृत मरीज चुनें'));
       return;
     }
     setCreateSubmitting(true);
@@ -82,9 +88,9 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
     try {
       await api.confirmReferralAttendance(id, true);
       await loadReferrals();
-      alert(isTe ? 'రోగి ఆసుపత్రి హాజరు విజయవంతంగా ధృవీకరించబడింది!' : 'Patient hospital attendance confirmed successfully!');
+      alert(tr('రోగి ఆసుపత్రి హాజరు విజయవంతంగా ధృవీకరించబడింది!', 'Patient hospital attendance confirmed successfully!', 'रोगी की अस्पताल उपस्थिति सफलतापूर्वक सत्यापित की गई!'));
     } catch (err: any) {
-      alert(`${isTe ? 'చర్య విఫలమైంది' : 'Action failed'}: ${err.message}`);
+      alert(`${tr('చర్య విఫలమైంది', 'Action failed', 'कार्रवाई विफल रही')}: ${err.message}`);
     }
   };
 
@@ -115,10 +121,10 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               textTransform: 'uppercase',
               letterSpacing: '0.05em'
             }}>
-              {isTe ? 'ఆసుపత్రి అధికారిక రిఫరల్స్' : 'Official Hospital Referrals'}
+              {tr('ఆసుపత్రి అధికారిక రిఫరల్స్', 'Official Hospital Referrals', 'आधिकारिक अस्पताल रेफरल')}
             </span>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.5rem', fontWeight: 700 }}>
-              {isTe ? 'ఆసుపత్రి రిఫరల్ స్లిప్‌లు' : 'Specialist Hospital Referral Slips'}
+              {tr('ఆసుపత్రి రిఫరల్ స్లిప్‌లు', 'Specialist Hospital Referral Slips', 'विशेषज्ञ अस्पताल रेफरल पर्चियां')}
             </h2>
             <p style={{ margin: 0, color: '#c7d2fe', fontSize: '0.9rem' }}>
               {isTe
@@ -146,7 +152,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 }}
               >
                 <Plus size={16} />
-                {isTe ? '+ రిఫరల్ స్లిప్ జారీ చేయండి' : '+ Create Referral Slip'}
+                {tr('+ రిఫరల్ స్లిప్ జారీ చేయండి', '+ Create Referral Slip', '+ रेफरल पर्ची बनाएं')}
               </button>
             )}
             <button
@@ -162,7 +168,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 fontSize: '0.88rem'
               }}
             >
-              {isTe ? '🔄 రిఫ్రెష్' : '🔄 Refresh'}
+              {tr('🔄 రిఫ్రెష్', '🔄 Refresh', '🔄 रीफ्रेश')}
             </button>
           </div>
         </div>
@@ -362,7 +368,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                   GOVERNMENT OF ANDHRA PRADESH • ITDA PADERU
                 </div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.25rem 0', color: '#0f172a' }}>
-                  {isTe ? 'ఆరోగ్య దృష్టి — స్పెషలిస్ట్ హాస్పిటల్ రిఫరల్ స్లిప్' : 'AAROGYA DRISHTI — OFFICIAL CLINICAL REFERRAL SLIP'}
+                  {tr('ఆరోగ్య దృష్టి — స్పెషలిస్ట్ హాస్పిటల్ రిఫరల్ స్లిప్', 'AAROGYA DRISHTI — OFFICIAL CLINICAL REFERRAL SLIP', 'आरोग्य दृष्टि — विशेषज्ञ अस्पताल रेफरल पर्ची')}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
                   Alluri Sitharama Raju District • Public Health & Tribal Cancer Early Detection Initiative
@@ -373,7 +379,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem' }}>
                 <div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {isTe ? 'రిఫరల్ సంఖ్య' : 'SLIP NUMBER'}
+                    {tr('రిఫరల్ సంఖ్య', 'SLIP NUMBER', 'पर्ची संख्या')}
                   </div>
                   <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e1b4b', letterSpacing: '0.05em' }}>
                     {selectedSlip.referral_slip_number}
@@ -384,7 +390,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                     ||||| | |||| || ||| |||||
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {isTe ? 'ప్రాధాన్యత:' : 'Priority:'} {selectedSlip.urgency.toUpperCase()}
+                    {tr('ప్రాధాన్యత:', 'Priority:', 'प्राथमिकता:')} {selectedSlip.urgency.toUpperCase()}
                   </div>
                 </div>
               </div>
@@ -392,19 +398,19 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               {/* Patient Information Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem', fontSize: '0.9rem' }}>
                 <div>
-                  <span style={{ color: '#64748b' }}>{isTe ? 'రోగి పేరు:' : 'Patient Name:'}</span>
+                  <span style={{ color: '#64748b' }}>{tr('రోగి పేరు:', 'Patient Name:', 'रोगी का नाम:')}</span>
                   <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{selectedSlip.patient_name}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>{isTe ? 'రోగి ID:' : 'Patient UID:'}</span>
+                  <span style={{ color: '#64748b' }}>{tr('రోగి ID:', 'Patient UID:', 'रोगी यूआईडी:')}</span>
                   <div style={{ fontWeight: 700 }}>{selectedSlip.patient_id_display}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>{isTe ? 'వయస్సు & లింగం:' : 'Age / Sex:'}</span>
-                  <div style={{ fontWeight: 600 }}>{selectedSlip.age} {isTe ? 'సం.' : 'years'} / {selectedSlip.gender}</div>
+                  <span style={{ color: '#64748b' }}>{tr('వయస్సు & లింగం:', 'Age / Sex:', 'आयु एवं लिंग:')}</span>
+                  <div style={{ fontWeight: 600 }}>{selectedSlip.age} {tr('సం.', 'years', 'वर्ष')} / {selectedSlip.gender}</div>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b' }}>{isTe ? 'గ్రామం & మండలం:' : 'Habitation & Mandal:'}</span>
+                  <span style={{ color: '#64748b' }}>{tr('గ్రామం & మండలం:', 'Habitation & Mandal:', 'बस्ती एवं मंडल:')}</span>
                   <div style={{ fontWeight: 600 }}>{selectedSlip.habitation || 'G. Madugula'}, {selectedSlip.mandal}</div>
                 </div>
               </div>
@@ -412,7 +418,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               {/* Referral Destination */}
               <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', background: '#f1f5f9' }}>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-                  {isTe ? 'రిఫర్ చేయబడిన ఆసుపత్రి & విభాగం:' : 'Referral Destination & Department:'}
+                  {tr('రిఫర్ చేయబడిన ఆసుపత్రి & విభాగం:', 'Referral Destination & Department:', 'रेफरल अस्पताल एवं विभाग:')}
                 </div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e1b4b', marginBottom: '0.25rem' }}>
                   🏥 {selectedSlip.target_hospital}
@@ -428,7 +434,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               {/* Clinical Indication */}
               <div style={{ marginBottom: '1.25rem', fontSize: '0.9rem' }}>
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
-                  {isTe ? 'రిఫరల్ కారణం & క్లినికల్ వివరాలు:' : 'Clinical Indication & Findings:'}
+                  {tr('రిఫరల్ కారణం & క్లినికల్ వివరాలు:', 'Clinical Indication & Findings:', 'रेफरल का कारण एवं नैदानिक निष्कर्ष:')}
                 </div>
                 <div style={{ padding: '0.75rem', background: '#f8fafc', borderLeft: '4px solid #4338ca', borderRadius: '4px' }}>
                   {selectedSlip.reason_for_referral}
@@ -443,7 +449,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               {/* Transport Assistance & Signature Lines */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', paddingTop: '1rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.85rem' }}>
                 <div>
-                  <strong>{isTe ? 'గిరిజన రవాణా సదుపాయం:' : 'Tribal Transport Assistance:'}</strong>
+                  <strong>{tr('గిరిజన రవాణా సదుపాయం:', 'Tribal Transport Assistance:', 'जनजातीय परिवहन सहायता:')}</strong>
                   <div>
                     {isTe
                       ? 'ITDA 108 ఫీడర్ అంబులెన్స్ సమన్వయం చేయబడింది. పేషెంట్ ఎస్కార్ట్ కేటాయించబడింది.'
@@ -453,7 +459,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ height: '35px' }}></div>
                   <div style={{ borderTop: '1px solid #0f172a', display: 'inline-block', minWidth: '180px', paddingTop: '0.25rem' }}>
-                    {isTe ? 'వైద్యాధికారి సంతకం / సీల్' : 'Medical Officer Signature / Seal'}<br />
+                    {tr('వైద్యాధికారి సంతకం / సీల్', 'Medical Officer Signature / Seal', 'चिकित्सा अधिकारी के हस्ताक्षर एवं मुहर')}<br />
                     <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{selectedSlip.originating_phc}</span>
                   </div>
                 </div>
@@ -494,10 +500,10 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0F172A' }}>
-                  {isTe ? 'కొత్త ఆసుపత్రి రిఫరల్ స్లిప్ జారీ చేయండి' : 'Issue Official Hospital Referral Slip'}
+                  {tr('కొత్త ఆసుపత్రి రిఫరల్ స్లిప్ జారీ చేయండి', 'Issue Official Hospital Referral Slip', 'आधिकारिक अस्पताल रेफरल पर्ची जारी करें')}
                 </h3>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: '#64748B' }}>
-                  {isTe ? 'వైద్యుల అధికారిక రిఫరల్ మరియు అధీకృత స్లిప్ సృష్టి' : 'Authorized medical referral to secondary/tertiary cancer centres'}
+                  {tr('వైద్యుల అధికారిక రిఫరల్ మరియు అధీకృత స్లిప్ సృష్టి', 'Authorized medical referral to secondary/tertiary cancer centres', 'कैंसर केंद्रों के लिए आधिकारिक चिकित्सा रेफरल')}
                 </p>
               </div>
               <button
@@ -517,7 +523,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
             <form onSubmit={handleCreateReferral}>
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontWeight: 700 }}>
-                  {isTe ? 'రోగిని ఎంచుకోండి *' : 'Select Registered Patient *'}
+                  {tr('రోగిని ఎంచుకోండి *', 'Select Registered Patient *', 'पंजीकृत मरीज चुनें *')}
                 </label>
                 <select
                   className="form-control"
@@ -525,7 +531,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                   value={selectedPatientId}
                   onChange={(e) => setSelectedPatientId(Number(e.target.value))}
                 >
-                  <option value="">-- {isTe ? 'రోగిని ఎంచుకోండి' : 'Choose Patient'} --</option>
+                  <option value="">-- {tr('రోగిని ఎంచుకోండి', 'Choose Patient', 'रोगी चुनें')} --</option>
                   {patients.map(p => (
                     <option key={p.id} value={p.id}>
                       {p.patient_id_display} • {p.full_name} ({p.age}y, {p.gender}) - {p.mandal || 'Tribal Area'}
@@ -537,7 +543,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 700 }}>
-                    {isTe ? 'రిఫర్ చేయబడిన ఆసుపత్రి *' : 'Target Hospital *'}
+                    {tr('రిఫర్ చేయబడిన ఆసుపత్రి *', 'Target Hospital *', 'लक्षित अस्पताल *')}
                   </label>
                   <select
                     className="form-control"
@@ -554,7 +560,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
 
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 700 }}>
-                    {isTe ? 'అవసరమైన స్పెషాలిటీ *' : 'Specialty Required *'}
+                    {tr('అవసరమైన స్పెషాలిటీ *', 'Specialty Required *', 'आवश्यक विशेषज्ञता *')}
                   </label>
                   <select
                     className="form-control"
@@ -573,7 +579,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 700 }}>
-                    {isTe ? 'ప్రాధాన్యత స్థాయి *' : 'Referral Urgency *'}
+                    {tr('ప్రాధాన్యత స్థాయి *', 'Referral Urgency *', 'प्राथमिकता स्तर *')}
                   </label>
                   <select
                     className="form-control"
@@ -588,7 +594,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
 
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 700 }}>
-                    {isTe ? 'షెడ్యూల్ చేసిన తేదీ *' : 'Scheduled Visit Date *'}
+                    {tr('షెడ్యూల్ చేసిన తేదీ *', 'Scheduled Visit Date *', 'निर्धारित तिथि *')}
                   </label>
                   <input
                     type="date"
@@ -602,7 +608,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontWeight: 700 }}>
-                  {isTe ? 'రిఫరల్ కారణం (Reason for Referral) *' : 'Reason for Referral *'}
+                  {tr('రిఫరల్ కారణం (Reason for Referral) *', 'Reason for Referral *', 'रेफरल का कारण *')}
                 </label>
                 <textarea
                   className="form-control"
@@ -616,7 +622,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
 
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                 <label className="form-label" style={{ fontWeight: 700 }}>
-                  {isTe ? 'వైద్యుల క్లినికల్ గమనికలు (Doctor Clinical Notes)' : 'Doctor Clinical Findings & Notes'}
+                  {tr('వైద్యుల క్లినికల్ గమనికలు (Doctor Clinical Notes)', 'Doctor Clinical Findings & Notes', 'डॉक्टर नैदानिक टिप्पणियां')}
                 </label>
                 <textarea
                   className="form-control"
@@ -633,7 +639,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                   className="btn btn-secondary"
                   onClick={() => setShowCreateModal(false)}
                 >
-                  {isTe ? 'రద్దు చేయండి' : 'Cancel'}
+                  {tr('రద్దు చేయండి', 'Cancel', 'रद्द करें')}
                 </button>
                 <button
                   type="submit"
@@ -643,8 +649,8 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
                 >
                   <Plus size={16} />
                   {createSubmitting
-                    ? (isTe ? 'జారీ చేయబడుతోంది...' : 'Generating Slip...')
-                    : (isTe ? 'రిఫరల్ స్లిప్ జారీ చేయండి' : 'Issue Referral Slip')}
+                    ? tr('జారీ చేయబడుతోంది...', 'Generating Slip...', 'पर्ची जारी हो रही है...')
+                    : tr('రిఫరల్ స్లిప్ జారీ చేయండి', 'Issue Referral Slip', 'रेफरल पर्ची जारी करें')}
                 </button>
               </div>
             </form>

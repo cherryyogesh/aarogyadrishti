@@ -89,6 +89,12 @@ export const App: React.FC = () => {
       if (role === 'doctor') return 'డాక్టర్';
       return 'DMHO అధికారి';
     }
+    if (currentLang === 'hi') {
+      if (role === 'chw') return 'आशा कार्यकर्ता';
+      if (role === 'phc_staff') return 'पीएचसी स्टाफ';
+      if (role === 'doctor') return 'डॉक्टर';
+      return 'डीएमएचओ अधिकारी';
+    }
     if (role === 'chw') return 'ASHA / CHW';
     if (role === 'phc_staff') return 'PHC Staff / MO';
     if (role === 'doctor') return 'Doctor / Specialist';
@@ -116,7 +122,7 @@ export const App: React.FC = () => {
         <div style={{ textAlign: 'center' }}>
           <AarogyaLogo size="large" lightText={true} currentLang={currentLang} />
           <div style={{ fontSize: '0.88rem', color: '#94A3B8', marginTop: '1rem' }}>
-            {currentLang === 'te' ? 'భద్రతా నెట్‌వర్క్ లోడ్ అవుతోంది...' : 'Loading secure tribal healthcare platform...'}
+            {currentLang === 'te' ? 'భద్రతా నెట్‌వర్క్ లోడ్ అవుతోంది...' : currentLang === 'hi' ? 'सुरक्षित स्वास्थ्य नेटवर्क लोड हो रहा है...' : 'Loading secure tribal healthcare platform...'}
           </div>
         </div>
       </div>
@@ -203,7 +209,7 @@ export const App: React.FC = () => {
           }} />
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: '#5EEAD4', fontWeight: 700, letterSpacing: '0.04em' }}>
-              {currentLang === 'te' ? 'అధికారిక హోదా' : 'Active Role Designation'}
+              {currentLang === 'te' ? 'అధికారిక హోదా' : currentLang === 'hi' ? 'आधिकारिक पद' : 'Active Role Designation'}
             </div>
             <div style={{ fontSize: '0.82rem', color: '#F8FAFC', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
               {getRoleDisplayName(currentUser)}
@@ -589,7 +595,7 @@ export const App: React.FC = () => {
             onClick={() => navigateTo('dashboard')}
           >
             <Activity size={18} />
-            <span>{currentLang === 'te' ? 'హోమ్' : 'Home'}</span>
+            <span>{currentLang === 'te' ? 'హోమ్' : currentLang === 'hi' ? 'होम' : 'Home'}</span>
           </button>
 
           {isCHW && (
@@ -598,7 +604,7 @@ export const App: React.FC = () => {
               onClick={() => navigateTo('screening')}
             >
               <FileText size={18} />
-              <span>{currentLang === 'te' ? 'స్క్రీనింగ్' : 'Screen'}</span>
+              <span>{currentLang === 'te' ? 'స్క్రీనింగ్' : currentLang === 'hi' ? 'स्क्रीनिंग' : 'Screen'}</span>
             </button>
           )}
 
@@ -609,14 +615,14 @@ export const App: React.FC = () => {
                 onClick={() => navigateTo('phc_cases')}
               >
                 <UserCheck size={18} />
-                <span>{currentLang === 'te' ? 'సమీక్ష' : 'Review'}</span>
+                <span>{currentLang === 'te' ? 'సమీక్ష' : currentLang === 'hi' ? 'समीक्षा' : 'Review'}</span>
               </button>
               <button
                 className={`bottom-nav-item ${activeRoute === 'otp' ? 'active' : ''}`}
                 onClick={() => navigateTo('otp')}
               >
                 <KeyRound size={18} />
-                <span>{currentLang === 'te' ? 'చెక్-ఇన్' : 'Check-in'}</span>
+                <span>{currentLang === 'te' ? 'చెక్-ఇన్' : currentLang === 'hi' ? 'चेक-इन' : 'Check-in'}</span>
               </button>
             </>
           )}
@@ -627,7 +633,7 @@ export const App: React.FC = () => {
               onClick={() => navigateTo('queue')}
             >
               <Stethoscope size={18} />
-              <span>{currentLang === 'te' ? 'క్యూ' : 'Queue'}</span>
+              <span>{currentLang === 'te' ? 'క్యూ' : currentLang === 'hi' ? 'कतार' : 'Queue'}</span>
             </button>
           )}
 
@@ -637,7 +643,7 @@ export const App: React.FC = () => {
               onClick={() => navigateTo('reports')}
             >
               <BarChart3 size={18} />
-              <span>{currentLang === 'te' ? 'నివేదికలు' : 'Reports'}</span>
+              <span>{currentLang === 'te' ? 'నివేదికలు' : currentLang === 'hi' ? 'रिपोर्ट्स' : 'Reports'}</span>
             </button>
           )}
 
@@ -646,7 +652,7 @@ export const App: React.FC = () => {
             onClick={() => navigateTo('chatbot')}
           >
             <MessageSquare size={18} />
-            <span>{currentLang === 'te' ? 'మిత్ర AI' : 'Mitra AI'}</span>
+            <span>{currentLang === 'te' ? 'మిత్ర AI' : currentLang === 'hi' ? 'मित्र AI' : 'Mitra AI'}</span>
           </button>
         </nav>
       </div>

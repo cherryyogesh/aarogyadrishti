@@ -143,6 +143,8 @@ export const AarogyaLogo: React.FC<LogoProps> = ({
           }}>
             {currentLang === 'te'
               ? 'ఆరోగ్య దృష్టి • గిరిజన నోటి ఆరోగ్యం & టెలిమెడిసిన్'
+              : currentLang === 'hi'
+              ? 'आरोग्य दृष्टि • जनजातीय मुख स्वास्थ्य और टेलीमेडिसिन'
               : 'Tribal Oral Health & Telemedicine'}
           </span>
         )}

@@ -15,6 +15,12 @@ interface NavigationViewProps {
 
 export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, currentLang = 'en' }) => {
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
   const [tasks, setTasks] = useState<NavigationTask[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +92,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = isTe ? 'te-IN' : 'en-IN';
+    utterance.lang = currentLang === 'te' ? 'te-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN';
     utterance.rate = 0.95;
     utterance.onend = () => setCallSpeakingQuestion(null);
     utterance.onerror = () => setCallSpeakingQuestion(null);
@@ -201,17 +207,17 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <span className="badge badge-warning">{isTe ? '⏳ ఫాలో-అప్ పెండింగ్' : '⏳ Follow-up Pending'}</span>;
+        return <span className="badge badge-warning">{tr('⏳ ఫాలో-అప్ పెండింగ్', '⏳ Follow-up Pending', '⏳ फॉलो-अप लंबित')}</span>;
       case 'contacted':
-        return <span className="badge badge-info">{isTe ? '📞 రోగిని సంప్రదించారు' : '📞 Contacted / Lead Active'}</span>;
+        return <span className="badge badge-info">{tr('📞 రోగిని సంప్రదించారు', '📞 Contacted / Lead Active', '📞 संपर्क किया गया')}</span>;
       case 'transport_arranged':
-        return <span className="badge badge-primary">{isTe ? '🚑 108 అంబులెన్స్ సిద్ధం' : '🚑 108 Ambulance Arranged'}</span>;
+        return <span className="badge badge-primary">{tr('🚑 108 అంబులెన్స్ సిద్ధం', '🚑 108 Ambulance Arranged', '🚑 108 एम्बुलेंस तैयार')}</span>;
       case 'attended':
-        return <span className="badge badge-success">{isTe ? '🏥 ఆసుపత్రికి హాజరయ్యారు' : '🏥 Attended Hospital'}</span>;
+        return <span className="badge badge-success">{tr('🏥 ఆసుపత్రికి హాజరయ్యారు', '🏥 Attended Hospital', '🏥 अस्पताल उपस्थित हुए')}</span>;
       case 'missed_escalated':
-        return <span className="badge badge-danger">{isTe ? '🚨 రాలేదు & నివేదించబడింది' : '🚨 Missed & Escalated'}</span>;
+        return <span className="badge badge-danger">{tr('🚨 రాలేదు & నివేదించబడింది', '🚨 Missed & Escalated', '🚨 अनुपस्थित एवं सूचित')}</span>;
       case 'completed':
-        return <span className="badge badge-success">{isTe ? '✅ సంరక్షణ అనుసంధానించబడింది' : '✅ Care Linked'}</span>;
+        return <span className="badge badge-success">{tr('✅ సంరక్షణ అనుసంధానించబడింది', '✅ Care Linked', '✅ देखभाल से जुड़ा')}</span>;
       default:
         return <span className="badge badge-outline">{status}</span>;
     }
@@ -233,10 +239,10 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#2DD4BF', color: '#042F2E', fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               <Sparkles size={13} />
-              {isTe ? 'ఆరోగ్య మిత్ర AI లీడ్ & కేర్ ట్రాకర్' : 'Arogya Mitra AI Lead Tracking Continuum'}
+              {tr('ఆరోగ్య మిత్ర AI లీడ్ & కేర్ ట్రాకర్', 'Arogya Mitra AI Lead Tracking Continuum', 'आरोग्य मित्र AI लीड एवं केयर ट्रैकर')}
             </div>
             <h2 style={{ margin: '0.5rem 0 0.25rem 0', fontSize: '1.65rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-              {isTe ? 'గిరిజన రోగుల సంరక్షణ & ఆటోమేటెడ్ ఫాలో-అప్' : 'Tribal Patient Care Leads & Automated AI Follow-Up'}
+              {tr('గిరిజన రోగుల సంరక్షణ & ఆటోమేటెడ్ ఫాలో-అప్', 'Tribal Patient Care Leads & Automated AI Follow-Up', 'जनजातीय रोगी देखभाल और स्वचालित फॉलो-अप')}
             </h2>
             <p style={{ margin: 0, color: '#99F6E4', fontSize: '0.9rem', maxWidth: '800px', lineHeight: 1.5 }}>
               {isTe
@@ -261,7 +267,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
             }}
           >
             <RefreshCw size={15} />
-            {isTe ? 'రిఫ్రెష్' : 'Refresh Queue'}
+            {tr('రిఫ్రెష్', 'Refresh Queue', 'रीफ्रेश कतार')}
           </button>
         </div>
 
@@ -315,14 +321,14 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
       }}>
         <div style={{ flex: '1', minWidth: '220px' }}>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-            {isTe ? 'మండలం వారీగా ఫిల్టర్' : 'Filter by Mandal'}
+            {tr('మండలం వారీగా ఫిల్టర్', 'Filter by Mandal', 'मंडल द्वारा फ़िल्टर')}
           </label>
           <select
             value={filterMandal}
             onChange={e => setFilterMandal(e.target.value)}
             style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
           >
-            <option value="all">{isTe ? 'అన్ని మండలాలు (All 11 Mandals)' : 'All 11 Mandals'}</option>
+            <option value="all">{tr('అన్ని మండలాలు (All 11 Mandals)', 'All 11 Mandals', 'सभी 11 मंडल')}</option>
             {ASR_DISTRICT_MANDALS.map((m) => (
               <option key={m.id} value={m.id}>
                 {isTe ? `${m.nameTe} (${m.name})` : m.name}
@@ -333,19 +339,19 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
 
         <div style={{ flex: '1', minWidth: '220px' }}>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-            {isTe ? 'స్థితి వారీగా ఫిల్టర్' : 'Filter by Status'}
+            {tr('స్థితి వారీగా ఫిల్టర్', 'Filter by Status', 'स्थिति द्वारा फ़िल्टर')}
           </label>
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
             style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
           >
-            <option value="all">{isTe ? 'అన్ని స్థితులు (All Statuses)' : 'All Statuses'}</option>
-            <option value="pending">{isTe ? 'వేచి ఉంది (Pending)' : 'Pending'}</option>
-            <option value="contacted">{isTe ? 'సంప్రదించబడింది (Contacted)' : 'Contacted / Lead Active'}</option>
-            <option value="transport_arranged">{isTe ? '108 రవాణా సిద్ధం' : 'Transport Arranged'}</option>
-            <option value="attended">{isTe ? 'ఆసుపత్రికి చేరుకున్నారు' : 'Attended Hospital'}</option>
-            <option value="completed">{isTe ? 'పూర్తయింది (Completed)' : 'Completed'}</option>
+            <option value="all">{tr('అన్ని స్థితులు (All Statuses)', 'All Statuses', 'सभी स्थितियां')}</option>
+            <option value="pending">{tr('వేచి ఉంది (Pending)', 'Pending', 'लंबित (Pending)')}</option>
+            <option value="contacted">{tr('సంప్రదించబడింది (Contacted)', 'Contacted / Lead Active', 'संपर्क किया गया')}</option>
+            <option value="transport_arranged">{tr('108 రవాణా సిద్ధం', 'Transport Arranged', '108 परिवहन तैयार')}</option>
+            <option value="attended">{tr('ఆసుపత్రికి చేరుకున్నారు', 'Attended Hospital', 'अस्पताल पहुंचे')}</option>
+            <option value="completed">{tr('పూర్తయింది (Completed)', 'Completed', 'पूर्ण (Completed)')}</option>
           </select>
         </div>
       </div>
@@ -515,7 +521,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   }}
                 >
                   <PhoneCall size={14} color="#2DD4BF" />
-                  <span>{isTe ? 'AI వాయిస్ కాల్' : 'AI Voice Call'}</span>
+                  <span>{tr('AI వాయిస్ కాల్', 'AI Voice Call', 'AI वॉइस कॉल')}</span>
                 </button>
 
                 {/* 2. WhatsApp Photo Upload */}
@@ -541,7 +547,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   }}
                 >
                   <MessageSquare size={14} color="#86EFAC" />
-                  <span>{isTe ? 'వాట్సాప్ ఫొటో' : 'WhatsApp Photo'}</span>
+                  <span>{tr('వాట్సాప్ ఫొటో', 'WhatsApp Photo', 'व्हाट्सएप फोटो')}</span>
                 </button>
               </div>
 
@@ -569,7 +575,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   }}
                 >
                   <Stethoscope size={14} color="#E9D5FF" />
-                  <span>{isTe ? 'డాక్టర్ సమీక్ష' : 'Doctor Review'}</span>
+                  <span>{tr('డాక్టర్ సమీక్ష', 'Doctor Review', 'डॉक्टर समीक्षा')}</span>
                 </button>
 
                 {/* 4. Consolidated Printable Sheet */}
@@ -592,7 +598,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   }}
                 >
                   <Printer size={14} color="#5EEAD4" />
-                  <span>{isTe ? 'ప్రింట్ రిపోర్ట్' : 'Printable Sheet'}</span>
+                  <span>{tr('ప్రింట్ రిపోర్ట్', 'Printable Sheet', 'प्रिंट रिपोर्ट')}</span>
                 </button>
               </div>
 
@@ -612,7 +618,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
                   textAlign: 'center'
                 }}
               >
-                {isTe ? '🚑 108 అంబులెన్స్ & రవాణా వివరాలు సవరించండి' : '🚑 Manage 108 Feeder Ambulance & Visit'}
+                {tr('🚑 108 అంబులెన్స్ & రవాణా వివరాలు సవరించండి', '🚑 Manage 108 Feeder Ambulance & Visit', '🚑 108 एम्बुलेंस और परिवहन प्रबंधन')}
               </button>
             </div>
           </div>

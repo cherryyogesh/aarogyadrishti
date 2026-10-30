@@ -13,6 +13,12 @@ interface Props {
 export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSuccess }) => {
   const t = translations[currentLang] || translations.en;
   const isTe = currentLang === 'te';
+  const isHi = currentLang === 'hi';
+  const tr = (teText: string, enText: string, hiText: string) => {
+    if (currentLang === 'te') return teText;
+    if (currentLang === 'hi') return hiText;
+    return enText;
+  };
 
   const [patientIdInput, setPatientIdInput] = useState('AD-ASR-10492');
   const [requesting, setRequesting] = useState(false);
@@ -60,7 +66,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
         setDevOtpPreview(res.dev_otp_preview);
       }
     } catch (err: any) {
-      setRequestError(err.message || (isTe ? 'OTP పంపడం విఫలమైంది. అపాయింట్‌మెంట్ ఉందో లేదో సరిచూసుకోండి.' : 'Failed to request OTP. Ensure patient has an active appointment today.'));
+      setRequestError(err.message || tr('OTP పంపడం విఫలమైంది. అపాయింట్‌మెంట్ ఉందో లేదో సరిచూసుకోండి.', 'Failed to request OTP. Ensure patient has an active appointment today.', 'ओटीपी भेजना विफल रहा। सुनिश्चित करें कि आज मरीज का अपॉइंटमेंट सक्रिय है।'));
     } finally {
       setRequesting(false);
     }
@@ -79,7 +85,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
         onCheckinSuccess();
       }
     } catch (err: any) {
-      setVerifyError(err.message || (isTe ? 'OTP ధృవీకరణ విఫలమైంది. సరైన కోడ్ నమోదు చేయండి.' : 'OTP verification failed. Check the code and try again.'));
+      setVerifyError(err.message || tr('OTP ధృవీకరణ విఫలమైంది. సరైన కోడ్ నమోదు చేయండి.', 'OTP verification failed. Check the code and try again.', 'ओटीपी सत्यापन विफल रहा। कोड जांचें और पुनः प्रयास करें।'));
     } finally {
       setVerifying(false);
     }
@@ -157,9 +163,9 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
             textAlign: 'left',
             lineHeight: 1.6
           }}>
-            ✓ {isTe ? 'అపాయింట్‌మెంట్ స్థితి: డాక్టర్ కోసం వేచి ఉన్నారు (Waiting for Doctor)' : 'Appointment status: Waiting for Doctor'}<br />
-            ✓ {isTe ? 'హాజరు సమయం డేటాబేస్ ఆడిట్ లాగ్‌లో రికార్డ్ చేయబడింది' : 'Arrival timestamp logged with salted SHA-256 OTP confirmation'}<br />
-            ✓ {isTe ? 'డాక్టర్ క్యూ తక్షణమే అప్‌డేట్ చేయబడింది — రోగి గైర్హాజరు కాదు' : 'Doctor consultation queue synchronized in real-time — patient is present and waiting'}
+            ✓ {tr('అపాయింట్‌మెంట్ స్థితి: డాక్టర్ కోసం వేచి ఉన్నారు (Waiting for Doctor)', 'Appointment status: Waiting for Doctor', 'अपॉइंटमेंट स्थिति: डॉक्टर की प्रतीक्षा कर रहे हैं (Waiting for Doctor)')}<br />
+            ✓ {tr('హాజరు సమయం డేటాబేస్ ఆడిట్ లాగ్‌లో రికార్డ్ చేయబడింది', 'Arrival timestamp logged with salted SHA-256 OTP confirmation', 'आगमन का समय डेटाबेस ऑडिट लॉग में सुरक्षित दर्ज किया गया')}<br />
+            ✓ {tr('డాక్టర్ క్యూ తక్షణమే అప్‌డేట్ చేయబడింది — రోగి గైర్హాజరు కాదు', 'Doctor consultation queue synchronized in real-time — patient is present and waiting', 'डॉक्टर परामर्श कतार तुरंत अपडेट हुई — मरीज उपस्थित है')}
           </div>
 
           <button
@@ -171,7 +177,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
               setDevOtpPreview(null);
             }}
           >
-            {isTe ? 'మరొక రోగి హాజరును నమోదు చేయండి' : 'Check In Another Patient'}
+            {tr('మరొక రోగి హాజరును నమోదు చేయండి', 'Check In Another Patient', 'अन्य मरीज का चेक-इन करें')}
           </button>
         </div>
       ) : (
@@ -200,7 +206,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
               {/* Quick Fill Demo Patient Badge */}
               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
-                  {isTe ? 'త్వరిత ఎంపిక (డెమో రోగి):' : 'Quick demo patient:'}
+                  {tr('త్వరిత ఎంపిక (డెమో రోగి):', 'Quick demo patient:', 'त्वरित चयन (डेमो मरीज):')}
                 </span>
                 <button
                   type="button"
@@ -242,7 +248,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
                 style={{ width: '100%', fontSize: '0.98rem', fontWeight: 700, padding: '0.75rem' }}
                 disabled={requesting}
               >
-                {requesting ? (isTe ? 'అపాయింట్‌మెంట్ తనిఖీ చేసి OTP పంపుతోంది...' : 'Verifying Appointment & Sending OTP...') : t.otp_request_btn}
+                {requesting ? tr('అపాయింట్‌మెంట్ తనిఖీ చేసి OTP పంపుతోంది...', 'Verifying Appointment & Sending OTP...', 'अपॉइंटमेंट जांचकर ओटीपी भेजा जा रहा है...') : t.otp_request_btn}
               </button>
             </form>
           ) : (
@@ -255,10 +261,10 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
                 marginBottom: '1.5rem'
               }}>
                 <div style={{ fontWeight: 700, color: '#166534', fontSize: '1rem' }}>
-                  {isTe ? `OTP పంపబడింది: ${patientName}` : `OTP Dispatched to ${patientName}`}
+                  {tr(`OTP పంపబడింది: ${patientName}`, `OTP Dispatched to ${patientName}`, `ओटीपी भेजा गया: ${patientName}`)}
                 </div>
                 <div style={{ fontSize: '0.84rem', color: '#15803D', marginTop: '0.25rem' }}>
-                  {isTe ? 'మొబైల్:' : 'Mobile:'} <strong>{maskedPhone}</strong> • {isTe ? 'చెల్లుబాటు: 5 నిమిషాలు' : 'Valid for 5 minutes.'}
+                  {tr('మొబైల్:', 'Mobile:', 'मोबाइल:')} <strong>{maskedPhone}</strong> • {tr('చెల్లుబాటు: 5 నిమిషాలు', 'Valid for 5 minutes.', 'वैधता: 5 मिनट')}
                 </div>
 
                 {/* Synthetic Dev Mode Badge */}
@@ -286,7 +292,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
               <form onSubmit={handleVerifyOtp}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 700 }}>
-                    {isTe ? 'రోగి ఫోన్‌కు వచ్చిన 6-అంకెల OTP నమోదు చేయండి *' : 'Enter 6-Digit OTP Received by Patient *'}
+                    {tr('రోగి ఫోన్‌కు వచ్చిన 6-అంకెల OTP నమోదు చేయండి *', 'Enter 6-Digit OTP Received by Patient *', 'रोगी के फोन पर प्राप्त 6-अंकों का ओटीपी दर्ज करें *')}
                   </label>
                   <input
                     type="text"
@@ -312,7 +318,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
                   style={{ width: '100%', fontSize: '0.98rem', fontWeight: 700, padding: '0.75rem', marginBottom: '1rem' }}
                   disabled={verifying || enteredOtp.length !== 6}
                 >
-                  {verifying ? (isTe ? 'ధృవీకరిస్తోంది...' : 'Verifying OTP...') : t.otp_verify_btn}
+                  {verifying ? tr('ధృవీకరిస్తోంది...', 'Verifying OTP...', 'सत्यापित हो रहा है...') : t.otp_verify_btn}
                 </button>
               </form>
 
@@ -326,7 +332,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
                   }}
                   style={{ color: '#64748B' }}
                 >
-                  ← {isTe ? 'పేషెంట్ ID మార్చండి' : 'Change Patient ID'}
+                  ← {tr('పేషెంట్ ID మార్చండి', 'Change Patient ID', 'रोगी आईडी बदलें')}
                 </button>
 
                 {cooldown > 0 ? (
@@ -342,7 +348,7 @@ export const OTPCheckinView: React.FC<Props> = ({ currentLang, user, onCheckinSu
                     style={{ color: 'var(--teal-primary)', fontWeight: 600 }}
                   >
                     <RefreshCw size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                    {isTe ? 'మళ్లీ OTP పంపండి' : 'Resend OTP'}
+                    {tr('మళ్లీ OTP పంపండి', 'Resend OTP', 'ओटीपी पुनः भेजें')}
                   </button>
                 )}
               </div>
