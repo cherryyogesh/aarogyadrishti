@@ -64,7 +64,7 @@ def get_ai_status():
     return llm_clinical_engine.get_status()
 
 @router.post("/ai-keys")
-def set_ai_key(payload: AIKeyPayload):
+async def set_ai_key(payload: AIKeyPayload):
     """
     Configure and activate an AI provider key (Gemini, Groq, HF, OpenAI, or local submodule).
     """
@@ -102,6 +102,11 @@ def set_ai_key(payload: AIKeyPayload):
     if not key:
         raise HTTPException(status_code=400, detail="API Key cannot be empty.")
 
+    # Live verification of the key before saving
+    val = await llm_clinical_engine.validate_api_key(prov, key)
+    if not val.get("valid"):
+        raise HTTPException(status_code=400, detail=val.get("error", "Invalid API key provided."))
+
     status = llm_clinical_engine.set_api_key(
         provider=payload.provider,
         api_key=key,
@@ -109,7 +114,7 @@ def set_ai_key(payload: AIKeyPayload):
     )
     return {
         "success": True,
-        "message": f"Fast API Key for {payload.provider.upper()} activated successfully.",
+        "message": f"✓ {payload.provider.upper()} API Key verified and connected successfully! Live AI reasoning is now active.",
         "status": status
     }
 

@@ -30,7 +30,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   // Fast AI Key & MedGemma LLM Connection State
   const [showKeyModal, setShowKeyModal] = useState(false);
-  const [modalTab, setModalTab] = useState<'vllm' | 'local' | 'cloud'>('vllm');
+  const [modalTab, setModalTab] = useState<'vllm' | 'local' | 'cloud'>('cloud');
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [keyProvider, setKeyProvider] = useState<'gemini' | 'groq' | 'huggingface' | 'openai'>('gemini');
   const [keyInput, setKeyInput] = useState('');
@@ -556,10 +556,10 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             );
           }
 
-          const isPatient = clean.includes('🗣️') || clean.toLowerCase().includes('for patient');
-          const isAsha = clean.includes('👩‍⚕️') || clean.toLowerCase().includes('for asha');
-          const isDoctor = clean.includes('🩺') || clean.toLowerCase().includes('for doctor') || clean.toLowerCase().includes('clinical report');
-          const isGuidelines = clean.includes('📚') || clean.includes('ప్రామాణిక మార్గదర్శకాలు') || clean.toLowerCase().includes('guidelines');
+          const isPatient = clean.includes('🗣️') || clean.toLowerCase().includes('for patient') || clean.includes('రోగి') || clean.includes('రొగి') || clean.includes('रोगी');
+          const isAsha = clean.includes('👩‍⚕️') || clean.toLowerCase().includes('for asha') || clean.includes('ఆశా') || clean.includes('आशा');
+          const isDoctor = clean.includes('🩺') || clean.toLowerCase().includes('for doctor') || clean.toLowerCase().includes('clinical report') || clean.toLowerCase().includes('dossier') || clean.includes('వైద్యులు') || clean.includes('డాక్టర్') || clean.includes('डॉक्टर');
+          const isGuidelines = clean.includes('📚') || clean.includes('ప్రామాణిక మార్గదర్శకాలు') || clean.toLowerCase().includes('guidelines') || clean.includes('दिशानिर्देश');
 
           if (selectedRole === 'patient' && (isAsha || isDoctor)) return null;
           if (selectedRole === 'asha' && (isPatient || isDoctor)) return null;
@@ -686,35 +686,30 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               {/* Fast API Key / LLM Status Button */}
               <button
                 type="button"
-                onClick={() => setShowKeyModal(true)}
+                onClick={() => {
+                  setModalTab('cloud');
+                  setShowKeyModal(true);
+                }}
                 style={{
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#065F46',
-                  border: '1.5px solid #10B981',
+                  background: aiStatus?.is_live_llm_connected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: aiStatus?.is_live_llm_connected ? '#065F46' : '#92400E',
+                  border: `1.5px solid ${aiStatus?.is_live_llm_connected ? '#10B981' : '#F59E0B'}`,
                   borderRadius: '12px',
-                  padding: '0.15rem 0.55rem',
+                  padding: '0.15rem 0.6rem',
                   fontSize: '0.68rem',
                   fontWeight: 800,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.3rem',
+                  gap: '0.35rem',
                   cursor: 'pointer'
                 }}
-                title="Configure MedGemma vLLM Endpoint or Local Submodule"
+                title={aiStatus?.is_live_llm_connected ? "Live AI Reasoning Connected" : "Click to connect Google Gemini API Key"}
               >
-                <Zap size={11} color="#059669" />
+                <Zap size={11} color={aiStatus?.is_live_llm_connected ? "#059669" : "#D97706"} />
                 <span>
-                  {aiStatus?.active_provider === 'custom_vllm'
-                    ? `🟢 MedGemma vLLM Active (${aiStatus.custom_endpoint ? aiStatus.custom_endpoint.replace(/^https?:\/\//, '') : 'Self-Hosted'})`
-                    : aiStatus?.active_provider === 'google_health_medgemma_local'
-                    ? `🟢 MedGemma Submodule Active (Zero-Key)`
-                    : aiStatus?.active_provider === 'gemini'
-                    ? `🟢 Gemini MedGemma Cloud Active`
-                    : aiStatus?.active_provider === 'groq'
-                    ? `🟢 Groq LPU Fast LLM Active`
-                    : aiStatus?.active_provider === 'huggingface'
-                    ? `🟢 Hugging Face MedGemma Active`
-                    : `🟢 Google Health MedGemma Active`}
+                  {aiStatus?.is_live_llm_connected
+                    ? `🟢 Live AI: ${aiStatus.active_model}`
+                    : `⚡ MedGemma Offline • Connect Live Gemini API`}
                 </span>
               </button>
               <span className="ai-badge-voice">

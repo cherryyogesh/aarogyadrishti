@@ -146,8 +146,16 @@ async def send_chat_message(
 
     final_content = ai_resp.get("content", "")
     if image_analysis_report:
-        # Prepend the 3-tier multimodal report above counseling
-        final_content = f"{image_analysis_report}\n\n---\n**{'ఆరోగ్య సలహా & కౌన్సిలింగ్' if is_te else 'Health Counseling'}:**\n{final_content}"
+        # If user only uploaded a photograph without a specific question, use the image analysis report directly
+        is_generic_caption = not text or text.strip().lower() in [
+            "attached photograph for review.",
+            "photo", "photograph", "image", "review this photo",
+            "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో"
+        ]
+        if is_generic_caption:
+            final_content = image_analysis_report
+        else:
+            final_content = f"{image_analysis_report}\n\n---\n### 💬 {'మీ ప్రశ్నకు సమాధానం (Clinical Response)' if is_te else 'Clinical Response to Specific Question'}\n{final_content}"
     elif rag_citations and not ai_resp.get("is_emergency"):
         final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if is_te else 'Verified Clinical Guidelines'}\n{rag_citations}"
 
