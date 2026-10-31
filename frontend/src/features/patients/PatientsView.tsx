@@ -316,7 +316,8 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>
