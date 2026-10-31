@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
 import { LanguageCode, ChatMessage, ImageUploadResponse } from '../../types';
+import { networkStatus } from '../../services/networkStatus';
 import {
   Plus, Send, Camera, Image as ImageIcon, X, AlertTriangle,
   Copy, RefreshCw, Sparkles, Check, HelpCircle,
@@ -26,6 +27,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => networkStatus.isOnline());
   const [sessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 10));
 
   // Fast AI Key & MedGemma LLM Connection State
@@ -72,6 +74,12 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const [repoStatus, setRepoStatus] = useState<any>(null);
 
   // Cleanup screen camera tracks on unmount
+  useEffect(() => {
+    const unsub = networkStatus.subscribe(setIsOnline);
+    return () => {
+      unsub();
+    };
+  }, []);
   useEffect(() => {
     return () => {
       if (liveStreamRef.current) {
@@ -359,6 +367,25 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
   const executeSend = async (textToSend: string) => {
     if (!textToSend.trim() && !attachedImage) return;
+
+    if (!networkStatus.isOnline()) {
+      const offlineAiNotice: ChatMessage = {
+        id: Date.now(),
+        session_id: sessionId,
+        role: 'assistant',
+        content: tr(
+          '🌐 ఆరోగ్య మైత్ర AI ఆన్‌లైన్ ఇంటర్నెట్ ఉన్నప్పుడు మాత్రమే పనిచేస్తుంది. రోగుల నమోదు మరియు క్లినికల్ స్క్రీనింగ్ పనులు ఆఫ్‌లైన్‌లో రికార్డు చేయవచ్చు. దయచేసి AI సలహాల కొరకు ఇంటర్నెట్‌ను కనెక్ట్ చేయండి.',
+          '🌐 Aarogya Mytra AI requires an active internet connection (Online AI). Community screenings, patient enrollments, and clinic logs are safely functional offline on your device.',
+          '🌐 आरोग्य मैत्र AI केवल ऑनलाइन इंटरनेट पर काम करता है। रोगी पंजीकरण और क्लिनिकल स्क्रीनिंग ऑफ़लाइन कार्य करते हैं।'
+        ),
+        language: currentLang,
+        has_attachment: false,
+        disclaimer: t.chat_disclaimer,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, offlineAiNotice]);
+      return;
+    }
 
     const userText = textToSend.trim() || 'Attached photograph for review.';
     const tempUserMsg: ChatMessage = {
@@ -1010,6 +1037,45 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         </div>
       )}
 
+      {/* Offline AI Notification Alert */}
+      {!isOnline && (
+        <div style={{
+          margin: '0.65rem 1rem 0.25rem',
+          background: '#EFF6FF',
+          border: '1px solid #93C5FD',
+          borderRadius: '12px',
+          padding: '0.75rem 1.15rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>🌐</span>
+            <div>
+              <div style={{ fontWeight: 800, color: '#1E40AF', fontSize: '0.88rem' }}>
+                {tr('ఆన్‌లైన్ AI సేవ అవసరం (AI Works Online)', 'Online AI Network Service Required (AI Works Online)', 'ऑनलाइन AI सेवा आवश्यक (AI ऑनलाइन काम करता है)')}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#1E3A8A' }}>
+                {tr(
+                  'ఆరోగ్య మైత్ర AI పనిచేయడానికి ఇంటర్నెట్ అవసరం. రోగుల నమోదు మరియు క్లినికల్ స్క్రీనింగ్ పనులు ఆఫ్‌లైన్‌లో సేవ్ అవుతాయి.',
+                  'Aarogya Mytra AI requires an active internet connection. Community screenings & patient enrollments work offline.',
+                  'AI के लिए इंटरनेट आवश्यक है। रोगी पंजीकरण व स्क्रीनिंग ऑफ़लाइन काम करते हैं।'
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => networkStatus.forceCheck()}
+            className="btn btn-secondary"
+            style={{ minHeight: '30px', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
+          >
+            {tr('కనెక్షన్ తనిఖీ చేయండి', 'Check Connection', 'कनेक्शन जांचें')}
+          </button>
+        </div>
+      )}
+
       {/* Bottom Composer with Mic & Send */}
       <form onSubmit={handleSend} className="chat-composer">
         {/* Plus Button */}
@@ -1018,6 +1084,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           className="chat-plus-btn"
           title={tr('ఫొటో జోడించండి (+)', 'Attach Image (+)', 'तस्वीर संलग्न करें (+)')}
           onClick={() => setShowPlusMenu(!showPlusMenu)}
+          disabled={!isOnline}
         >
           <Plus size={20} />
         </button>
@@ -1026,10 +1093,16 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <div className="chat-input-pill">
           <input
             type="text"
-            placeholder={isListening ? tr('🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి', '🎙️ Listening... speak now', '🎙️ सुन रहा हूँ... अब बोलें') : t.chat_input_placeholder}
+            placeholder={
+              !isOnline
+                ? tr('ఆరోగ్య మైత్ర AI ఆన్‌లైన్‌లో పనిచేస్తుంది • స్క్రీనింగ్ & రోగుల నమోదు ఆఫ్‌లైన్‌లో సేవ్ అవుతాయి', 'Aarogya Mytra AI works online • Screenings & patients work offline', 'AI ऑनलाइन काम करता है • स्क्रीनिंग ऑफ़लाइन कार्य करती है')
+                : isListening
+                ? tr('🎙️ వాయిస్ వింటున్నాను... మాట్లాడండి', '🎙️ Listening... speak now', '🎙️ सुन रहा हूँ... अब बोलें')
+                : t.chat_input_placeholder
+            }
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            disabled={loading || uploadingAttachment}
+            disabled={!isOnline || loading || uploadingAttachment}
           />
 
           {/* Microphone Button (Speech-to-Text) */}
@@ -1037,6 +1110,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             type="button"
             className={`chat-mic-btn ${isListening ? 'listening' : 'idle'}`}
             onClick={toggleListening}
+            disabled={!isOnline}
             title={isListening ? tr('వాయిస్ ఆపండి', 'Stop listening', 'सुनना बंद करें') : tr('వాయిస్‌తో మాట్లాడండి', 'Speak your question (Voice Input)', 'बोलकर पूछें (वॉइस इनपुट)')}
           >
             {isListening ? <MicOff size={18} /> : <Mic size={18} />}
@@ -1047,8 +1121,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
         <button
           type="submit"
           className="chat-send-btn"
-          title={tr('సందేశం పంపండి', 'Send Message', 'संदेश भेजें')}
-          disabled={loading || uploadingAttachment || (!inputText.trim() && !attachedImage)}
+          title={!isOnline ? tr('AI ఆన్‌లైన్ ఇంటర్నెట్ అవసరం', 'AI requires active internet connection', 'AI के लिए सक्रिय इंटरनेट आवश्यक है') : tr('సందేశం పంపండి', 'Send Message', 'संदेश भेजें')}
+          disabled={!isOnline || loading || uploadingAttachment || (!inputText.trim() && !attachedImage)}
         >
           <Send size={18} />
         </button>

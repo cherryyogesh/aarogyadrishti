@@ -3,7 +3,9 @@ import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
 import { LanguageCode, Patient, User } from '../../types';
 import { ASR_DISTRICT_MANDALS } from '../../constants/mandals';
-import { Search, UserPlus, Phone, ShieldCheck, X, FileText, Calendar } from 'lucide-react';
+import { networkStatus } from '../../services/networkStatus';
+import { offlineStorage } from '../../services/offlineStorage';
+import { Search, UserPlus, Phone, ShieldCheck, X, FileText, Calendar, WifiOff } from 'lucide-react';
 
 interface Props {
   currentLang: LanguageCode;
@@ -17,6 +19,7 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
   const [loading, setLoading] = useState(true);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(() => networkStatus.isOnline());
 
   // New Patient Form State
   const [fullName, setFullName] = useState('');
@@ -29,21 +32,47 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
   const [consentGranted, setConsentGranted] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
 
   const fetchPatients = async (q = '') => {
     setLoading(true);
     try {
-      const data = await api.searchPatients(q);
-      setPatients(data);
+      if (networkStatus.isOnline()) {
+        const data = await api.searchPatients(q);
+        offlineStorage.cachePatients(data);
+        const offlinePatients = offlineStorage.getOfflinePatients();
+        const merged = q
+          ? [...offlinePatients.filter(p => p.full_name.toLowerCase().includes(q.toLowerCase()) || p.phone.includes(q)), ...data]
+          : [...offlinePatients, ...data];
+        setPatients(merged);
+      } else {
+        const data = offlineStorage.getAllPatients(q);
+        setPatients(data);
+      }
     } catch (e) {
-      console.error(e);
+      console.warn('Network query failed, loading offline patient cache:', e);
+      const data = offlineStorage.getAllPatients(q);
+      setPatients(data);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPatients(searchQuery);
+    const unsub = networkStatus.subscribe((online) => {
+      setIsOnline(online);
+      fetchPatients(searchQuery);
+    });
+
+    const handleSyncComplete = () => {
+      fetchPatients(searchQuery);
+    };
+    window.addEventListener('aarogya-sync-complete', handleSyncComplete);
+
+    return () => {
+      unsub();
+      window.removeEventListener('aarogya-sync-complete', handleSyncComplete);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -55,6 +84,35 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
     e.preventDefault();
     setSubmitting(true);
     setRegisterError(null);
+
+    const isCurrentOnline = networkStatus.isOnline();
+    if (!isCurrentOnline) {
+      // Offline registration flow - works 100% offline
+      const offlineP = offlineStorage.saveOfflinePatient({
+        full_name: fullName,
+        age: Number(age),
+        gender,
+        phone,
+        preferred_language: preferredLang,
+        village_town: village,
+        habitation: village,
+        mandal: mandal,
+        phc_id: user.phc_id || 1,
+        consent_granted: consentGranted,
+        consent_notes: 'Digital informed consent confirmed with patient (Offline Field Mode)'
+      });
+
+      setShowRegisterModal(false);
+      setFullName('');
+      setPhone('+91 ');
+      setVillage('');
+      setOfflineNotice(`✅ Patient "${offlineP.full_name}" registered locally in Offline Mode. Record queued for cloud sync.`);
+      setTimeout(() => setOfflineNotice(null), 6000);
+      fetchPatients(searchQuery);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const newP = await api.registerPatient({
         full_name: fullName,
@@ -76,7 +134,28 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
       setVillage('');
       fetchPatients();
     } catch (err: any) {
-      setRegisterError(err.message || 'Registration failed');
+      // Automatic fallback to offline storage on network error
+      console.warn('Server registration failed, saving offline:', err);
+      const offlineP = offlineStorage.saveOfflinePatient({
+        full_name: fullName,
+        age: Number(age),
+        gender,
+        phone,
+        preferred_language: preferredLang,
+        village_town: village,
+        habitation: village,
+        mandal: mandal,
+        phc_id: user.phc_id || 1,
+        consent_granted: consentGranted,
+        consent_notes: 'Digital informed consent confirmed with patient (Offline Fallback)'
+      });
+      setShowRegisterModal(false);
+      setFullName('');
+      setPhone('+91 ');
+      setVillage('');
+      setOfflineNotice(`✅ Patient "${offlineP.full_name}" saved safely to device storage in Offline Mode.`);
+      setTimeout(() => setOfflineNotice(null), 6000);
+      fetchPatients(searchQuery);
     } finally {
       setSubmitting(false);
     }
@@ -93,6 +172,42 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
 
   return (
     <div>
+      {/* Offline Status Banner */}
+      {!isOnline && (
+        <div style={{
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          color: '#92400E',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <WifiOff size={20} color="#D97706" />
+          <div style={{ fontSize: '0.86rem' }}>
+            <strong>Field Offline Mode:</strong> Community patient registrations work completely offline and save safely to this device. When online connectivity is detected, pending records will sync automatically. (AI works online).
+          </div>
+        </div>
+      )}
+
+      {/* Success Notification */}
+      {offlineNotice && (
+        <div style={{
+          background: '#DCFCE7',
+          border: '1px solid #22C55E',
+          borderRadius: '12px',
+          padding: '0.85rem 1.25rem',
+          color: '#166534',
+          marginBottom: '1.25rem',
+          fontSize: '0.88rem',
+          fontWeight: 600
+        }}>
+          {offlineNotice}
+        </div>
+      )}
+
       {/* Header bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -150,15 +265,35 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                 </tr>
               </thead>
               <tbody>
-                {patients.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--teal-primary)' }}>
-                        {p.patient_id_display}
-                      </span>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{p.full_name}</td>
-                    <td>{p.age}y • {p.gender}</td>
+                {patients.map((p) => {
+                  const isOfflinePatient = p.id < 0;
+                  const displayId = isOfflinePatient
+                    ? `TEMP-PAT-${Math.abs(p.id).toString().slice(-4)}`
+                    : (p.patient_id_display || `PAT-2026-${String(p.id).padStart(4, '0')}`);
+
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <span style={{ fontWeight: 700, color: 'var(--teal-primary)' }}>
+                          {displayId}
+                        </span>
+                        {isOfflinePatient && (
+                          <span style={{
+                            display: 'inline-block',
+                            marginLeft: '6px',
+                            background: '#FEF3C7',
+                            color: '#92400E',
+                            fontSize: '0.68rem',
+                            padding: '2px 6px',
+                            borderRadius: '10px',
+                            fontWeight: 700
+                          }}>
+                            📶 Offline
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{p.full_name}</td>
+                      <td>{p.age}y • {p.gender}</td>
                     <td>
                       <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#475569' }}>
                         {p.phone_masked}

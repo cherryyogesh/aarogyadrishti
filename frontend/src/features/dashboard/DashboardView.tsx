@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
 import { LanguageCode, User, Screening, DoctorQueueItem } from '../../types';
+import { networkStatus } from '../../services/networkStatus';
+import { offlineStorage } from '../../services/offlineStorage';
 import {
   Users, Activity, Clock, CheckCircle, PlusCircle, UserCheck,
   Stethoscope, MessageSquare, ArrowRight, AlertTriangle, Shield,
-  FileCheck, FlaskConical
+  FileCheck, FlaskConical, WifiOff, RefreshCw
 } from 'lucide-react';
 
 interface Props {
@@ -27,25 +29,73 @@ export const DashboardView: React.FC<Props> = ({ currentLang, user, onNavigate }
   const [screenings, setScreenings] = useState<Screening[]>([]);
   const [waitingQueue, setWaitingQueue] = useState<DoctorQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState<boolean>(() => networkStatus.isOnline());
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(() => offlineStorage.getPendingCount());
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
+  const fetchDashboardData = async () => {
+    try {
+      if (networkStatus.isOnline()) {
         const [scrs, queue] = await Promise.all([
           api.listScreenings(),
           user.role === 'doctor' || user.role === 'phc_staff' || user.role === 'admin'
             ? api.getDoctorQueue()
             : Promise.resolve([])
         ]);
-        setScreenings(scrs);
+        offlineStorage.cacheScreenings(scrs);
+        const offlineScrs = offlineStorage.getOfflineScreenings();
+        setScreenings([...offlineScrs, ...scrs]);
         setWaitingQueue(queue);
-      } catch (e) {
-        console.error('Failed to load dashboard data:', e);
-      } finally {
-        setLoading(false);
+      } else {
+        const allScrs = offlineStorage.getAllScreenings();
+        setScreenings(allScrs);
       }
+    } catch (e) {
+      console.warn('Network fetch failed, loading offline screening cache:', e);
+      const allScrs = offlineStorage.getAllScreenings();
+      setScreenings(allScrs);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      await offlineStorage.syncPendingQueue(api);
+      setPendingSyncCount(offlineStorage.getPendingCount());
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Manual sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsub = networkStatus.subscribe((online) => {
+      setIsOnline(online);
+      fetchDashboardData();
+    });
+
+    const handleQueueChange = () => {
+      setPendingSyncCount(offlineStorage.getPendingCount());
     };
+    const handleSyncComplete = () => {
+      setPendingSyncCount(offlineStorage.getPendingCount());
+      fetchDashboardData();
+    };
+
+    window.addEventListener('aarogya-sync-queue-updated', handleQueueChange);
+    window.addEventListener('aarogya-sync-complete', handleSyncComplete);
     fetchDashboardData();
+
+    return () => {
+      unsub();
+      window.removeEventListener('aarogya-sync-queue-updated', handleQueueChange);
+      window.removeEventListener('aarogya-sync-complete', handleSyncComplete);
+    };
   }, [user.role]);
 
   const awaitingReviewCount = screenings.filter(

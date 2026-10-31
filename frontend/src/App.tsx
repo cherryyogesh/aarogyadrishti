@@ -19,6 +19,8 @@ import { AuditLogView } from './features/audit/AuditLogView';
 import { InvestigationsView } from './features/investigations/InvestigationsView';
 import { ReferralsView } from './features/referrals/ReferralsView';
 import { AarogyaLogo } from './components/AarogyaLogo';
+import { networkStatus } from './services/networkStatus';
+import { offlineStorage } from './services/offlineStorage';
 
 import {
   Activity, Users, FileText, Calendar, KeyRound, Stethoscope,
@@ -36,6 +38,9 @@ export const App: React.FC = () => {
   // Live Notifications & Regular Updates State
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => networkStatus.isOnline());
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(() => offlineStorage.getPendingCount());
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Cross-screen state: Pre-selected screening for appointment booking
   const [preSelectedScreening, setPreSelectedScreening] = useState<Screening | null>(null);
@@ -61,19 +66,75 @@ export const App: React.FC = () => {
         try {
           const user = await api.getMe();
           setCurrentUser(user);
-          // Set role-appropriate default landing tab
+          // Cache user profile for offline session persistence in deep tribal mandals
+          localStorage.setItem('ad_cached_user', JSON.stringify(user));
           if (user.role === 'doctor') setActiveRoute('queue');
           else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
           else if (user.role === 'admin') setActiveRoute('reports');
           else setActiveRoute('screening');
         } catch (e) {
-          api.setToken(null);
-          setCurrentUser(null);
+          // If offline, restore session from cached profile
+          const cached = localStorage.getItem('ad_cached_user');
+          if (cached) {
+            try {
+              const user = JSON.parse(cached);
+              setCurrentUser(user);
+              if (user.role === 'doctor') setActiveRoute('queue');
+              else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
+              else if (user.role === 'admin') setActiveRoute('reports');
+              else setActiveRoute('screening');
+            } catch {
+              api.setToken(null);
+              setCurrentUser(null);
+            }
+          } else {
+            api.setToken(null);
+            setCurrentUser(null);
+          }
         }
       }
       setAuthChecking(false);
     };
     checkAuth();
+  }, []);
+
+  // Network Status Monitoring & Automatic Background Sync
+  const handleSyncNow = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await offlineStorage.syncPendingQueue(api);
+      setPendingSyncCount(offlineStorage.getPendingCount());
+    } catch (err) {
+      console.error('Offline sync failed:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsub = networkStatus.subscribe((online) => {
+      setIsOnline(online);
+      if (online && offlineStorage.getPendingCount() > 0) {
+        handleSyncNow();
+      }
+    });
+
+    const handleQueueChange = () => {
+      setPendingSyncCount(offlineStorage.getPendingCount());
+    };
+    const handleSyncDone = () => {
+      setPendingSyncCount(offlineStorage.getPendingCount());
+    };
+
+    window.addEventListener('aarogya-sync-queue-updated', handleQueueChange);
+    window.addEventListener('aarogya-sync-complete', handleSyncDone);
+
+    return () => {
+      unsub();
+      window.removeEventListener('aarogya-sync-queue-updated', handleQueueChange);
+      window.removeEventListener('aarogya-sync-complete', handleSyncDone);
+    };
   }, []);
 
   // Live Real-Time Healthcare Notifications & Periodic Sync (every 30 seconds)
@@ -705,17 +766,26 @@ export const App: React.FC = () => {
             <span className="footer-sub">Aarogya Drishti</span>
           </div>
           <div className="footer-right">
-            <span className="footer-online">
-              <span className="online-dot" />
-              Online
+            <span className="footer-online" style={{ color: isOnline ? '#059669' : '#D97706' }}>
+              <span
+                className="online-dot"
+                style={{ backgroundColor: isOnline ? '#10B981' : '#F59E0B' }}
+              />
+              {isOnline ? 'Online' : 'Offline Mode'}
             </span>
             <span className="footer-sync">
-              Last Sync: 10:30 AM
+              {pendingSyncCount > 0 ? (
+                <span style={{ color: '#D97706', fontWeight: 700 }}>
+                  {pendingSyncCount} Queued to Sync
+                </span>
+              ) : (
+                `Last Sync: ${offlineStorage.getLastSyncTime()}`
+              )}
             </span>
             <button
-              className="footer-refresh-btn"
-              onClick={() => window.location.reload()}
-              title="Refresh"
+              className={`footer-refresh-btn ${isSyncing ? 'spin' : ''}`}
+              onClick={handleSyncNow}
+              title={isOnline ? 'Sync local field records to state database' : 'Sync pending records (Offline)'}
             >
               🔄
             </button>
