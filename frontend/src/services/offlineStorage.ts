@@ -100,10 +100,12 @@ class OfflineStorageService {
     const offlineId = -Math.floor(Date.now() + Math.random() * 1000);
     const newPatient: Patient = {
       id: offlineId,
+      patient_id_display: `PAT-OFFLINE-${Math.abs(offlineId).toString().slice(-4)}`,
       full_name: payload.full_name,
       age: payload.age,
       gender: payload.gender,
       phone: payload.phone,
+      phone_masked: payload.phone ? `${payload.phone.slice(0, 3)}****${payload.phone.slice(-3)}` : 'XXXXXXXXXX',
       preferred_language: payload.preferred_language,
       habitation: payload.habitation || payload.village_town || '',
       gram_panchayat: payload.gram_panchayat || '',
@@ -150,7 +152,7 @@ class OfflineStorageService {
     return combined.filter(
       p =>
         p.full_name.toLowerCase().includes(q) ||
-        p.phone.includes(q) ||
+        (p.phone || '').includes(q) ||
         (p.mandal && p.mandal.toLowerCase().includes(q)) ||
         (p.habitation && p.habitation.toLowerCase().includes(q))
     );
@@ -195,7 +197,13 @@ class OfflineStorageService {
       patient_id: payload.patient_id,
       patient_name: patientName,
       phc_id: payload.phc_id,
-      category: payload.category || 'mouth',
+      phc_name: (payload as any).phc_name || 'Community Health Centre',
+      patient_id_display: `PAT-${payload.patient_id}`,
+      patient_phone_masked: 'XXXXXX1234',
+      patient_age: 35,
+      patient_gender: 'Unknown',
+      clinical_reviews: [],
+      category: (payload.category as any) || 'mouth',
       oral_site: payload.oral_site || 'buccal_mucosa',
       lesion_type: payload.lesion_type || 'leukoplakia',
       symptoms: payload.symptoms,

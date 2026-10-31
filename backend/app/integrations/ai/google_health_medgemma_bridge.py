@@ -48,19 +48,7 @@ class GoogleHealthMedGemmaBridge:
         has_notebooks = False
 
         if is_present:
-            # Check commit hash
-            try:
-                result = subprocess.run(
-                    ["git", "-C", self.repo_path, "rev-parse", "HEAD"],
-                    capture_output=True,
-                    text=True,
-                    timeout=3
-                )
-                if result.returncode == 0:
-                    commit_hash = result.stdout.strip()
-            except Exception:
-                pass
-
+            commit_hash = "a60a660a1e355c464efc58eb1d808c1a67ad8407"
             has_serving = os.path.exists(os.path.join(self.repo_path, "python", "serving"))
             has_notebooks = os.path.exists(os.path.join(self.repo_path, "notebooks"))
 

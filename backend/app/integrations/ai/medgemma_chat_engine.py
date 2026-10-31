@@ -63,18 +63,25 @@ class MedGemmaChatEngine:
         if emergency:
             return self._build_emergency_response(lang)
 
-        # 2. Check if Live LLM is connected; run via thread executor
+        # 2. Check if Live LLM is connected or use embedded knowledge engine directly
         status = llm_clinical_engine.get_status()
-        if status.get("is_live_llm_connected") or (len(user_message.strip()) > 5 and user_message.strip() != "Attached photograph for review."):
+        if status.get("is_live_llm_connected"):
             try:
                 import concurrent.futures
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     future = executor.submit(asyncio.run, llm_clinical_engine.generate_response(user_message, lang, has_attachment))
-                    res = future.result()
+                    res = future.result(timeout=10.0)
                     if res and res.get("content"):
                         return res
             except Exception as e:
-                logger.warning(f"Sync LLM fallback to rules: {e}")
+                logger.warning(f"Sync LLM fallback: {e}")
+        else:
+            try:
+                res = llm_clinical_engine._generate_embedded_knowledge_response(user_message, lang, has_attachment)
+                if res and res.get("content"):
+                    return res
+            except Exception as e:
+                logger.warning(f"Embedded knowledge response fallback: {e}")
 
         # 2. Ulcer / Mouth Sores Inquiries
         ulcer_keywords = [
@@ -203,92 +210,60 @@ class MedGemmaChatEngine:
             "disclaimer": "Emergency triage protocol activated."
         }
 
+
+
+
     def _build_ulcer_response(self, lang: str) -> Dict[str, Any]:
         if lang == "te":
-            content = (
-                "### 👄 నోటి పూత & పుండ్ల సమగ్ర మార్గదర్శకాలు (Comprehensive Oral Ulcer Guide)\n\n"
-                "#### 🗣️ 1. రోగులకు సులభమైన వివరణ (For Patients & Families):\n"
-                "నోటి పూత లేదా పుండ్లు సాధారణంగా విటమిన్ లోపం (B12, ఐరన్), ఒత్తిడి లేదా పొరపాటున పంటితో కొరుక్కోవడం వల్ల వస్తాయి.\n"
-                "• **ఇంట్లో చేయవలసినవి:** రోజుకు 3 సార్లు గోరువెచ్చని ఉప్పునీటితో పుక్కిలించండి. కారం, పులుపు మరియు వేడి ఆహారాలు తగ్గించండి.\n"
-                "• **చేయకూడనివి:** పుండుపై ఘాటైన పేస్టులు, సున్నం లేదా సొంత మందులు రాయవద్దు.\n\n"
-                "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి (For ASHA Workers):\n"
-                "✓ రోగిని అడగండి: ఈ పుండు ఎన్ని రోజులుగా ఉంది? (14 రోజుల కంటే ఎక్కువైతే హై-ప్రయారిటీ రిఫరల్).\n"
-                "✓ పొగాకు, గుట్కా లేదా చుట్ట అలవాటు ఉంటే వెంటనే మానేయాలని కౌన్సిలింగ్ ఇవ్వండి.\n"
-                "✓ 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే వెంటనే PHC డాక్టర్ అపాయింట్‌మెంట్ బుక్ చేయండి.\n\n"
-                "#### 🩺 3. వైద్యుల పరిశీలన నియమం (For Doctors & Specialists):\n"
-                "⚠️ **MoHFW NOHP 14-Day Mandatory Rule:** Any oral ulcer persisting beyond 14 days without spontaneous healing mandates in-person clinical palpation for induration, lymph node examination, and diagnostic punch biopsy to rule out malignancy/dysplasia."
-            )
-            speech = (
-                "నోటి పూత తగ్గడానికి రోజుకు మూడుసార్లు గోరువెచ్చని ఉప్పునీటితో పుక్కిలించండి. "
-                "కారం మరియు వేడి ఆహారాలను నివారించండి. "
-                "ముఖ్య గమనిక: ఏదైనా పుండు 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే, వెంటనే సమీప పీహెచ్‌సీ డాక్టర్‌ను సంప్రదించండి."
-            )
+            content = """### 👄 నోటి పూత & పుండ్ల సమాచారం (Oral Ulcers Guidance)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**నోటి పూత / అల్సర్ (Oral Mucosal Ulcer / Aphthous Stomatitis)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+నోటి పూత సాధారణంగా విటమిన్ B12 లేదా ఐరన్ లోపం, మానసిక ఒత్తిడి, లేదా పదునైన పంటి రాపిడి వల్ల వస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **గోరువెచ్చని ఉప్పునీటి పుక్కిలింత:** రోజుకు 3 సార్లు గోరువెచ్చని నీటిలో కొద్దిగా ఉప్పు వేసి నెమ్మదిగా పుక్కిలించండి.
+• **ఆహార జాగ్రత్తలు:** కారం, ఎక్కువ వేడి, పులుపు మరియు మసాలాలు ఉన్న ఆహారాలు తగ్గించండి.
+• **చేయకూడనివి:** పుండుపై ఘాటైన పేస్టులు లేదా సున్నం రాయవద్దు. పుండును తరచుగా తాకవద్దు.
+• **డాక్టర్ సంప్రదింపు:** ఏదైనా పుండు **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే**, వెంటనే సమీప PHC డాక్టర్‌ను సంప్రదించాలి.
+
+> ⚠️ *గమనిక: ఈ AI ప్రాథమిక సమాచారం మాత్రమే. 14 రోజులు దాటిన పుండుకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"""
+            speech = "నోటి పూత తగ్గడానికి రోజుకు మూడుసార్లు గోరువెచ్చని ఉప్పునీటితో పుక్కిలించండి. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి పరీక్ష తప్పనిసరి."
         elif lang == "hi":
-            content = (
-                "### 👄 मुंह के छाले और घाव की देखभाल (Oral Ulcer Care Guidance)\n\n"
-                "मुंह के छाले आमतौर पर तनाव, विटामिन की कमी (विटामिन B12, आयरन) या गलती से गाल कट जाने के कारण होते हैं।\n\n"
-                "**घरेलू देखभाल निर्देश:**\n"
-                "• **गुनगुने नमक के पानी से कुल्ला:** दिन में 3-4 बार हल्के गर्म पानी में नमक डालकर कुल्ला करें।\n"
-                "• **तीखे और गर्म भोजन से परहेज:** अधिक मिर्च-मसाले और खट्टे खाद्य पदार्थों से दूर रहें।\n"
-                "• **पर्याप्त पानी पिएं:** शरीर में पानी की कमी न होने दें, नरम और ठंडा भोजन लें।\n\n"
-                "⚠️ **महत्वपूर्ण 14-दिन का नियम:**\n"
-                "यदि मुंह का कोई भी छाला **14 दिनों से अधिक समय तक ठीक नहीं होता**, तो तुरंत अपने नजदीकी PHC डॉक्टर को दिखाएं। केवल फोटो देखकर कैंसर की पुष्टि या खंडन नहीं किया जा सकता, डॉक्टर द्वारा प्रत्यक्ष जांच और बायोप्सी आवश्यक है।"
-            )
-            speech = (
-                "मुंह के छालों के लिए दिन में तीन बार गुनगुने नमक के पानी से कुल्ला करें। "
-                "तीखे भोजन से बचें। 14 दिनों से अधिक पुराने छाले के लिए तुरंत डॉक्टर से मिलें।"
-            )
-        elif lang == "ta":
-            content = (
-                "### 👄 வாய் புண் பராமரிப்பு வழிகாட்டல் (Oral Ulcer Guidance)\n\n"
-                "வாய் புண்கள் மன அழுத்தம், வைட்டமின் குறைபாடு (B12, இரும்புச்சத்து) அல்லது தவறுதலாக கடிப்பதால் ஏற்படலாம்.\n\n"
-                "**வீட்டுப் பராமரிப்பு முறைகள்:**\n"
-                "• **வெதுவெதுப்பான உப்பு நீர் கொப்பளிப்பு:** தினமும் 3-4 முறை வெதுவெதுப்பான நீரில் உப்பு சேர்த்து வாய் கொப்பளிக்கவும்.\n"
-                "• **காரமான உணவுகளை தவிர்க்கவும்:** அதிக மசாலா மற்றும் புளிப்பான உணவுகளை தவிர்க்கவும்.\n\n"
-                "⚠️ **14 நாள் கட்டாய விதி:**\n"
-                "வாய் புண் **14 நாட்களுக்கு மேல் ஆறாமல் இருந்தால்**, உடனடியாக PHC மருத்துவரை அணுகவும். புகைப்படத்தின் மூலம் புற்றுநோயை உறுதிப்படுத்த முடியாது."
-            )
-            speech = "வாய் புண்ணுக்கு வெதுவெதுப்பான உப்பு நீரில் கொப்பளிக்கவும். 14 நாட்களுக்கு மேல் ஆறாத புண்ணுக்கு உடனடியாக மருத்துவரை அணுகவும்."
-        elif lang == "kn":
-            content = (
-                "### 👄 ಬಾಯಿ ಹುಣ್ಣು ನಿವಾರಣೆ ಮತ್ತು ಆರೈಕೆ (Oral Ulcer Care)\n\n"
-                "ಬಾಯಿ ಹುಣ್ಣು ಸಾಮಾನ್ಯವಾಗಿ ಒತ್ತಡ, ವಿಟಮಿನ್ ಕೊರತೆ ಅಥವಾ ಆಕಸ್ಮಿಕವಾಗಿ ಕಚ್ಚಿಕೊಳ್ಳುವುದರಿಂದ ಉಂಟಾಗುತ್ತದೆ.\n\n"
-                "**ಮನೆಮದ್ದು ಮತ್ತು ಸಲಹೆಗಳು:**\n"
-                "• **ಬೆಚ್ಚಗಿನ ಉಪ್ಪು ನೀರಿನಿಂದ ಮುಕ್ಕಳಿಸಿ:** ದಿನಕ್ಕೆ 3-4 ಬಾರಿ ಬೆಚ್ಚಗಿನ ಉಪ್ಪು ನೀರಿನಿಂದ ಬಾಯಿ ಮುಕ್ಕಳಿಸಿ.\n"
-                "• **ಖಾರ ಮತ್ತು ಬಿಸಿ ಪದಾರ್ಥಗಳನ್ನು ತಪ್ಪಿಸಿ:** ಅತಿಯಾದ ಮಸಾಲೆ ಮತ್ತು ಹುಳಿ ಪದಾರ್ಥಗಳನ್ನು ಕಡಿಮೆ ಮಾಡಿ.\n\n"
-                "⚠️ **14 ದಿನಗಳ ಕಡ್ಡಾಯ ನಿಯಮ:**\n"
-                "ಯಾವುದೇ ಬಾಯಿ ಹುಣ್ಣು **14 ದಿನಗಳಿಗಿಂತ ಹೆಚ್ಚು ಕಾಲ ವಾಸಿಯಾಗದಿದ್ದರೆ**, ತಕ್ಷಣ PHC ವೈದ್ಯರನ್ನು ಭೇಟಿ ಮಾಡಿ."
-            )
-            speech = "ಬಾಯಿ ಹುಣ್ಣಿಗೆ ಉಪ್ಪು ನೀರಿನಿಂದ ಮುಕ್ಕಳಿಸಿ. 14 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚು ಕಾಲ ಹುಣ್ಣು ವಾಸಿಯಾಗದಿದ್ದರೆ ವೈದ್ಯರನ್ನು ಭೇಟಿ ಮಾಡಿ."
-        elif lang == "ml":
-            content = (
-                "### 👄 വായ്പ്പുണ്ണ് പരിചരണം (Oral Ulcer Care)\n\n"
-                "വിറ്റാമിൻ കുറവ്, മാനസിക സമ്മർദ്ദം, അല്ലെങ്കിൽ മുറിവുകൾ എന്നിവ കാരണം വായ്പ്പുണ്ണ് ഉണ്ടാകാം.\n\n"
-                "**വീട്ടുപരിചരണ നിർദ്ദേശങ്ങൾ:**\n"
-                "• **ചെറുചൂടുള്ള ഉപ്പുവെള്ളം കൊണ്ട് വായ് കഴുകുക:** ദിവസത്തിൽ 3-4 തവണ ഉപ്പുവെള്ളം കൊള്ളുക.\n"
-                "• **എരിവും പുളിയുമുള്ള ഭക്ഷണങ്ങൾ ഒഴിവാക്കുക.**\n\n"
-                "⚠️ **14 ദിവസത്തെ മുന്നറിയിപ്പ്:**\n"
-                "വായ്പ്പുണ്ണ് **14 ദിവസത്തിൽ കൂടുതൽ നീണ്ടുനിൽക്കുകയാണെങ്കിൽ**, ഉടൻ ഡോക്ടറെ കണ്ട് പരിശോധിക്കുക."
-            )
-            speech = "ചെറുചൂടുള്ള ഉപ്പുവെള്ളം കൊണ്ട് വായ് കഴുകുക. 14 ദിവസത്തിൽ കൂടുതൽ ഉള്ള വായ്പ്പുണ്ണിന് ഉടൻ ഡോക്ടറെ കാണുക."
+            content = """### 👄 मुंह के छाले एवं घाव की जानकारी (Oral Ulcers Guidance)
+
+🩺 **पहचानी गई स्थिति / रोग (Identified Disease):**
+**मुंह के छाले (Oral Aphthous Ulcer / Stomatitis)**
+
+💬 **आपके प्रश्न का उत्तर (Clinical Response):**
+मुंह के छाले आमतौर पर तनाव, विटामिन B12 या आयरन की कमी, या गलती से गाल कट जाने के कारण होते हैं।
+
+💡 **सावधानियां एवं अगला कदम (Care & Next Steps):**
+• **गुनगुने नमक पानी से कुल्ला:** दिन में 3-4 बार हल्के गर्म पानी में नमक डालकर कुल्ला करें।
+• **खानपान में बदलाव:** तीखा, खट्टा, अधिक गर्म और मसालेदार खाना बंद कर दें।
+• **सावधानी:** छाले पर चूना या हानिकारक रसायन न लगाएं। गुटखा तुरंत बंद करें।
+• **डॉक्टर को कब दिखाएं:** यदि कोई छाला **14 दिनों से अधिक समय तक ठीक न हो**, तो तुरंत नजदीकी पीएचसी डॉक्टर को दिखाएं।
+
+> ⚠️ *नोट: 14 दिन से अधिक पुराने छाले के लिए डॉक्टर द्वारा प्रत्यक्ष जांच अनिवार्य है.*"""
+            speech = "मुंह के छालों के लिए गुनगुने नमक पानी से कुल्ला करें. 14 दिन से अधिक पुराना छाला होने पर डॉक्टर से जांच कराएं."
         else:
-            content = (
-                "### 👄 Comprehensive Mouth Ulcer Guide (All Stakeholders)\n\n"
-                "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                "Mouth ulcers are usually caused by minor trauma (cheek biting), vitamin deficiency (B12, iron), or body heat/stress.\n"
-                "• **Home Comfort:** Rinse gently with warm salt water 3 times a day. Avoid spicy, sour, rough, or hot foods.\n"
-                "• **Safety Rule:** Never scratch the ulcer or apply unprescribed powders or chemicals.\n\n"
-                "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                "✓ Check duration: If the ulcer has been present for >14 days, prioritize referral.\n"
-                "✓ Ask about tobacco/gutkha use and advise immediate cessation.\n"
-                "✓ Schedule an in-person PHC Medical Officer review within 48–72 hours.\n\n"
-                "#### 🩺 3. Clinical Mandate for Doctors & PHC Staff:\n"
-                "⚠️ **MoHFW National Oral Health Protocol:** Any oral mucosal ulceration persisting beyond 14 days mandates bimanual palpation for induration, lymph node examination, and diagnostic punch biopsy."
-            )
-            speech = (
-                "To soothe mouth ulcers, rinse with warm salt water three times daily and avoid spicy foods. "
-                "Important clinical notice: Any mouth ulcer persisting longer than two weeks must be examined in person by a PHC doctor."
-            )
+            content = """### 👄 Clinical Guidance on Mouth Ulcers
+
+🩺 **Identified Disease / Condition:**
+**Oral Mucosal Ulcer / Aphthous Stomatitis**
+
+💬 **Clinical Response to Your Question:**
+Mouth ulcers are usually caused by minor trauma (cheek biting), nutritional deficiency (B12, iron), stress, or localized irritation.
+
+💡 **Recommended Care & Next Steps:**
+• **Home Comfort:** Rinse gently with warm salt water 3 times a day. Avoid spicy, sour, rough, or hot foods.
+• **Safety Rule:** Never scratch the ulcer or apply unprescribed chemicals or caustic lime (chuna).
+• **Doctor Consultation:** Under MoHFW national protocols, any oral ulcer persisting beyond **14 days** mandates an in-person clinical examination by a PHC Doctor.
+
+> ⚠️ *Notice: Any non-healing sore lasting longer than 14 days requires an in-person physical examination and biopsy.*"""
+            speech = "To soothe mouth ulcers, rinse with warm salt water three times daily and avoid spicy foods. Any ulcer persisting over 14 days requires a doctor examination."
 
         return {
             "content": content,
@@ -300,87 +275,55 @@ class MedGemmaChatEngine:
 
     def _build_cessation_response(self, lang: str) -> Dict[str, Any]:
         if lang == "te":
-            content = (
-                "### 🚭 పొగాకు, గుట్కా & చుట్ట అలవాటు మానేయడం (Tobacco Cessation Guide)\n\n"
-                "#### 🗣️ 1. రోగులకు సులభమైన వివరణ (For Patients & Families):\n"
-                "పొగాకు, గుట్కా, ఖైనీ మరియు చుట్ట (రివర్స్ స్మోకింగ్) నోటి లోపలి చర్మాన్ని దెబ్బతీస్తాయి. అలవాటు మానేయడం వల్ల నోరు త్వరగా కోలుకుంటుంది.\n"
-                "• **తక్షణ ఉపశమనం:** గుట్కా లేదా తంబాకు తినాలనిపించినప్పుడు లవంగాలు, యాలకులు లేదా సోంపు గింజలు నమలండి.\n"
-                "• **5-నిమిషాల నియమం:** పొగాకు తినాలనే తీవ్ర కోరిక 3 నుండి 5 నిమిషాలు మాత్రమే ఉంటుంది. ఆ సమయంలో చల్లని నీరు త్రాగి లోతైన శ్వాస తీసుకోండి.\n"
-                "• **ఉచిత ప్రభుత్వ సహాయం:** టోల్-ఫ్రీ నంబర్ **1800-11-2356** కు కాల్ చేసి కౌన్సిలింగ్ పొందవచ్చు.\n\n"
-                "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి (For ASHA Workers):\n"
-                "✓ రోగిని అడగండి: రోజుకు ఎన్నిసార్లు గుట్కా/తంబాకు/చుట్ట తీసుకుంటున్నారు? ఎన్ని సంవత్సరాలుగా అలవాటు ఉంది?\n"
-                "✓ నోటి లోపల తెల్లటి చారలు, బిగుతు లేదా దంతాల రాపిడి మచ్చలు ఉన్నాయా చూడండి.\n"
-                "✓ పొగాకు మానేయాలని దృఢంగా ప్రోత్సహించండి, ఫాలో-అప్ హోమ్ విజిట్ ప్లాన్ చేయండి.\n\n"
-                "#### 🩺 3. వైద్యులు & క్లినికల్ ప్రోటోకాల్ (For Doctors & Specialists):\n"
-                "Evaluate Nicotine Dependence (Fagerström Test). Prescribe behavioral counseling + Nicotine Replacement Therapy (NRT gum/patch) if indicated. Inspect mucosal lining for dysplasia; schedule 3-month surveillance."
-            )
-            speech = (
-                "పొగాకు లేదా గుట్కా తినాలనిపించినప్పుడు లవంగాలు లేదా సోంపు నమలండి. "
-                "ఉచిత ప్రభుత్వ సహాయం కోసం 1800 11 2356 కు కాల్ చేయండి. "
-                "పొగాకు మానేయడం మీ నోటి ఆరోగ్యాన్ని కాపాడుతుంది."
-            )
+            content = """### 🚭 పొగాకు, గుట్కా & చుట్ట నివారణ సమాచారం (Tobacco Cessation Guide)
+
+🩺 **గుర్తించిన అంశం (Identified Topic):**
+**పొగాకు & గుట్కా వ్యసన విముక్తి మార్గదర్శకాలు (Tobacco Cessation Support)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+పొగాకు, గుట్కా, ఖైనీ మరియు చుట్ట (రివర్స్ స్మోకింగ్) నోటి లోపలి చర్మాన్ని తీవ్రంగా దెబ్బతీస్తాయి. అలవాటు మానేయడం వల్ల నోరు త్వరగా కోలుకుంటుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **కోరిక తగ్గే చిట్కాలు:** గుట్కా లేదా తంబాకు తినాలనిపించినప్పుడు లవంగాలు, యాలకులు లేదా సోంపు గింజలు నమలండి.
+• **5-నిమిషాల నియమం:** పొగాకు తినాలనే తీవ్ర కోరిక 3 నుండి 5 నిమిషాలు మాత్రమే ఉంటుంది. ఆ సమయంలో చల్లని నీరు త్రాగి లోతైన శ్వాస తీసుకోండి.
+• **ఉచిత ప్రభుత్వ సహాయం:** టోల్-ఫ్రీ నంబర్ **1800-11-2356** కు కాల్ చేసి ఉచిత కౌన్సిలింగ్ పొందవచ్చు.
+• **నోటి పరిశీలన:** నోటిలో ఏవైనా తగ్గని పుండ్లు లేదా తెల్లటి మచ్చలు ఉంటే వెంటనే PHC డాక్టర్‌కు చూపించండి.
+
+> ⚠️ *గమనిక: పొగాకు అలవాటు మానేయడం నోటి క్యాన్సర్‌ను నివారించడంలో అత్యంత ప్రభావవంతమైన మార్గం.*"""
+            speech = "పొగాకు లేదా గుట్కా తినాలనిపించినప్పుడు లవంగాలు లేదా సోంపు నమలండి. ఉచిత ప్రభుత్వ సహాయం కోసం 1800 11 2356 కు కాల్ చేయండి."
         elif lang == "hi":
-            content = (
-                "### 🚭 तंबाकू, गुटखा और बीड़ी छोड़ने के उपाय (Tobacco Cessation Guide)\n\n"
-                "गुटखा, खैनी, तंबाकू और बीड़ी का सेवन मुंह की अंदरूनी परत को कठोर बना देता है, जिससे मुंह का खुलना कम (OSMF) और कैंसर पूर्व घाव हो सकते हैं।\n\n"
-                "**छोड़ने के व्यावहारिक उपाय:**\n"
-                "1. **स्वस्थ विकल्प अपनाएं:** जब भी गुटखा या तंबाकू की तलब लगे, लौंग, इलायची या सौंफ चबाएं।\n"
-                "2. **5-मिनट की देरी तकनीक:** तलब आम तौर पर 3 से 5 मिनट में कम हो जाती है। गहरी सांस लें और ठंडा पानी पिएं।\n"
-                "3. **घर से सभी पैकेट हटाएं:** तंबाकू और गुटखे के सभी पैकेट तुरंत फेंक दें।\n\n"
-                "📞 **राष्ट्रीय तंबाकू मुक्ति टोल-फ्री हेल्पलाइन:** मुफ्त परामर्श के लिए **1800-11-2356** पर कॉल करें।"
-            )
-            speech = (
-                "गुटखा या तंबाकू की तलब लगने पर लौंग या सौंफ चबाएं। "
-                "सरकारी टोल फ्री नंबर 1800 11 2356 पर कॉल करके मुफ्त सहायता प्राप्त करें।"
-            )
-        elif lang == "ta":
-            content = (
-                "### 🚭 புகையிலை மற்றும் குட்கா பழக்கத்தை கைவிடுதல்\n\n"
-                "குட்கா, புகையிலை மற்றும் பீடி பழக்கம் வாயில் தசை இறுக்கம் (OSMF) மற்றும் புற்றுநோய் புண்களை உருவாக்கும்.\n\n"
-                "**பயனுள்ள வழிகள்:**\n"
-                "1. ஆசை வரும்போது கிராம்பு, ஏலக்காய் அல்லது பெருஞ்சீரகம் மெல்லவும்.\n"
-                "2. நிறைய தண்ணீர் குடிக்கவும்.\n\n"
-                "📞 **இலவச உதவி எண்:** **1800-11-2356** என்ற எண்ணை அழைத்து இலவச ஆலோசனையைப் பெறலாம்."
-            )
-            speech = "புகையிலை ஆசை வரும்போது கிராம்பு மெல்லவும். உதவிக்கு 1800 11 2356 அழைக்கவும்."
-        elif lang == "kn":
-            content = (
-                "### 🚭 ತಂಬಾಕು ಮತ್ತು ಗುಟ್ಕಾ ತ್ಯಜಿಸುವ ಮಾರ್ಗಸೂಚಿ\n\n"
-                "ಗುಟ್ಕಾ, ಖೈನಿ ಮತ್ತು ತಂಬಾಕು ಸೇವನೆಯಿಂದ ಬಾಯಿ ತೆರೆಯುವುದು ಕಡಿಮೆಯಾಗುತ್ತದೆ (OSMF).\n\n"
-                "**ಉಪಯುಕ್ತ ಸಲಹೆಗಳು:**\n"
-                "1. ಆಸೆ ಬಂದಾಗ ಲವಂಗ ಅಥವಾ ಸೋಂಪನ್ನು ಜಗಿಯಿರಿ.\n"
-                "2. ಸಾಕಷ್ಟು ನೀರು ಕುಡಿಯಿರಿ.\n\n"
-                "📞 **ಉಚಿತ ಸಹಾಯವಾಣಿ:** **1800-11-2356** ಗೆ ಕರೆ ಮಾಡಿ ಉಚಿತ ಸಲಹೆ ಪಡೆಯಿರಿ."
-            )
-            speech = "ತಂಬಾಕು ಬಿಡಲು ಲವಂಗ ಅಥವಾ ಸೋಂಪು ಜಗಿಯಿರಿ. ಉಚಿತ ಸಹಾಯವಾಣಿ 1800 11 2356 ಗೆ ಕರೆ ಮಾಡಿ."
-        elif lang == "ml":
-            content = (
-                "### 🚭 പുകയിലയും ഗുട്കയും ഒഴിവാക്കാനുള്ള വഴികൾ\n\n"
-                "പുകയില, ഗുട്ക എന്നിവ വായ തുറക്കാൻ കഴിയാത്ത അവസ്ഥയ്ക്കും (OSMF) അർബുദത്തിനും കാരണമാകാം.\n\n"
-                "1. പുകയില ഉപയോഗിക്കാൻ തോന്നുമ്പോൾ ഗ്രാമ്പൂ അല്ലെങ്കിൽ പെരുംജീരകം ചവയ്ക്കുക.\n"
-                "2. ധാരാളം വെള്ളം കുടിക്കുക.\n\n"
-                "📞 **സൗജന്യ ഹെൽപ്പ്‌ലൈൻ:** **1800-11-2356**."
-            )
-            speech = "പുകയില ഉപേക്ഷിക്കാൻ ഗ്രാമ്പൂ ചവയ്ക്കുക. സൗജന്യ ഹെൽപ്പ്‌ലൈൻ 1800 11 2356."
+            content = """### 🚭 तंबाकू, गुटखा और बीड़ी छोड़ने के उपाय (Tobacco Cessation Guide)
+
+🩺 **पहचाना गया विषय (Identified Topic):**
+**तंबाकू एवं गुटखा मुक्ति सहायता (Tobacco Cessation Support)**
+
+💬 **आपके प्रश्न का उत्तर (Clinical Response):**
+गुटखा, खैनी, तंबाकू और बीड़ी का सेवन मुंह की अंदरूनी परत को कठोर बना देता है, जिससे मुंह का खुलना कम (OSMF) और कैंसर पूर्व घाव हो सकते हैं।
+
+💡 **सावधानियां एवं अगला कदम (Care & Next Steps):**
+• **स्वस्थ विकल्प अपनाएं:** जब भी गुटखा या तंबाकू की तलब लगे, लौंग, इलायची या सौंफ चबाएं।
+• **5-मिनट की देरी तकनीक:** तलब आम तौर पर 3 से 5 मिनट में कम हो जाती है। गहरी सांस लें और ठंडा पानी पिएं।
+• **राष्ट्रीय तंबाकू मुक्ति हेल्पलाइन:** मुफ्त परामर्श के लिए **1800-11-2356** पर कॉल करें।
+
+> ⚠️ *नोट: तंबाकू छोड़ना मुंह के कैंसर से बचाव का सबसे प्रभावी उपाय है।*"""
+            speech = "गुटखा या तंबाकू की तलब लगने पर लौंग या सौंफ चबाएं। टोल फ्री नंबर 1800 11 2356 पर कॉल करें."
         else:
-            content = (
-                "### 🚭 Tobacco, Gutkha & Chutta Cessation Strategies\n\n"
-                "#### 🗣️ 1. Plain Advice for Patients & Families:\n"
-                "Chewing gutkha, khaini, betel nut, or reverse smoking (chutta) directly damages delicate oral tissues. Quitting allows tissues to heal and reduces cancer risk immediately.\n"
-                "• **Healthy Oral Substitutes:** When cravings strike, chew cloves, cardamom pods, fennel seeds, or sugar-free gum.\n"
-                "• **The 5-Minute Delay Technique:** Cravings typically peak and subside within 3 to 5 minutes. Take slow deep breaths and drink a glass of cold water.\n"
-                "• **Free Support:** Call the National Tobacco Quitline at **1800-11-2356** for free, confidential telephone counseling.\n\n"
-                "#### 👩‍⚕️ 2. Field Action Guide for ASHA Workers & Health Staff:\n"
-                "✓ Inquire on daily habit frequency, pack-years, and whether patient swallows the tobacco juice.\n"
-                "✓ Examine buccal mucosa for whitening, blanching, or ulceration. Check mouth opening.\n"
-                "✓ Motivate tobacco cessation with village peer support and arrange PHC checkup.\n\n"
-                "#### 🩺 3. Clinical Directives for Doctors & PHC Staff:\n"
-                "Administer Fagerström Test for Nicotine Dependence (FTND). Provide 5 A's counseling (Ask, Advise, Assess, Assist, Arrange). Consider Nicotine Replacement Therapy (NRT chewing gum 2mg/4mg) and maintain 3-to-6-month visual surveillance."
-            )
-            speech = (
-                "When you experience tobacco or gutkha cravings, chew cloves or fennel seeds and drink cold water. "
-                "You can also call the National Tobacco Quitline at 1800 11 2356 for free counseling support."
-            )
+            content = """### 🚭 Tobacco, Gutkha & Chutta Cessation Guidance
+
+🩺 **Identified Topic / Health Focus:**
+**Tobacco & Gutkha Cessation Support**
+
+💬 **Clinical Response to Your Question:**
+Chewing gutkha, khaini, betel nut, or reverse smoking (chutta) directly damages delicate oral tissues. Quitting allows tissues to heal and reduces cancer risk immediately.
+
+💡 **Recommended Care & Next Steps:**
+• **Healthy Oral Substitutes:** When cravings strike, chew cloves, cardamom pods, or fennel seeds.
+• **The 5-Minute Delay Technique:** Cravings typically peak and subside within 3 to 5 minutes. Take slow deep breaths and drink a glass of cold water.
+• **Free Support:** Call the National Tobacco Quitline at **1800-11-2356** for free telephone counseling.
+• **Clinical Checkup:** Schedule a routine oral mucosal screening at your Primary Health Centre.
+
+> ⚠️ *Notice: Quitting tobacco stops progressive mucosal deterioration and protects against oral cancer.*"""
+            speech = "When cravings strike, chew cloves or fennel seeds and drink cold water. Call 1800 11 2356 for free counseling."
 
         return {
             "content": content,
@@ -392,81 +335,56 @@ class MedGemmaChatEngine:
 
     def _build_burning_osmf_response(self, lang: str) -> Dict[str, Any]:
         if lang == "te":
-            content = (
-                "### 🌶️ కారం తిన్నప్పుడు మంట & నోరు తెరవలేకపోవడం (Burning Mouth & OSMF)\n\n"
-                "#### 🗣️ 1. రోగులకు సులభమైన వివరణ (For Patients & Families):\n"
-                "కారం తిన్నప్పుడు నోరు తీవ్రంగా మండడం మరియు నోరు సరిగ్గా తెరవలేకపోవడం సాధారణంగా వక్క లేదా గుట్కా వల్ల వచ్చే నోటి బిగుతు (OSMF).\n"
-                "• **వెంటనే ఆపండి:** వక్క, సుపారీ, గుట్కా మరియు ఖైనీని తక్షణమే పూర్తిగా నిలిపివేయండి. వక్కలోని రసాయనం నోటిని గట్టిగా చేస్తుంది.\n"
-                "• **ఆహార జాగ్రత్తలు:** కారం, పులుపు, వేడి పదార్థాలను తగ్గించి, చల్లని మరియు మృదువైన ఆహారం తీసుకోండి.\n"
-                "• **నోరు బలవంతంగా తెరవద్దు:** నోటిని బలవంతంగా లాగవద్దు, మృదువైన వ్యాయామాలు మాత్రమే చేయండి.\n\n"
-                "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి (For ASHA Workers):\n"
-                "✓ **3-వేళ్ళ పరీక్ష (3-Finger Test):** రోగి నోట్లోకి 3 వేళ్ళు నిలువుగా పడుతున్నాయా చూడండి. 3 వేళ్ళు పట్టకపోతే (<35mm), ఇది OSMF సంకేతం.\n"
-                "✓ బుగ్గల లోపలి భాగంలో తెల్లటి పీచు చారలు (fibrous bands) ఉన్నాయా పరిశీలించండి.\n"
-                "✓ తక్షణమే PHC మెడికల్ ఆఫీసర్‌కు రిఫరల్ నమోదు చేసి 48-72 గంటల్లో డాక్టర్ చెకప్ చేయించండి.\n\n"
-                "#### 🩺 3. వైద్యులు & క్లినికల్ ప్రోటోకాల్ (For Doctors & Specialists):\n"
-                "Clinical Diagnosis: Oral Submucous Fibrosis (ICD-10 K13.5). Measure interincisal distance (Grade I: >35mm, Grade II: 30-35mm, Grade III: 20-30mm, Grade IV: <20mm). Initiate antioxidant therapy (Lycopene 10-16mg/day + Vitamin E + Zinc). Evaluate for intralesional hyaluronidase/dexamethasone or surgical fibrotomy for advanced trismus."
-            )
-            speech = (
-                "కారం తిన్నప్పుడు నోరు మండడం మరియు నోరు తెరవడం తగ్గడం ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ లక్షణం కావచ్చు. "
-                "దయచేసి వక్క మరియు గుట్కా వెంటనే ఆపండి, సమీప పీహెచ్‌సీ డాక్టర్‌ను సంప్రదించండి."
-            )
+            content = """### 🌶️ కారం తిన్నప్పుడు మంట & నోరు తెరవలేకపోవడం (OSMF Guidance)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (Oral Submucous Fibrosis - OSMF)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+కారం తిన్నప్పుడు నోరు తీవ్రంగా మండడం మరియు నోరు సరిగ్గా తెరవలేకపోవడం సాధారణంగా వక్క (సుపారీ) లేదా గుట్కా వల్ల వచ్చే నోటి బిగుతు (OSMF) లక్షణాలు. వక్కలోని రసాయనం నోటిని గట్టిగా చేస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **వెంటనే ఆపండి:** వక్క, సుపారీ, గుట్కా మరియు ఖైనీని తక్షణమే పూర్తిగా నిలిపివేయండి.
+• **ఆహార జాగ్రత్తలు:** కారం, పులుపు, వేడి పదార్థాలను తగ్గించి, చల్లని మరియు మృదువైన ఆహారం తీసుకోండి.
+• **3-వేళ్ళ పరీక్ష:** నోట్లోకి 3 వేళ్ళు నిలువుగా పట్టకపోతే (<35mm), వ్యాధి ముదురుతోందని అర్థం. బలవంతంగా నోరు తెరవడానికి ప్రయత్నించవద్దు.
+• **డాక్టర్ సంప్రదింపు:** 48-72 గంటల్లో సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ డాక్టర్‌ను సంప్రదించండి.
+
+> ⚠️ *గమనిక: OSMF క్యాన్సర్ ముందస్తు వ్యాధి కాబట్టి క్రమం తప్పకుండా డాక్టర్ పర్యవేక్షణ అవసరం.*"""
+            speech = "కారం తిన్నప్పుడు నోరు మండడం మరియు నోరు తెరవడం తగ్గడం OSMF సంకేతం. వక్క మరియు గుట్కా వెంటనే ఆపి డాక్టర్‌ను సంప్రదించండి."
         elif lang == "hi":
-            content = (
-                "### 🌶️ तीखा खाने पर मुंह में जलन और मुंह कम खुलना (OSMF Warning Signs)\n\n"
-                "मिर्च-मसालेदार खाना खाने पर तेज जलन और मुंह पूरा न खुल पाना (मुंह में अकड़न) **ओरल सबम्यूकस फाइब्रोसिस (OSMF)** के प्रमुख शुरुआती लक्षण हैं।\n\n"
-                "**ज़रूरी सावधानियां:**\n"
-                "• **सुपारी और गुटखा तुरंत बंद करें:** सुपारी में मौजूद एरीकोलीन मुंह की अंदरूनी त्वचा को सख्त बना देता है।\n"
-                "• **3-उंगली परीक्षण:** यदि मुंह में लंबवत 3 उंगलियां नहीं जातीं (<35 मिमी), तो यह ट्रिस्मस (मुंह का सिकुड़ना) है।\n"
-                "• **नरम और सादा भोजन लें:** मिर्च और गरम मसाले बिल्कुल न खाएं।\n\n"
-                "👉 कृपया शीघ्र अपने नजदीकी PHC डॉक्टर से जांच करवाएं।"
-            )
-            speech = (
-                "तीखा खाने पर जलन और मुंह कम खुलना ओरल सबम्यूकस फाइब्रोसिस के लक्षण हैं। "
-                "सुपारी और गुटखा तुरंत बंद करें और डॉक्टर से जांच कराएं।"
-            )
-        elif lang == "ta":
-            content = (
-                "### 🌶️ காரமான உணவு சாப்பிடும்போது வாய் எரிச்சல் மற்றும் வாய் இறுக்கம் (OSMF)\n\n"
-                "காரம் சாப்பிடும்போது வாய் எரிவதும், வாய் முழுமையாக திறக்க முடியாமல் போவதும் **ஓரல் சப்மியூகஸ் ஃபைப்ரோஸிஸ் (OSMF)** அறிகுறிகளாகும்.\n\n"
-                "• பாக்கு, குட்கா பழக்கத்தை உடனடியாக நிறுத்தவும்.\n"
-                "• 3 விரல்கள் வாய்க்குள் நுழையவில்லை என்றால் (<35 mm), உடனடியாக மருத்துவரை அணுகவும்.\n"
-                "• காரத்தை குறைக்கவும்."
-            )
-            speech = "வாய் எரிச்சல் மற்றும் வாய் திறக்க முடியாமைக்கு பாக்கு குட்காவை உடனே நிறுத்தி மருத்துவரை அணுகவும்."
-        elif lang == "kn":
-            content = (
-                "### 🌶️ ಖಾರ ತಿಂದಾಗ ಬಾಯಿ ಉರಿ ಮತ್ತು ಬಾಯಿ ತೆರೆಯಲು ಕಷ್ಟವಾಗುವುದು (OSMF)\n\n"
-                "ಖಾರ ತಿಂದಾಗ ಬಾಯಿ ಉರಿಯುವುದು ಮತ್ತು ಬಾಯಿ ಪೂರ್ಣವಾಗಿ ತೆರೆಯಲು ಸಾಧ್ಯವಾಗದಿರುವುದು **ಓರಲ್ ಸಬ್‌ಮ್ಯೂಕಸ್ ಫೈಬ್ರೋಸಿಸ್ (OSMF)** ಲಕ್ಷಣಗಳಾಗಿವೆ.\n\n"
-                "• ಅಡಿಕೆ ಮತ್ತು ಗುಟ್ಕಾ ಸೇವನೆಯನ್ನು ತಕ್ಷಣವೇ ನಿಲ್ಲಿಸಿ.\n"
-                "• 3 ಬೆರಳುಗಳು ಬಾಯಿಯೊಳಗೆ ಲಂಬವಾಗಿ ಹೋಗದಿದ್ದರೆ (<35 mm), ತಕ್ಷಣ ವೈದ್ಯರನ್ನು ಭೇಟಿ ಮಾಡಿ."
-            )
-            speech = "ಬಾಯಿ ಉರಿ ಮತ್ತು ಬಾಯಿ ಬಿಗಿತಕ್ಕೆ ಅಡಿಕೆ ಗುಟ್ಕಾ ನಿಲ್ಲಿಸಿ ವೈದ್ಯರನ್ನು ಸಂಪರ್ಕಿಸಿ."
-        elif lang == "ml":
-            content = (
-                "### 🌶️ എരിവുള്ള ഭക്ഷണം കഴിക്കുമ്പോഴുള്ള എരിച്ചിലും വായ തുറക്കാനുള്ള ബുദ്ധിമുട്ടും (OSMF)\n\n"
-                "എരിവ് കഴിക്കുമ്പോൾ അസഹ്യമായ എരിച്ചിലും വായ തുറക്കാൻ ബുദ്ധിമുട്ടും ഉണ്ടാകുന്നത് **ഓറൽ സബ്മ്യൂക്കസ് ഫൈബ്രോസിസ് (OSMF)** ലക്ഷണമാണ്.\n\n"
-                "• അടയ്ക്കയും ഗുട്കയും പൂർണ്ണമായും ഒഴിവാക്കുക.\n"
-                "• മൂന്ന് വിരലുകൾ വായയിൽ കടത്താൻ സാധിക്കുന്നില്ലെങ്കിൽ (<35 mm), ഉടൻ ഡോക്ടറെ കാണുക."
-            )
-            speech = "വായയിലെ എരിച്ചിലിനും വായ തുറക്കാൻ കഴിയാത്തതിനും അടയ്ക്ക ഒഴിവാക്കി ഡോക്ടറെ കാണുക."
+            content = """### 🌶️ तीखा खाने पर जलन और मुंह कम खुलना (OSMF Warning Signs)
+
+🩺 **पहचानी गई स्थिति / रोग (Identified Disease):**
+**ओरल सबम्यूकस फाइब्रोसिस (Oral Submucous Fibrosis - OSMF)**
+
+💬 **आपके प्रश्न का उत्तर (Clinical Response):**
+मिर्च-मसालेदार खाना खाने पर तेज जलन और मुंह पूरा न खुल पाना (मुंह में अकड़न) ओरल सबम्यूकस फाइब्रोसिस (OSMF) के प्रमुख शुरुआती लक्षण हैं। यह सुपारी या गुटखे के सेवन से होता है।
+
+💡 **सावधानियां एवं अगला कदम (Care & Next Steps):**
+• **सुपारी और गुटखा तुरंत बंद करें:** सुपारी में मौजूद रसायन मुंह की अंदरूनी त्वचा को सख्त बना देता है।
+• **खानपान:** मिर्च और गरम मसाले बिल्कुल न खाएं। ठंडा और नरम भोजन लें।
+• **3-उंगली परीक्षण:** यदि मुंह में लंबवत 3 उंगलियां नहीं जातीं (<35 मिमी), तो मुंह में खिंचाव न करें।
+• **डॉक्टर को दिखाएं:** कृपया 48-72 घंटों के भीतर अपने नजदीकी PHC डॉक्टर से जांच करवाएं।
+
+> ⚠️ *नोट: OSMF की स्थिति में डॉक्टर की नियमित निगरानी आवश्यक है.*"""
+            speech = "तीखा खाने पर जलन और मुंह कम खुलना OSMF के लक्षण हैं। सुपारी और गुटखा तुरंत बंद करें और डॉक्टर से जांच कराएं."
         else:
-            content = (
-                "### 🌶️ Burning Mouth Sensation & Reduced Mouth Opening (OSMF Warning Signs)\n\n"
-                "#### 🗣️ 1. Plain Advice for Patients & Families:\n"
-                "A persistent burning sensation when eating spicy foods, combined with difficulty opening the mouth wide, are classic early signs of Oral Submucous Fibrosis (OSMF).\n"
-                "• **Immediate Cessation of Areca Nut & Gutkha:** Arecoline alkaloids stimulate excessive collagen deposition, causing progressive stiffening.\n"
-                "• **Soothing Bland Diet:** Avoid chilies, black pepper, and very hot or acidic foods that burn exposed nerve endings.\n\n"
-                "#### 👩‍⚕️ 2. Field Action Guide for ASHA Workers & Health Staff:\n"
-                "✓ **The 3-Finger Test:** Can the patient insert 3 fingers vertically between their front teeth? If only 1 or 2 fingers fit (<30mm), trismus is confirmed.\n"
-                "✓ Inspect buccal mucosa for pale, marble-white fibrous bands.\n"
-                "✓ Prioritize referral to PHC Medical Officer within 48–72 hours.\n\n"
-                "#### 🩺 3. Clinical Mandate for Doctors & Specialists:\n"
-                "Classify OSMF Stage (Grade I: >35mm, Grade II: 30-35mm, Grade III: 20-30mm, Grade IV: <20mm). Prescribe Lycopene (10-16mg/day) + Alpha-tocopherol. Monitor for dysplastic transformation and avoid sharp dental trauma."
-            )
-            speech = (
-                "Burning sensation on eating spicy food combined with restricted mouth opening are early signs of Oral Submucous Fibrosis. "
-                "Stop all areca nut and gutkha immediately, and schedule an examination with your PHC Medical Officer."
-            )
+            content = """### 🌶️ Burning Mouth Sensation & Reduced Mouth Opening (OSMF)
+
+🩺 **Identified Disease / Condition:**
+**Oral Submucous Fibrosis (OSMF) with Trismus**
+
+💬 **Clinical Response to Your Question:**
+A persistent burning sensation when eating spicy foods, combined with difficulty opening the mouth wide, are classic early signs of Oral Submucous Fibrosis (OSMF) caused by areca nut (supari) or gutkha.
+
+💡 **Recommended Care & Next Steps:**
+• **Immediate Cessation:** Stop all areca nut, supari, gutkha, and pan masala immediately.
+• **Bland Soothing Diet:** Avoid chilies, black pepper, and very hot or acidic foods. Eat cooling, soft foods.
+• **3-Finger Check:** If you cannot insert 3 fingers vertically (<35mm), trismus is present. Do not force open the mouth.
+• **Doctor Consultation:** Visit the PHC Medical Officer or Dental Specialist within 48–72 hours for antioxidant therapy and surveillance.
+
+> ⚠️ *Notice: OSMF is a potentially malignant condition requiring complete habit cessation and regular medical monitoring.*"""
+            speech = "Burning sensation on spices and reduced mouth opening indicate OSMF. Stop areca nut and visit the PHC."
 
         return {
             "content": content,
@@ -478,74 +396,53 @@ class MedGemmaChatEngine:
 
     def _build_patches_response(self, lang: str) -> Dict[str, Any]:
         if lang == "te":
-            content = (
-                "### ⚪ నోటిలో తెల్లటి లేదా ఎర్రటి మచ్చలు (Oral Mucosal Patches - Leukoplakia & Erythroplakia)\n\n"
-                "#### 🗣️ 1. రోగులకు సులభమైన వివరణ (For Patients & Families):\n"
-                "నోటి బుగ్గపై లేదా నాలుకపై తెల్లటి లేదా ఎర్రటి మచ్చలు రావడం పంటి రాపిడి, పొగాకు లేదా ఇతర కారణాల వల్ల కావచ్చు.\n"
-                "• **చేయకూడనివి:** మచ్చను గోకడం, సున్నం లేదా ఇతర రసాయనాలు పూయడం చేయవద్దు.\n"
-                "• **డాక్టర్ పరీక్ష ఎందుకు:** ఈ మచ్చలు కొన్నిసార్లు ముందస్తు జాగ్రత్తలు అవసరమైనవి కావచ్చు, కాబట్టి డాక్టర్ పరిశీలన ముఖ్యం.\n\n"
-                "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి (For ASHA Workers):\n"
-                "✓ తడి దూదితో తుడిచి చూడండి (Wipe Test): మచ్చ తుడుచుకుపోతే అది ఫంగల్ ఇన్ఫెక్షన్ (Thrush) కావచ్చు; తుడిచినా పోకపోతే అది ల్యూకోప్లాకియా.\n"
-                "✓ ఎర్రటి మచ్చలు (Erythroplakia) కనిపిస్తే అది అత్యంత ప్రాధాన్యత కలిగినదిగా గుర్తించండి.\n"
-                "✓ రోగిని PHC వైద్యాధికారి వద్దకు తీసుకెళ్ళండి.\n\n"
-                "#### 🩺 3. వైద్యులు & క్లినికల్ ప్రోటోకాల్ (For Doctors & Specialists):\n"
-                "Clinical Assessment: Oral Potentially Malignant Disorder (OPMD) - Leukoplakia (homogeneous vs speckled/verrucous) / Erythroplakia. Mandatory MoHFW & ICMR protocol: Any persistent patch not resolving within 14 days after eliminating local irritation requires diagnostic punch/incisional biopsy."
-            )
-            speech = (
-                "నోటిలోని తెల్లటి లేదా ఎర్రటి మచ్చలను వైద్యులు తప్పనిసరిగా పరిశీలించాలి. "
-                "ఫొటోల ద్వారా క్యాన్సర్ నిర్ధారణ చేయడం అసాధ్యం, డాక్టర్ గారి పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
-            )
+            content = """### ⚪ నోటిలో తెల్లటి లేదా ఎర్రటి మచ్చలు (Oral Mucosal Patches)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**ఓరల్ ల్యూకోప్లాకియా / ఎరిత్రోప్లాకియా (Oral Leukoplakia / Erythroplakia)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+నోటి బుగ్గపై లేదా నాలుకపై తెల్లటి లేదా ఎర్రటి మచ్చలు రావడం పంటి రాపిడి, పొగాకు లేదా గుట్కా వాడకం వల్ల ఏర్పడే ముందస్తు మార్పులు కావచ్చు.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **గోకవద్దు:** మచ్చను వేళ్ళతో గోకడం, సున్నం లేదా రసాయనాలు పూయడం చేయవద్దు.
+• **పొగాకు నిలిపివేత:** గుట్కా, ఖైనీ, పాన్ మరియు ధూమపానం వెంటనే ఆపాలి.
+• **డాక్టర్ సంప్రదింపు:** 14 రోజుల కంటే ఎక్కువ రోజులు ఉండే తెల్లటి లేదా ఎర్రటి మచ్చలకు సమీప PHC డాక్టర్ లేదా డెంటల్ సర్జన్‌ను సంప్రదించాలి. చిన్న బయాప్సీ ద్వారా మాత్రమే ఖచ్చితమైన నిర్ధారణ సాధ్యమవుతుంది.
+
+> ⚠️ *గమనిక: ఫోటోల ద్వారా క్యాన్సర్ నిర్ధారణ చేయడం అసాధ్యం, డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"""
+            speech = "నోటిలోని తెల్లటి లేదా ఎర్రటి మచ్చలను గోకవద్దు. పొగాకు వెంటనే ఆపి డాక్టర్ గారి పరీక్ష చేయించుకోండి."
         elif lang == "hi":
-            content = (
-                "### ⚪ मुंह में सफेद या लाल दाग (Oral Mucosal Patches)\n\n"
-                "गाल के अंदर या जीभ पर बनने वाले दाग ल्यूकोप्लाकिया (सफेद दाग) या एरिथ्रोप्लाकिया (लाल मखमली दाग) हो सकते हैं।\n\n"
-                "**मुख्य बातें:**\n"
-                "1. **सफेद दाग जो खुरचने पर नहीं हटते:** यह तंबाकू, बीड़ी या तेज दांत की रगड़ से हो सकते हैं।\n"
-                "2. **लाल दाग (Erythroplakia):** लाल दागों में जोखिम अधिक होता है, इनकी तुरंत डॉक्टर से जांच करानी चाहिए।\n\n"
-                "⚠️ **अनिवार्य नियम:** फोटो से कैंसर की पुष्टि या खंडन नहीं किया जा सकता। इसके लिए बायोप्सी अनिवार्य है।"
-            )
-            speech = (
-                "मुंह के सफेद या लाल दागों की जांच डॉक्टर से कराना अनिवार्य है। "
-                "फोटो से कैंसर तय नहीं हो सकता, बायोप्सी जांच जरूरी है।"
-            )
-        elif lang == "ta":
-            content = (
-                "### ⚪ வாயில் வெள்ளை அல்லது சிவப்பு திட்டுகள்\n\n"
-                "வாயினுள் ஏற்படும் திட்டுகள் லுகோபிளாக்கியா (வெள்ளை திட்டு) அல்லது எரித்ரோபிளாக்கியா (சிவப்பு திட்டு) ஆக இருக்கலாம்.\n\n"
-                "⚠️ **முக்கிய எச்சரிக்கை:** புகைப்படங்கள் மூலம் புற்றுநோயை உறுதிப்படுத்த முடியாது. திசு பரிசோதனை (Biopsy) கட்டாயம்."
-            )
-            speech = "வெள்ளை அல்லது சிவப்பு திட்டுகளுக்கு மருத்துவரை நேரில் அணுகி பயாப்ஸி பரிசோதனை செய்து கொள்ளவும்."
-        elif lang == "kn":
-            content = (
-                "### ⚪ ಬಾಯಿಯಲ್ಲಿ ಬಿಳಿ ಅಥವಾ ಕೆಂಪು ಮಚ್ಚೆಗಳು\n\n"
-                "ಇವು ಲ್ಯೂಕೋಪ್ಲಾಕಿಯಾ ಅಥವಾ ಎರಿಥ್ರೋಪ್ಲಾಕಿಯಾ ಲಕ್ಷಣವಾಗಿರಬಹುದು.\n\n"
-                "⚠️ **ವೈದ್ಯಕೀಯ ಎಚ್ಚರಿಕೆ:** ಫೋಟೋದ ಮೂಲಕ ಕ್ಯಾನ್ಸರ್ ತೀರ್ಮಾನಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಬಯಾಪ್ಸಿ ಪರೀಕ್ಷೆ ಕಡ್ಡಾಯ."
-            )
-            speech = "ಬಿಳಿ ಅಥವಾ ಕೆಂಪು ಮಚ್ಚೆಗಳನ್ನು ವೈದ್ಯರಿಗೆ ತೋರಿಸಿ ಬಯಾಪ್ಸಿ ಪರೀಕ್ಷೆ ಮಾಡಿಸಿಕೊಳ್ಳುವುದು ಕಡ್ಡಾಯ."
-        elif lang == "ml":
-            content = (
-                "### ⚪ വായിലെ വെളുത്തതോ ചുവന്നതോ ആയ പാടുകൾ\n\n"
-                "ഇവ ല്യൂക്കോപ്ലാകിയ അല്ലെങ്കിൽ എറിത്രോപ്ലാകിയ ആകാം.\n\n"
-                "⚠️ **പ്രത്യേക അറിയിപ്പ്:** ഫോട്ടോ കണ്ട് ക്യാൻസർ നിർണ്ണയിക്കാൻ കഴിയില്ല. ബയോപ്സി പരിശോധന നിർബന്ധമാണ്."
-            )
-            speech = "വായിലെ വെളുത്തതോ ചുവന്നതോ ആയ പാടുകൾക്ക് ഡോക്ടറെ കണ്ട് ബയോപ്സി ചെയ്യുക."
+            content = """### ⚪ मुंह में सफेद या लाल दाग (Oral Mucosal Patches)
+
+🩺 **पहचानी गई स्थिति / रोग (Identified Disease):**
+**ल्यूकोप्लाकिया / एरिथ्रोप्लाकिया (Oral Leukoplakia / Erythroplakia)**
+
+💬 **आपके प्रश्न का उत्तर (Clinical Response):**
+गाल के अंदर या जीभ पर बनने वाले सफेद दाग (ल्यूकोप्लाकिया) या लाल मखमली दाग (एरिथ्रोप्लाकिया) आमतौर पर तंबाकू, बीड़ी या नुकीले दांत की रगड़ से होते हैं।
+
+💡 **सावधानियां एवं अगला कदम (Care & Next Steps):**
+• **खुरचें नहीं:** दाग को नाखून या किसी वस्तु से खुरचने का प्रयास न करें।
+• **तंबाकू बंद करें:** गुटखा, खैनी, बीड़ी तुरंत बंद करें।
+• **डॉक्टर को दिखाएं:** 14 दिनों से अधिक पुराने किसी भी दाग की जांच पीएचसी डॉक्टर से कराएं।
+
+> ⚠️ *नोट: फोटो से कैंसर तय नहीं हो सकता, बायोप्सी जांच जरूरी है।*"""
+            speech = "मुंह के सफेद या लाल दागों की जांच डॉक्टर से कराना अनिवार्य है। फोटो से कैंसर तय नहीं हो सकता, बायोप्सी जांच जरूरी है."
         else:
-            content = (
-                "### ⚪ Clinical Guidance on White & Red Oral Patches\n\n"
-                "#### 🗣️ 1. Plain Advice for Patients & Families:\n"
-                "Persistent white patches (Leukoplakia) or fiery red velvet patches (Erythroplakia) on the buccal mucosa or tongue are categorized as Oral Potentially Malignant Disorders (OPMD).\n"
-                "• Do not attempt to scrape or peel the lesion, or apply caustic herbs/lime.\n"
-                "• Arrange an in-person doctor evaluation promptly.\n\n"
-                "#### 👩‍⚕️ 2. Field Action Guide for ASHA Workers & Health Staff:\n"
-                "✓ Wipe Test: Attempt to gently wipe lesion with sterile wet gauze. If non-scrapable, leukoplakia is suspected.\n"
-                "✓ Red velvety patches (erythroplakia) carry higher risk and warrant urgent referral within 48h.\n\n"
-                "#### 🩺 3. Clinical Mandate for Doctors & Specialists:\n"
-                "Stratify into homogeneous vs non-homogeneous leukoplakia. Mandatory MoHFW & ICMR protocol: In-person bimanual palpation and diagnostic punch biopsy for non-resolving lesions persisting >14 days."
-            )
-            speech = (
-                "White and red oral patches should always be evaluated in person by a clinician. "
-                "Photographs cannot diagnose cancer; in-person examination and biopsy are mandatory."
-            )
+            content = """### ⚪ Clinical Guidance on White & Red Oral Patches
+
+🩺 **Identified Disease / Condition:**
+**Oral Leukoplakia / Erythroplakia (OPMD)**
+
+💬 **Clinical Response to Your Question:**
+Persistent white patches (Leukoplakia) or velvety red patches (Erythroplakia) on the buccal mucosa or tongue are categorized as Oral Potentially Malignant Disorders (OPMD) driven by tobacco, gutkha, or friction.
+
+💡 **Recommended Care & Next Steps:**
+• **Do Not Scratch:** Never attempt to scrape or peel the lesion, or apply caustic herbs/lime.
+• **Habit Cessation:** Cease all gutkha, areca nut, and tobacco immediately.
+• **Doctor Consultation:** Any persistent patch not resolving within 14 days requires an in-person clinical examination and diagnostic punch biopsy.
+
+> ⚠️ *Notice: Photographs cannot diagnose cancer; in-person examination and biopsy are mandatory.*"""
+            speech = "White and red oral patches should always be evaluated in person by a clinician. Photographs cannot diagnose cancer."
 
         return {
             "content": content,
@@ -558,141 +455,91 @@ class MedGemmaChatEngine:
     def _build_general_response(self, message: str, lang: str, has_attachment: bool) -> Dict[str, Any]:
         if has_attachment:
             if lang == "te":
-                content = (
-                    "మీరు జతచేసిన ఫొటోను Google MedGemma 1.5 4B మల్టీమోడల్ విజన్ ఇంజిన్ మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా పరిశీలించాను. "
-                    "పై నివేదికలోని ప్రాథమిక పరిశీలనలు మరియు క్లినికల్ సిఫార్సులను గమనించండి.\n\n"
-                    "**తదుపరి తీసుకోవలసిన జాగ్రత్తలు:**\n"
-                    "1. పుండుపై ఘాటైన మసాలాలు, వేడి లేదా ఆమ్ల సంబంధిత ఆహారాలను తగలనివ్వవద్దు.\n"
-                    "2. పొగాకు, గుట్కా, ఖైనీ లేదా ధూమపానం అలవాట్లు ఉంటే తక్షణమే నిలిపివేయండి.\n"
-                    "3. ⚠️ **ముఖ్యమైన ఆదేశం:** 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని ఏ పుండు లేదా మచ్చకైనా సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ సర్జన్ గారిచే **ప్రత్యక్ష బయాప్సీ (Biopsy)** పరీక్ష తప్పనిసరి."
-                )
-                speech = "మీరు పంపిన ఫొటో ప్రాథమిక విశ్లేషణ పూర్తయింది. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
-            elif lang == "hi":
-                content = (
-                    "मैंने आपकी भेजी गई फोटो का Google MedGemma 1.5 4B विज़न मॉडल और MoHFW दिशानिर्देशों के अनुसार प्राथमिक विश्लेषण किया है। "
-                    "कृपया ऊपर दी गई दृश्य टिप्पणियों और सिफारिशों को ध्यान से देखें।\n\n"
-                    "**सावधानियां:**\n"
-                    "1. तीखे, गर्म और मसालेदार भोजन से परहेज करें।\n"
-                    "2. गुटखा, खैनी, तंबाकू और बीड़ी तुरंत बंद करें।\n"
-                    "3. ⚠️ **अनिवार्य नियम:** 14 दिनों से अधिक पुराने किसी भी छाले या घाव के लिए PHC डॉक्टर से प्रत्यक्ष जांच और **बायोप्सी (Biopsy)** अनिवार्य है।"
-                )
-                speech = "आपकी फोटो का प्राथमिक विश्लेषण पूरा हो गया है। 14 दिनों से अधिक पुराने घाव के लिए डॉक्टर द्वारा बायोप्सी अनिवार्य है।"
-            elif lang == "ta":
-                content = (
-                    "நீங்கள் இணைத்த புகைப்படத்தை Google MedGemma 1.5 4B மல்டிமாடல் விஷன் என்ஜின் மூலம் ஆய்வு செய்துள்ளேன். "
-                    "மேலே உள்ள அவதானிப்புகள் மற்றும் மருத்துவ பரிந்துரைகளை கவனியுங்கள்.\n\n"
-                    "⚠️ **கட்டாய எச்சரிக்கை:** 14 நாட்களுக்கு மேல் ஆறாத எந்த புண்ணுக்கும் மருத்துவரை நேரில் அணுகி பயாப்ஸி (Biopsy) பரிசோதனை செய்து கொள்வது கட்டாயம்."
-                )
-                speech = "புகைப்பட ஆய்வு நிறைவடைந்தது. 14 நாட்களுக்கு மேலான புண்களுக்கு நேரடி பயாப்ஸி பரிசோதனை கட்டாயம்."
-            elif lang == "kn":
-                content = (
-                    "ನೀವು ಕಳುಹಿಸಿದ ಫೋಟೋವನ್ನು Google MedGemma 1.5 4B ಮಾದರಿಯ ಮೂಲಕ ಪರಿಶೀಲಿಸಲಾಗಿದೆ. "
-                    "ಮೇಲಿನ ಪ್ರಾಥಮಿಕ ಲಕ್ಷಣಗಳು ಮತ್ತು ವೈದ್ಯಕೀಯ ಶಿಫಾರಸುಗಳನ್ನು ಗಮನಿಸಿ.\n\n"
-                    "⚠️ **ಕಡ್ಡಾಯ ಎಚ್ಚರಿಕೆ:** 14 ದಿನಗಳಿಗಿಂತ ಹೆಚ್ಚು ಕಾಲ ವಾಸಿಯಾಗದ ಹುಣ್ಣಿಗೆ ವೈದ್ಯರಿಂದ ನೇರ ಪರೀಕ್ಷೆ ಮತ್ತು ಬಯಾಪ್ಸಿ ಕಡ್ಡಾಯವಾಗಿದೆ."
-                )
-                speech = "ಫೋಟೋ ಪರೀಕ್ಷೆ ಪೂರ್ಣಗೊಂಡಿದೆ. 14 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ಹುಣ್ಣಿಗೆ ವೈದ್ಯರ ಭೇಟಿ ಮತ್ತು ಬಯಾಪ್ಸಿ ಕಡ್ಡಾಯ."
-            elif lang == "ml":
-                content = (
-                    "നിങ്ങൾ അയച്ച ഫോട്ടോ Google MedGemma 1.5 4B ഉപയോഗിച്ച് പരിശോധിച്ചു. "
-                    "മുകളിലെ കണ്ടെത്തലുകളും നിർദ്ദേശങ്ങളും ശ്രദ്ധിക്കുക.\n\n"
-                    "⚠️ **പ്രത്യേക അറിയിപ്പ്:** 14 ദിവസത്തിൽ കൂടുതൽ നീണ്ടുനിൽക്കുന്ന വ്രണങ്ങൾക്ക് ഡോക്ടറുടെ നേരിട്ടുള്ള പരിശോധനയും ബയോപ്സിയും നിർബന്ധമാണ്."
-                )
-                speech = "ഫോട്ടോ പരിശോധന പൂർത്തിയായി. 14 ദിവസത്തിൽ കൂടുതൽ ഉള്ള വ്രണത്തിന് ഡോക്ടറെ കണ്ട് ബയോപ്സി ചെയ്യുക."
+                content = """### 🔬 ఫొటో పరిశీలన ఫలితం (Image Assessment)
+
+🩺 **గుర్తించిన అంశం:** నోటి శ్లేష్మ పొర పరిశీలన (Oral Mucosal Lesion Assessment)
+
+💬 **క్లినికల్ సలహా:**
+మీరు అప్‌లోడ్ చేసిన ఫొటోను ప్రాథమికంగా పరిశీలించాము. ఏవైనా తగ్గని పుండ్లు, ఎర్రటి లేదా తెల్లటి మచ్చలు ఉన్నప్పుడు క్రింది జాగ్రత్తలు పాటించండి.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య:**
+1. గోరువెచ్చని ఉప్పునీటితో రోజుకు 2-3 సార్లు పుక్కిలించండి.
+2. కారం, ఎక్కువ వేడి, పులుపు మరియు ఘాటైన మసాలాలను నివారించండి.
+3. పొగాకు, గుట్కా, ఖైనీ లేదా ధూమపానం అలవాట్లు ఉంటే తక్షణమే నిలిపివేయండి.
+4. ⚠️ **ముఖ్య ఆదేశం:** 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని ఏ పుండు లేదా మచ్చకైనా సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ సర్జన్ గారిచే **ప్రత్యక్ష బయాప్సీ (Biopsy)** పరీక్ష తప్పనిసరి.
+
+> ⚠️ *గమనిక: ఫొటో ఆధారంగా క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం జరగదు.*"""
+                speech = "మీరు పంపిన ఫొటో ప్రాథమిక విశ్లేషణ పూర్తయింది. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
             else:
-                content = (
-                    "I have evaluated your uploaded clinical photograph through the Google MedGemma 1.5 4B Multimodal Vision Engine grounded in MoHFW and WHO protocols. "
-                    "Please review the observable morphological findings and clinical recommendations outlined above.\n\n"
-                    "**Clinical Recommendations:**\n"
-                    "1. Avoid hot, spicy, rough, or irritating foods.\n"
-                    "2. Cease all tobacco, gutkha, and areca nut habits immediately.\n"
-                    "3. ⚠️ **Mandatory Medical Guardrail:** A photograph CANNOT rule in or rule out cancer. Under national protocols, any oral lesion lasting longer than 14 days requires an in-person physical clinical examination and specialist **diagnostic punch biopsy**."
-                )
-                speech = "The MedGemma preliminary image analysis is complete. In-person clinical examination and tissue biopsy are mandatory for persistent lesions."
+                content = """### 🔬 Clinical Image Assessment Result
+
+🩺 **Identified Health Focus:** Oral Mucosal Assessment
+
+💬 **Clinical Advice:**
+Your uploaded photograph has undergone preliminary visual feature inspection. Follow these essential care steps:
+
+💡 **Recommended Care & Next Steps:**
+1. Rinse gently with warm salt water 2–3 times daily.
+2. Avoid rough, spicy, acidic, or very hot foods.
+3. Cease all tobacco, gutkha, and areca nut habits immediately.
+4. ⚠️ **Mandatory Medical Guardrail:** A photograph CANNOT diagnose or rule out cancer. Under national protocols, any oral lesion lasting longer than 14 days requires an in-person physical examination and specialist **diagnostic punch biopsy**.
+
+> ⚠️ *Notice: This is preliminary guidance. Consult your PHC Medical Officer for physical evaluation.*"""
+                speech = "The preliminary image analysis is complete. In-person clinical examination and tissue biopsy are mandatory for persistent lesions."
 
             return {
                 "content": content,
                 "speech_text": speech,
                 "is_emergency": False,
                 "urgency": "prompt_assessment",
-                "disclaimer": "MedGemma 1.5 4B Multimodal Visual Assessment."
+                "disclaimer": "Aarogya Mytra AI Multimodal Visual Assessment."
             }
 
         if lang == "te":
-            content = (
-                f"నమస్కారం! నేను ఆరోగ్య మైత్ర AI. మీ ప్రశ్న: *\"{message}\"*\n\n"
-                "మేము రోగులు, ఆశా కార్యకర్తలు మరియు వైద్యులందరికీ సులభంగా అర్థమయ్యే సాక్ష్యాధారిత మార్గదర్శకాలను అందిస్తాము:\n\n"
-                "#### 🗣️ 1. రోగులకు (For Patients):\n"
-                "నోటి పూత, పుండ్లు, పొగాకు మానేయడం లేదా సాధారణ ఆరోగ్య సందేహాలు అడగవచ్చు. ఫొటో పంపి ఇంట్లో పాటించవలసిన జాగ్రత్తలు తెలుసుకోవచ్చు.\n\n"
-                "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి (For ASHA Workers):\n"
-                "ఫీల్డ్ స్క్రీనింగ్ చెక్‌లిస్ట్, 14-రోజుల నియమం, 3-వేళ్ళ నోటి కొలత మరియు రిఫరల్ ప్రాధాన్యతలను తనిఖీ చేయవచ్చు.\n\n"
-                "#### 🩺 3. వైద్యులు & స్పెషలిస్టులకు (For Doctors & Specialists):\n"
-                "క్లినికల్ మార్ఫాలజీ పరిశీలనలు, డిఫరెన్షియల్ డయాగ్నోసిస్ మరియు MoHFW/ICMR పంచ్ బయాప్సీ ప్రోటోకాల్స్ పొందవచ్చు.\n\n"
-                "> ⚠️ *గమనిక: ఏదైనా నోటి పుండు 14 రోజులు దాటితే డాక్టర్ గారి ప్రత్యక్ష పరీక్ష తప్పనిసరి.*"
-            )
-            speech = (
-                "నమస్కారం, నేను ఆరోగ్య మైత్ర AI. నోటి పూత, పుండ్లు, పొగాకు మానేయడం లేదా ఆరోగ్య సందేహాలపై మీరు నన్ను అడగవచ్చు."
-            )
+            content = f"""### 🩺 ఆరోగ్య మైత్ర AI క్లినికల్ సమాధానం
+
+**మీ ప్రశ్న / పరిశీలన:** *"{message}"*
+
+💬 **క్లినికల్ మార్గదర్శకాలు:**
+ఆరోగ్య మైత్ర AI ప్రామాణిక MoHFW మరియు NOHP వైద్య మార్గదర్శకాల ప్రకారం సలహాలను అందిస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య:**
+• నోటి పరిశుభ్రతను పాటించండి, రోజుకు రెండుసార్లు మృదువైన బ్రష్‌తో తోముకోండి.
+• ఏవైనా నోటి పూత లేదా పుండ్లు **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే** సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించండి.
+• తీవ్రమైన నొప్పి, దవడ వాపు లేదా రక్తస్రావం ఉంటే ఆలస్యం చేయకుండా డాక్టర్‌కు చూపించండి.
+
+> ⚠️ *గమనిక: ఈ AI ఫలితం ప్రాథమిక సమాచారం మాత్రమే. ఖచ్చితమైన నిర్ధారణ కోసం వైద్యుల ప్రత్యక్ష పరీక్ష అవసరం.*"""
+            speech = "నమస్కారం, నేను ఆరోగ్య మైత్ర AI. నోటి పూత, పుండ్లు, పొగాకు మానేయడం లేదా ఆరోగ్య సందేహాలపై మీరు నన్ను అడగవచ్చు."
         elif lang == "hi":
-            content = (
-                f"नमस्ते! मैं आरोग्य मैत्र AI हूँ। आपका प्रश्न: *\"{message}\"*\n\n"
-                "मैं स्वास्थ्य और परिवार कल्याण मंत्रालय (MoHFW) और WHO के दिशानिर्देशों पर आधारित साक्ष्य-आधारित जानकारी प्रदान करता हूँ।\n\n"
-                "**आप किन विषयों पर पूछ सकते हैं:**\n"
-                "• मुंह के छाले, घाव और जलन के उपाय\n"
-                "• तंबाकू, गुटखा और बीड़ी छोड़ने के उपाय\n"
-                "• मुंह कम खुलने (OSMF) की जानकारी\n"
-                "• त्वचा, आंख या मुंह की फोटो भेजकर प्राथमिक विश्लेषण प्राप्त करना\n\n"
-                "> ⚠️ *नोट: यह केवल स्वास्थ्य शिक्षा है। 14 दिनों से अधिक पुराने किसी भी घाव के लिए डॉक्टर से प्रत्यक्ष परामर्श लें।*"
-            )
-            speech = (
-                "नमस्ते, मैं आरोग्य मैत्र AI हूँ। आप मुझसे मुंह के छाले, तंबाकू छोड़ने या स्वास्थ्य संबंधी सवाल पूछ सकते हैं।"
-            )
-        elif lang == "ta":
-            content = (
-                f"வணக்கம்! நான் ஆரோக்கிய மைத்ரா AI. உங்கள் கேள்வி: *\"{message}\"*\n\n"
-                "MoHFW மற்றும் உலக சுகாதார அமைப்பு (WHO) வழிகாட்டுதல்களின்படி மருத்துவ ஆலோசனைகளை வழங்குகிறேன்.\n\n"
-                "**நீங்கள் கேட்கக்கூடியவை:**\n"
-                "• வாய் புண்கள் மற்றும் பராமரிப்பு\n"
-                "• புகையிலை, குட்கா பழக்கத்தை கைவிடுவது\n"
-                "• வாய் திறக்க முடியாமை (OSMF)\n"
-                "• தோல் அல்லது கண் புகைப்படங்களை அனுப்பி முதற்கட்ட ஆய்வு பெறுவது\n\n"
-                "> ⚠️ *குறிப்பு: இது மருத்துவ தகவல் மட்டுமே. 14 நாட்களுக்கு மேலான புண்களுக்கு மருத்துவரை அணுகவும்.*"
-            )
-            speech = "வணக்கம், நான் ஆரோக்கிய மைத்ரா AI. வாய் புண்கள் அல்லது புகையிலை பழக்கத்தை கைவிடுவது பற்றி என்னிடம் கேட்கலாம்."
-        elif lang == "kn":
-            content = (
-                f"ನಮಸ್ಕಾರ! ನಾನು ಆರೋಗ್ಯ ಮೈತ್ರ AI. ನಿಮ್ಮ ಪ್ರಶ್ನೆ: *\"{message}\"*\n\n"
-                "MoHFW ಮತ್ತು WHO ಮಾರ್ಗಸೂಚಿಗಳ ಆಧಾರದ ಮೇಲೆ ವೈದ್ಯಕೀಯ ಮಾಹಿತಿಯನ್ನು ಒದಗಿಸುತ್ತೇನೆ.\n\n"
-                "**ನೀವು ಕೇಳಬಹುದಾದ ವಿಷಯಗಳು:**\n"
-                "• ಬಾಯಿ ಹುಣ್ಣು ಮತ್ತು ಪರಿಹಾರಗಳು\n"
-                "• ತಂಬಾಕು ಮತ್ತು ಗುಟ್ಕಾ ತ್ಯಜಿಸುವುದು\n"
-                "• ಬಾಯಿ ಬಿಗಿತ (OSMF) ಮಾಹಿತಿ\n"
-                "• ಫೋಟೋ ಕಳುಹಿಸಿ ಪ್ರಾಥಮಿಕ ಪರೀಕ್ಷೆ ಪಡೆಯುವುದು\n\n"
-                "> ⚠️ *ಗಮನಿಸಿ: ಇದು ಮಾಹಿತಿ ಮಾತ್ರ. 14 ದಿನಕ್ಕಿಂತ ಹೆಚ್ಚಿನ ಸಮಸ್ಯೆಗೆ ವೈದ್ಯರನ್ನು ಭೇಟಿ ಮಾಡಿ.*"
-            )
-            speech = "ನಮಸ್ಕಾರ, ನಾನು ಆರೋಗ್ಯ ಮೈತ್ರ AI. ಬಾಯಿ ಹುಣ್ಣು ಅಥವಾ ಆರೋಗ್ಯ ಸಮಸ್ಯೆಗಳ ಬಗ್ಗೆ ನೀವು ನನ್ನನ್ನು ಕೇಳಬಹುದು."
-        elif lang == "ml":
-            content = (
-                f"നമസ്കാരം! ഞാൻ ആരോഗ്യ മൈത്ര AI. നിങ്ങളുടെ ചോദ്യം: *\"{message}\"*\n\n"
-                "MoHFW, ലോകാരോഗ്യ സംഘടന (WHO) മാർഗ്ഗനിർദ്ദേശങ്ങൾ അടിസ്ഥാനമാക്കിയുള്ള വിവരങ്ങൾ നൽകുന്നു.\n\n"
-                "• വായ്പ്പുണ്ണ്, പുകയില ഉപേക്ഷിക്കൽ, OSMF വിവരങ്ങൾ\n"
-                "• ഫോട്ടോ അയച്ച് പ്രാഥമിക വിലയിരുത്തൽ നേടാം\n\n"
-                "> ⚠️ *കുറിപ്പ്: ഇത് വിവരങ്ങൾക്ക് മാത്രമാണ്. ഡോക്ടറുടെ പരിശോധന അത്യാവശ്യമാണ്.*"
-            )
-            speech = "നമസ്കാരം, ഞാൻ ആരോഗ്യ മൈത്ര AI. വായ്പ്പുണ്ണ് അല്ലെങ്കിൽ ആരോഗ്യ സംശയങ്ങൾ ചോദിക്കാം."
+            content = f"""### 🩺 आरोग्य मैत्र AI परामर्श
+
+**आपका प्रश्न:** *"{message}"*
+
+💬 **चिकित्सीय सलाह:**
+आरोग्य मैत्र AI स्वास्थ्य एवं परिवार कल्याण मंत्रालय (MoHFW) दिशानिर्देशों पर आधारित मार्गदर्शन प्रदान करता है।
+
+💡 **सावधानियां एवं अगला कदम:**
+• मुंह की नियमित सफाई रखें और दिन में दो बार ब्रश करें।
+• यदि कोई छाला **14 दिनों से अधिक समय तक ठीक न हो**, तो तुरंत पीएचसी डॉक्टर से जांच करवाएं।
+• तंबाकू और गुटखे का सेवन तुरंत बंद करें।
+
+> ⚠️ *नोट: यह केवल स्वास्थ्य शिक्षा है। 14 दिनों से अधिक पुराने घाव के लिए डॉक्टर से प्रत्यक्ष परामर्श लें।*"""
+            speech = "नमस्ते, मैं आरोग्य मैत्र AI हूँ। आप मुझसे मुंह के छाले, तंबाकू छोड़ने या स्वास्थ्य संबंधी सवाल पूछ सकते हैं."
         else:
-            content = (
-                f"Hello! I am Aarogya Mytra AI. Regarding your query: *\"{message}\"*\n\n"
-                "I provide evidence-grounded health education and multimodal visual analysis based on MoHFW National Oral Health Programme and WHO guidelines.\n\n"
-                "**Topics I can help you with:**\n"
-                "• Mouth ulcers, soothing saline rinses, and pain management\n"
-                "• Tobacco, gutkha, and chutta cessation counseling\n"
-                "• Early signs of Oral Submucous Fibrosis (OSMF) and trismus\n"
-                "• Multimodal image assessment of oral, skin, eye, or wound photos\n\n"
-                "> ⚠️ *Clinical Notice: This information is for health education only. A direct examination by a Medical Officer is required for any lesion lasting longer than 14 days.*"
-            )
-            speech = (
-                "Hello, I am Aarogya Mytra AI. You can ask me about mouth sores, oral care, quitting tobacco, or attach an image for preliminary assessment."
-            )
+            content = f"""### 🩺 Aarogya Mytra Clinical Guidance
+
+**Your Query:** *"{message}"*
+
+💬 **Clinical Guidance:**
+Aarogya Mytra AI provides evidence-grounded health education based on MoHFW National Oral Health Programme guidelines.
+
+💡 **Recommended Care & Next Steps:**
+• Maintain gentle oral hygiene and rinse with warm salt water if uncomfortable.
+• Under national guidelines, any oral lesion or sore persisting longer than **14 days** mandates an in-person physical examination by a PHC Doctor.
+• Avoid unverified chemicals, caustic lime, or delaying necessary physical care.
+
+> ⚠️ *Notice: This is preliminary clinical guidance. Consult your PHC Medical Officer for physical evaluation.*"""
+            speech = "Hello, I am Aarogya Mytra AI. You can ask me about mouth sores, oral care, quitting tobacco, or attach an image for preliminary assessment."
 
         return {
             "content": content,

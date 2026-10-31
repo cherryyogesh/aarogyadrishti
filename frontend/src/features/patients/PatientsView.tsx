@@ -42,7 +42,7 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
         offlineStorage.cachePatients(data);
         const offlinePatients = offlineStorage.getOfflinePatients();
         const merged = q
-          ? [...offlinePatients.filter(p => p.full_name.toLowerCase().includes(q.toLowerCase()) || p.phone.includes(q)), ...data]
+          ? [...offlinePatients.filter(p => p.full_name.toLowerCase().includes(q.toLowerCase()) || (p.phone || '').includes(q)), ...data]
           : [...offlinePatients, ...data];
         setPatients(merged);
       } else {

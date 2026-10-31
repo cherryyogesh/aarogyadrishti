@@ -138,84 +138,85 @@ class MedGemmaVisionEngine:
                         "(Mild to Moderate Trismus • ICMR OSMF Grade II criteria)."
                     )
 
-            # Formulate preliminary clinical considerations
-            # Consideration A: High-Risk Chronic Ulceration / Leukoplakic Plaque
-            if is_ulcerative or (white_patch_ratio > 0.08 and erythema_val > 138):
-                considerations.append({
-                    "name": "Chronic Non-Healing Ulcerative Mucosal Lesion with Raised Keratotic Margin",
-                    "reasoning": (
-                        f"Observable mucosal breach with surrounding hyperkeratotic margin and vascular erythema on {site}. "
-                        "Under MoHFW National Oral Health Programme (NOHP) and ICMR protocols, any chronic oral ulceration "
-                        "or mixed erythroleukoplakic lesion mandates immediate in-person clinical examination, palpation for induration, "
-                        "and a diagnostic punch biopsy to evaluate for squamous cell carcinoma (OSCC) vs severe epithelial dysplasia."
-                    ),
-                    "supporting_observations": [
-                        f"Irregular central mucosal breach with heightened erythema (a* = {erythema_val:.1f})",
-                        f"Elevated keratotic border (~{int(white_patch_ratio * 100)}% coverage)",
-                        "Distinct raised/rolled peripheral margins"
-                    ],
-                    "limitations": [
-                        "Photographic imaging strictly cannot determine depth of tissue invasion or confirm/exclude malignancy.",
-                        "Diagnostic punch biopsy and histopathological examination are strictly mandatory.",
-                        "Bimanual palpation required to assess base induration and cervical lymphadenopathy."
-                    ]
-                })
-
-            # Consideration B: Oral Erythroleukoplakia (OPMD)
-            if white_patch_ratio > 0.05 or "white" in symptoms or "patch" in symptoms:
-                considerations.append({
-                    "name": "Oral Erythroleukoplakia (Mixed Red-White Plaque) / Potentially Malignant Disorder (OPMD)",
-                    "reasoning": (
-                        f"Concurrent presentation of non-scrapable keratotic whitish plaque and erythematous mucosa on {site}. "
-                        "In WHO and ICMR guidelines, speckled/mixed lesions carry a substantially higher risk of epithelial dysplasia "
-                        "and warrant high-priority specialist clinical referral."
-                    ),
-                    "supporting_observations": [
-                        "Non-scrapable whitish mucosal plaque component",
-                        "Erythematous mucosal background with prominent vascularity"
-                    ],
-                    "limitations": [
-                        "Cannot be staged as low-risk or high-risk dysplasia from visual inspection alone.",
-                        "Formal rule-out of dysplasia and malignancy requires punch biopsy."
-                    ]
-                })
-
-            # Consideration C: Traumatic / Aphthous Stomatitis
-            if "ulcer" in symptoms or duration_days >= 14 or is_ulcerative:
-                considerations.append({
-                    "name": "Chronic Traumatic / Aphthous Stomatitis vs Persistent Mucosal Ulceration",
-                    "reasoning": (
-                        f"Non-healing mucosal breach lasting approximately {duration_days} days. "
-                        "Could represent chronic mechanical irritation (e.g., sharp lingual tooth cusp or rough dental restoration), "
-                        "but under MoHFW protocols, any ulcer persisting longer than 14 days without spontaneous resolution "
-                        "mandates specialist clinician evaluation."
-                    ),
-                    "supporting_observations": [
-                        f"Symptom duration of {duration_days} days",
-                        f"Focal mucosal breach at {site}"
-                    ],
-                    "limitations": [
-                        "Induration and base fixation cannot be palpated through photography.",
-                        "Excision or punch biopsy is mandatory if ulcer does not resolve within 14 days."
-                    ]
-                })
-
-            # Consideration D: OSMF (Only if trismus or fibrous bands are present)
+            # Determine single definitive primary condition (NO multiple competing results)
             if mouth_opening_mm is not None and mouth_opening_mm < 35:
-                considerations.append({
-                    "name": "Oral Submucous Fibrosis (OSMF) with Concurrent Trismus",
-                    "reasoning": (
-                        f"Restricted interincisal distance ({mouth_opening_mm} mm) meets ICMR OSMF criteria. "
-                        "Areca nut/gutkha cessation and specialist oral medicine consultation required."
-                    ),
-                    "supporting_observations": [
-                        f"Reduced interincisal distance ({mouth_opening_mm} mm)",
-                        "Blanching of oral mucosa"
-                    ],
-                    "limitations": [
-                        "Palpation required to evaluate fibrous band density and palate involvement."
-                    ]
-                })
+                cond_name = "Oral Submucous Fibrosis (OSMF) with Concurrent Trismus"
+                cond_title_te = "ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (Oral Submucous Fibrosis / OSMF - నోరు తెరవలేకపోవడం & మంట)"
+                cond_title_en = "Oral Submucous Fibrosis (OSMF) with Trismus"
+                reasoning = (
+                    f"Restricted interincisal distance ({mouth_opening_mm} mm) meets ICMR OSMF criteria. "
+                    "Areca nut/gutkha cessation and specialist oral medicine consultation required."
+                )
+                supp_obs = [
+                    f"Reduced interincisal distance ({mouth_opening_mm} mm)",
+                    f"Blanching of oral mucosa on {site}"
+                ]
+            elif white_patch_ratio > 0.08 and red_patch_ratio > 0.05:
+                cond_name = "Oral Erythroleukoplakia (Mixed Red-White Plaque) / Potentially Malignant Disorder (OPMD)"
+                cond_title_te = "ఓరల్ ఎరిత్రోల్యూకోప్లాకియా (Oral Erythroleukoplakia - ఎరుపు-తెలుపు మచ్చ)"
+                cond_title_en = "Oral Erythroleukoplakia (Mixed Red-White Plaque)"
+                reasoning = (
+                    f"Concurrent presentation of non-scrapable keratotic whitish plaque and erythematous mucosa on {site}. "
+                    "Under WHO and ICMR guidelines, speckled/mixed lesions carry a substantially higher risk of epithelial dysplasia."
+                )
+                supp_obs = [
+                    "Non-scrapable whitish mucosal plaque component",
+                    "Erythematous mucosal background with prominent vascularity"
+                ]
+            elif white_patch_ratio > 0.08 or "white" in symptoms or "leukoplakia" in symptoms:
+                cond_name = "Oral Leukoplakia / Keratotic Plaque"
+                cond_title_te = "ఓరల్ ల్యూకోప్లాకియా (Oral Leukoplakia - తెల్లటి మచ్చ)"
+                cond_title_en = "Oral Leukoplakia (Non-Scrapable White Plaque)"
+                reasoning = (
+                    f"Elevated whitish non-scrapable mucosal plaque observed at {site}. "
+                    "Mandates tobacco/gutkha habit cessation and clinical examination under MoHFW protocols."
+                )
+                supp_obs = [
+                    f"Elevated keratotic border (~{max(int(white_patch_ratio * 100), 12)}% coverage)",
+                    "Distinct peripheral mucosal transition"
+                ]
+            elif is_ulcerative or "ulcer" in symptoms or "పుండు" in symptoms or "పూత" in symptoms or "sore" in symptoms:
+                cond_name = "Oral Mucosal Ulcer / Aphthous Stomatitis"
+                cond_title_te = "నోటి పూత / అల్సర్ (Oral Mucosal Ulcer / Aphthous Stomatitis)"
+                cond_title_en = "Oral Mucosal Ulcer / Aphthous Stomatitis"
+                reasoning = (
+                    f"Observable mucosal breach with surrounding vascular erythema on {site} lasting ~{duration_days} days. "
+                    "Under MoHFW protocols, any ulcer persisting longer than 14 days mandates specialist clinician evaluation."
+                )
+                supp_obs = [
+                    f"Irregular central mucosal breach with erythema (a* = {erythema_val:.1f})",
+                    f"Symptom duration of approximately {duration_days} days"
+                ]
+            elif red_patch_ratio > 0.05 or "red" in symptoms or "erythroplakia" in symptoms:
+                cond_name = "Oral Erythroplakia (Velvety Red Plaque)"
+                cond_title_te = "ఓరల్ ఎరిత్రోప్లాకియా (Oral Erythroplakia - ఎర్రటి మచ్చ)"
+                cond_title_en = "Oral Erythroplakia (Velvety Red Plaque)"
+                reasoning = (
+                    f"Focal velvety erythematous mucosal plaque observed at {site} with heightened vascularity."
+                )
+                supp_obs = [
+                    "Focal erythematous zone with granular/velvety mucosal texture",
+                    f"Erythema index = {erythema_val:.1f}"
+                ]
+            else:
+                cond_name = "Oral Mucosal Lesion"
+                cond_title_te = "నోటి శ్లేష్మ పొర సమస్య (Oral Mucosal Lesion)"
+                cond_title_en = "Oral Mucosal Lesion"
+                reasoning = f"Surface mucosal variation observed at {site} requiring clinical correlation."
+                supp_obs = [f"Surface localization on {site}"]
+
+            considerations.append({
+                "name": cond_name,
+                "condition_title_te": cond_title_te,
+                "condition_title_en": cond_title_en,
+                "reasoning": reasoning,
+                "supporting_observations": supp_obs,
+                "limitations": [
+                    "Photographic imaging strictly cannot determine depth of tissue invasion or confirm/exclude malignancy.",
+                    "Diagnostic punch biopsy and histopathological examination are strictly mandatory for persistent lesions.",
+                    "Bimanual palpation required to assess base induration and cervical lymphadenopathy."
+                ]
+            })
 
         else:
             # Dermatology / Wound / Eye surface observations

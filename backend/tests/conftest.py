@@ -140,6 +140,7 @@ def setup_test_db():
         except Exception:
             pass
 
+    Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
     db = TestingSessionLocal()
     seed_test_data(db)

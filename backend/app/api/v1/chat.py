@@ -52,7 +52,8 @@ async def send_chat_message(
     db.flush()
 
     # 1. If an image is attached, execute the 12-stage medical vision pipeline
-    image_analysis_report = None
+    warning_flag = None
+
     if has_attachment and attachment_path:
         pipeline_res = await analysis_pipeline.execute_pipeline(
             image_path=attachment_path,
@@ -69,95 +70,99 @@ async def send_chat_message(
         )
 
         if pipeline_res.get("assessment_status") == "preliminary":
-            sh = pipeline_res.get("stakeholder_views") or {}
-            patient_view = sh.get("patient") or {}
-            asha_view = sh.get("asha") or {}
-            doctor_view = sh.get("doctor") or {}
+            explanations = pipeline_res.get("possible_explanations", [])
+            primary_expl = explanations[0] if explanations else {}
+            cond_title_te = primary_expl.get("condition_title_te") or primary_expl.get("name", "నోటి శ్లేష్మ పొర సమస్య (Oral Lesion)")
+            cond_title_en = primary_expl.get("condition_title_en") or primary_expl.get("name", "Oral Mucosal Lesion")
+            condition_display = cond_title_te if is_te else cond_title_en
 
-            # Tier 1: Patient & Family (Simple, Caring, Plain Local Language)
-            patient_sec = ""
-            if patient_view:
-                home_care_list = "\n".join([f"  • {item}" for item in patient_view.get("home_care", [])])
-                patient_sec = (
-                    f"### {patient_view.get('title', '🗣️ రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ')}\n\n"
-                    f"**ఏమి కనిపిస్తోంది (What is seen):**\n{patient_view.get('summary', '')}\n\n"
-                    f"**మీరు ఇంట్లో చేయవలసిన తక్షణ జాగ్రత్తలు (Immediate Self-Care):**\n{home_care_list}\n\n"
-                    f"👉 **డాక్టర్‌ను ఎందుకు సంప్రదించాలి:** {patient_view.get('doctor_reason', '')}\n\n"
-                    f"---\n"
-                )
-
-            # Tier 2: ASHA Worker & PHC Staff (Field Checklist, Priority, Next Steps)
-            asha_sec = ""
-            if asha_view:
-                checklist_items = "\n".join([f"  ✓ {item}" for item in asha_view.get("field_checklist", [])])
-                asha_sec = (
-                    f"### {asha_view.get('title', '👩‍⚕️ ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు')}\n\n"
-                    f"**అత్యవసర ప్రాధాన్యత (Priority Level):** `{asha_view.get('action_urgency', '')}`\n\n"
-                    f"**ఫీల్డ్ చెక్‌లిస్ట్ (రోగిని అడగవలసిన ప్రశ్నలు):**\n{checklist_items}\n\n"
-                    f"**తదుపరి చర్య (Action Step):** {asha_view.get('referral_step', '')}\n\n"
-                    f"---\n"
-                )
-
-            # Tier 3: Doctors & Specialists (Objective Morphological Features, Differential Diagnoses, Protocols)
-            obs_lines = "\n".join([f"• {obs}" for obs in pipeline_res.get("visible_observations", [])])
-            expl_lines = "\n".join([f"• **{e['name']}**: {e['reasoning']}" for e in pipeline_res.get("possible_explanations", [])])
-            citations = medical_rag.format_citations_markdown(pipeline_res.get("medical_references", []), language=payload.language)
-
-            doctor_sec = (
-                f"### {'🩺 వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Doctor & Specialist Clinical Report)' if is_te else '🩺 Clinical Report for Doctors & Specialists'}\n\n"
-                f"**Visible Morphology & Feature Extraction:**\n{obs_lines}\n\n"
-                f"**Differential Considerations (MoHFW & ICMR Protocols):**\n{expl_lines}\n\n"
-                f"**Clinical Next Step:** {pipeline_res.get('recommended_next_step')}\n\n"
-                f"**Urgency & Triage Classification:** `{pipeline_res.get('urgency').upper()}` — {pipeline_res.get('urgency_reason')}\n\n"
-                f"---\n"
-                f"### 📚 {'ప్రామాణిక వైద్య మార్గదర్శకాలు (Verified Clinical Guidelines)' if is_te else 'Verified Clinical Guidelines & Evidence'}\n"
-                f"{citations}\n\n"
-                f"> ⚠️ *{pipeline_res.get('cancer_safety_notice')}*\n"
-                f"> *Preliminary AI-assisted assessment — clinician review pending.*"
+            obs_list = pipeline_res.get("visible_observations", [])
+            obs_lines = "\n".join([f"• {obs}" for obs in obs_list[:2]]) if obs_list else (
+                "• ప్రభావిత ప్రాంతంలో శ్లేష్మ పొర ఉపరితల మార్పులు గమనించబడ్డాయి." if is_te else "• Observable mucosal surface changes identified on photograph."
             )
 
-            image_analysis_report = (
-                f"{patient_sec}"
-                f"{asha_sec}"
-                f"{doctor_sec}"
-            )
+            is_generic_caption = not text or text.strip().lower() in [
+                "attached photograph for review.",
+                "photo", "photograph", "image", "review this photo",
+                "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో", "photo review"
+            ]
+
+            user_query_answer = ""
+            if not is_generic_caption:
+                ai_resp = await medgemma_chat_engine.generate_chat_response_async(
+                    user_message=text,
+                    language=payload.language,
+                    has_attachment=True
+                )
+                if ai_resp.get("is_emergency"):
+                    warning_flag = "EMERGENCY_RED_FLAG"
+                user_query_answer = ai_resp.get("content", "").strip()
+
+            if is_te:
+                final_content = (
+                    "### 🔬 ఫొటో విశ్లేషణ ఫలితం (AI Image Analysis)\n\n"
+                    "🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**\n"
+                    f"**{condition_display}**\n\n"
+                    "📸 **ఫొటోలో కనిపించిన ముఖ్య పరిశీలనలు (Visual Findings):**\n"
+                    f"{obs_lines}\n\n"
+                )
+                if user_query_answer:
+                    final_content += (
+                        "💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**\n"
+                        f"{user_query_answer}\n\n"
+                    )
+                final_content += (
+                    "💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**\n"
+                    "• **గోరువెచ్చని ఉప్పునీటి పుక్కిలింత:** రోజుకు 2-3 సార్లు గోరువెచ్చని నీటిలో అర చెంచా ఉప్పు వేసి నెమ్మదిగా పుక్కిలించండి.\n"
+                    "• **ఆహార జాగ్రత్తలు:** కారం, ఎక్కువ వేడి, పులుపు మరియు ఘాటైన మసాలాలను నివారించండి.\n"
+                    "• **పొగాకు నిలిపివేత:** పొగాకు, గుట్కా, ఖైనీ, చుట్ట లేదా మద్యం అలవాట్లు ఉంటే తక్షణమే ఆపండి.\n"
+                    "• **డాక్టర్ సంప్రదింపు:** ఏదైనా పుండు లేదా మచ్చ **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే**, సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ డాక్టర్‌ను సంప్రదించాలి.\n\n"
+                    "> ⚠️ *గమనిక: ఈ AI ఫలితం ప్రాథమిక పరిశీలన మాత్రమే. ఫోటో ఆధారంగా క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం జరగదు. ఖచ్చితమైన నిర్ధారణకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"
+                )
+            else:
+                final_content = (
+                    "### 🔬 AI Image Analysis Result\n\n"
+                    "🩺 **Identified Disease / Condition:**\n"
+                    f"**{condition_display}**\n\n"
+                    "📸 **Visual Findings on Photograph:**\n"
+                    f"{obs_lines}\n\n"
+                )
+                if user_query_answer:
+                    final_content += (
+                        "💬 **Clinical Response to Your Question:**\n"
+                        f"{user_query_answer}\n\n"
+                    )
+                final_content += (
+                    "💡 **Recommended Care & Next Steps:**\n"
+                    "• **Warm Salt Water Rinse:** Dissolve 1/2 tsp salt in warm water and rinse gently 2–3 times daily.\n"
+                    "• **Dietary Precautions:** Avoid rough, spicy, acidic, or very hot foods that irritate mucosal tissues.\n"
+                    "• **Habit Cessation:** Cease all gutkha, areca nut, tobacco, and smoking immediately.\n"
+                    "• **Doctor Consultation:** Under MoHFW national protocols, any oral sore persisting **beyond 14 days** mandates an in-person clinical examination by a PHC Doctor or Dental Specialist.\n\n"
+                    "> ⚠️ *Notice: This preliminary visual assessment cannot rule in or rule out cancer. In-person physical examination and biopsy are mandatory.*"
+                )
 
         elif pipeline_res.get("assessment_status") == "quality_check_failed":
-            image_analysis_report = (
-                f"### ⚠️ {'ఫొటో నాణ్యత పరిమితి (Image Quality Warning)' if is_te else 'Image Quality Warning'}\n\n"
+            is_te = payload.language == "te"
+            final_content = (
+                f"### ⚠️ {'ఫొటో నాణ్యత సరిపోలేదు (Image Quality Warning)' if is_te else 'Image Quality Warning'}\n\n"
                 f"{pipeline_res.get('guidance_message')}\n\n"
                 f"> {'మంచి వెలుతురులో, కెమెరాను కదలకుండా ప్రభావిత ప్రాంతం స్పష్టంగా కనిపించేలా మరో ఫొటో తీయండి.' if is_te else 'Please retake a steady photo under bright lighting with the lesion clearly framed.'}"
             )
-
-    # 2. Retrieve verified medical references for textual query
-    retrieved_refs = medical_rag.retrieve_relevant_references(query=text, symptoms=text, max_results=2)
-    rag_citations = medical_rag.format_citations_markdown(retrieved_refs, language=payload.language) if retrieved_refs else ""
-
-    # Generate AI response using MedGemma Unified Clinical LLM & Dialogue Engine
-    ai_resp = await medgemma_chat_engine.generate_chat_response_async(
-        user_message=text,
-        language=payload.language,
-        has_attachment=has_attachment
-    )
-
-    warning_flag = None
-    if ai_resp.get("is_emergency"):
-        warning_flag = "EMERGENCY_RED_FLAG"
-
-    final_content = ai_resp.get("content", "")
-    if image_analysis_report:
-        # If user only uploaded a photograph without a specific question, use the image analysis report directly
-        is_generic_caption = not text or text.strip().lower() in [
-            "attached photograph for review.",
-            "photo", "photograph", "image", "review this photo",
-            "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో"
-        ]
-        if is_generic_caption:
-            final_content = image_analysis_report
         else:
-            final_content = f"{image_analysis_report}\n\n---\n### 💬 {'మీ ప్రశ్నకు సమాధానం (Clinical Response)' if is_te else 'Clinical Response to Specific Question'}\n{final_content}"
-    elif rag_citations and not ai_resp.get("is_emergency"):
-        final_content = f"{final_content}\n\n---\n### 📚 {'ప్రామాణిక మార్గదర్శకాలు' if is_te else 'Verified Clinical Guidelines'}\n{rag_citations}"
+            final_content = pipeline_res.get("guidance_message", "Photo review pending doctor examination.")
+
+    else:
+        # 2. Text-only Query - Query MedGemma Unified Clinical LLM & Dialogue Engine
+        ai_resp = await medgemma_chat_engine.generate_chat_response_async(
+            user_message=text,
+            language=payload.language,
+            has_attachment=False
+        )
+
+        if ai_resp.get("is_emergency"):
+            warning_flag = "EMERGENCY_RED_FLAG"
+
+        final_content = ai_resp.get("content", "")
 
     # Save assistant message
     asst_msg = ChatMessage(
@@ -180,7 +185,7 @@ async def send_chat_message(
         has_attachment=has_attachment,
         attachment_preview_url=preview_url,
         warning_flag=warning_flag,
-        disclaimer=ai_resp.get("disclaimer", "Non-diagnostic guidance."),
+        disclaimer="Aarogya Mytra AI Clinical Guidance",
         created_at=asst_msg.created_at
     )
 

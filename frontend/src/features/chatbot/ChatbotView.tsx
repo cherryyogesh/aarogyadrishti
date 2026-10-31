@@ -65,7 +65,6 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   // Voice Assistance (Speech-to-Text & Text-to-Speech)
   const [isListening, setIsListening] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<number | null>(null);
-  const [selectedRole, setSelectedRole] = useState<'all' | 'patient' | 'asha' | 'doctor'>('all');
   const [autoSpeak, setAutoSpeak] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -479,7 +478,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     try {
       const res = await api.saveAiEndpoint(endpointUrl.trim(), endpointModel.trim(), endpointToken.trim());
       setAiStatus(res.status);
-      setEndpointSuccess(isTe ? 'కస్టమ్ MedGemma / vLLM ఎండ్‌పాయింట్ కనెక్ట్ అయింది!' : 'Custom MedGemma / vLLM Endpoint connected successfully!');
+      setEndpointSuccess(isTe ? 'కస్టమ్ AI ఎండ్‌పాయింట్ కనెక్ట్ అయింది!' : 'Custom AI Endpoint connected successfully!');
       setTimeout(() => {
         setShowKeyModal(false);
         setEndpointSuccess(null);
@@ -497,13 +496,13 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     try {
       const res = await api.activateLocalMedGemma();
       setAiStatus(res.status);
-      setKeySuccess(isTe ? 'లోకల్ Google Health MedGemma సబ్‌మాడ్యూల్ యాక్టివేట్ అయింది!' : 'Local Google Health MedGemma submodule activated in Zero-Key mode!');
+      setKeySuccess(isTe ? 'లోకల్ ఆరోగ్య మైత్ర AI యాక్టివేట్ అయింది!' : 'Local Aarogya Mytra AI activated in Zero-Key mode!');
       setTimeout(() => {
         setShowKeyModal(false);
         setKeySuccess(null);
       }, 1500);
     } catch (err: any) {
-      alert('Failed to activate local MedGemma: ' + err.message);
+      alert('Failed to activate local AI: ' + err.message);
     } finally {
       setActivatingLocal(false);
     }
@@ -549,15 +548,10 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
       return <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{displayedText}</div>;
     }
 
-    const hasStakeholders = displayedText.includes('🗣️') || displayedText.includes('👩‍⚕️') || displayedText.includes('🩺');
-    if (!hasStakeholders) {
-      return <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{displayedText}</div>;
-    }
-
     const rawSections = displayedText.split(/\n(?=### |#### |---)/);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {rawSections.map((sec, idx) => {
           const clean = sec.trim().replace(/^---\s*/, '').trim();
           if (!clean) return null;
@@ -583,79 +577,19 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             );
           }
 
-          const isPatient = clean.includes('🗣️') || clean.toLowerCase().includes('for patient') || clean.includes('రోగి') || clean.includes('రొగి') || clean.includes('रोगी');
-          const isAsha = clean.includes('👩‍⚕️') || clean.toLowerCase().includes('for asha') || clean.includes('ఆశా') || clean.includes('आशा');
-          const isDoctor = clean.includes('🩺') || clean.toLowerCase().includes('for doctor') || clean.toLowerCase().includes('clinical report') || clean.toLowerCase().includes('dossier') || clean.includes('వైద్యులు') || clean.includes('డాక్టర్') || clean.includes('डॉक्टर');
-          const isGuidelines = clean.includes('📚') || clean.includes('ప్రామాణిక మార్గదర్శకాలు') || clean.toLowerCase().includes('guidelines') || clean.includes('दिशानिर्देश');
-
-          if (selectedRole === 'patient' && (isAsha || isDoctor)) return null;
-          if (selectedRole === 'asha' && (isPatient || isDoctor)) return null;
-          if (selectedRole === 'doctor' && (isPatient || isAsha)) return null;
-
-          let borderColor = '#E2E8F0';
-          let bgColor = '#FFFFFF';
-          let badgeLabel = '';
-          let badgeBg = '#F1F5F9';
-          let badgeText = '#475569';
-
-          if (isPatient) {
-            borderColor = '#10B981';
-            bgColor = '#F0FDF4';
-            badgeLabel = tr('🗣️ రోగి & కుటుంబం (Patient View)', '🗣️ Patient & Family', '🗣️ रोगी और परिवार');
-            badgeBg = '#DCFCE7';
-            badgeText = '#166534';
-          } else if (isAsha) {
-            borderColor = '#0284C7';
-            bgColor = '#F0F9FF';
-            badgeLabel = tr('👩‍⚕️ ఆశా కార్యకర్త (ASHA Checklist)', '👩‍⚕️ ASHA & Field Staff', '👩‍⚕️ आशा एवं फील्ड स्टाफ');
-            badgeBg = '#E0F2FE';
-            badgeText = '#0369A1';
-          } else if (isDoctor) {
-            borderColor = '#6366F1';
-            bgColor = '#EEF2FF';
-            badgeLabel = tr('🩺 వైద్యులు & స్పెషలిస్ట్ (Doctor Dossier)', '🩺 Clinician Dossier', '🩺 डॉक्टर और विशेषज्ञ');
-            badgeBg = '#E0E7FF';
-            badgeText = '#3730A3';
-          } else if (isGuidelines) {
-            borderColor = '#0D9488';
-            bgColor = '#F8FAFC';
-            badgeLabel = tr('📚 ప్రామాణిక మార్గదర్శకాలు', '📚 Clinical Evidence', '📚 नैदानिक साक्ष्य एवं दिशानिर्देश');
-            badgeBg = '#CCFBF1';
-            badgeText = '#0F766E';
-          }
-
-          if (isPatient || isAsha || isDoctor) {
-            return (
-              <div key={idx} style={{
-                background: bgColor,
-                border: `1.5px solid ${borderColor}`,
-                borderRadius: '8px',
-                padding: '0.75rem 0.9rem',
-                margin: '0.35rem 0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, background: badgeBg, color: badgeText, padding: '0.15rem 0.55rem', borderRadius: '12px' }}>
-                    {badgeLabel}
-                  </span>
-                </div>
-                <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.83rem', color: '#1E293B', lineHeight: 1.55 }}>
-                  {clean}
-                </div>
-              </div>
-            );
-          }
+          const isDiseaseHeading = clean.includes('గుర్తించిన వ్యాధి') || clean.includes('Identified Disease') || clean.includes('पहचानी गई स्थिति');
+          const isCareHeading = clean.includes('తీసుకోవలసిన జాగ్రత్తలు') || clean.includes('Care & Next Steps') || clean.includes('Recommended Care');
 
           return (
             <div key={idx} style={{
               whiteSpace: 'pre-wrap',
-              lineHeight: 1.55,
-              fontSize: '0.83rem',
-              margin: '0.25rem 0',
-              background: isGuidelines ? '#F8FAFC' : 'transparent',
-              padding: isGuidelines ? '0.6rem 0.8rem' : '0',
-              borderRadius: isGuidelines ? '6px' : '0',
-              borderLeft: isGuidelines ? '3px solid #0D9488' : 'none'
+              lineHeight: 1.6,
+              fontSize: '0.85rem',
+              color: '#1E293B',
+              background: isDiseaseHeading ? '#F0FDF4' : (isCareHeading ? '#F0F9FF' : 'transparent'),
+              borderLeft: isDiseaseHeading ? '3.5px solid #10B981' : (isCareHeading ? '3.5px solid #0284C7' : 'none'),
+              padding: (isDiseaseHeading || isCareHeading) ? '0.6rem 0.85rem' : '0.15rem 0',
+              borderRadius: (isDiseaseHeading || isCareHeading) ? '6px' : '0'
             }}>
               {clean}
             </div>
@@ -728,46 +662,6 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             <span>{tr('క్లియర్', 'Reset', 'रीसेट')}</span>
           </button>
         </div>
-      </div>
-
-      {/* Universal Multi-Stakeholder View Selector */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.45rem',
-        padding: '0.45rem 1rem',
-        background: '#F8FAFC',
-        borderBottom: '1px solid #E2E8F0',
-        flexWrap: 'wrap'
-      }}>
-        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B' }}>
-          {tr('సమాచార వీక్షణ (Audience View):', 'Audience View:', 'दर्शकों का दृश्य:')}
-        </span>
-        {[
-          { id: 'all', label: tr('👥 అందరికీ (All)', '👥 All Cadres', '👥 सभी (All)') },
-          { id: 'patient', label: tr('🗣️ రోగులకు (Patient)', '🗣️ Patients', '🗣️ रोगी (Patient)') },
-          { id: 'asha', label: tr('👩‍⚕️ ఆశా వర్కర్లకు (ASHA)', '👩‍⚕️ ASHA & Field', '👩‍⚕️ आशा कार्यकर्ता (ASHA)') },
-          { id: 'doctor', label: tr('🩺 డాక్టర్లకు (Doctor)', '🩺 Doctors & PHC', '🩺 डॉक्टर (Doctor)') }
-        ].map((role) => (
-          <button
-            key={role.id}
-            type="button"
-            onClick={() => setSelectedRole(role.id as any)}
-            style={{
-              background: selectedRole === role.id ? '#0D9488' : '#FFFFFF',
-              color: selectedRole === role.id ? '#FFFFFF' : '#334155',
-              border: `1.5px solid ${selectedRole === role.id ? '#0D9488' : '#CBD5E1'}`,
-              borderRadius: '16px',
-              padding: '0.2rem 0.65rem',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {role.label}
-          </button>
-        ))}
       </div>
 
       {/* Messages Scroll Viewport */}
@@ -1272,10 +1166,10 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 <Sparkles size={22} color="#0D9488" />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
-                    {isTe ? 'MedGemma AI కనెక్షన్ & మోడల్ సెటప్' : 'Google Health MedGemma AI Deployment'}
+                    {isTe ? 'ఆరోగ్య మైత్ర AI ఇంజిన్ సెటప్' : 'Aarogya Mytra AI Engine Deployment'}
                   </h3>
                   <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                    {isTe ? 'లోకల్ సబ్‌మాడ్యూల్, కస్టమ్ vLLM ఎండ్‌పాయింట్ లేదా క్లౌడ్ API' : 'Local Submodule • Self-Hosted vLLM • Zero-Key Integration'}
+                    {isTe ? 'లోకల్ AI సబ్‌మాడ్యూల్, కస్టమ్ ఎండ్‌పాయింట్ లేదా క్లౌడ్ AI' : 'Local Engine • Self-Hosted • Cloud AI Integration'}
                   </div>
                 </div>
               </div>
@@ -1378,8 +1272,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               <div>
                 <div style={{ fontSize: '0.81rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
                   {isTe
-                    ? 'మీ లోకల్ GPU లేదా సర్వర్‌లో vLLM, Ollama లేదా Triton ద్వారా MedGemma రన్ అవుతుంటే, దాని ఎండ్‌పాయింట్ URLని ఇక్కడ కనెక్ట్ చేయండి. దీనికి క్లౌడ్ API కీలు అవసరం లేదు.'
-                    : 'Connect Aarogya Mytra AI directly to a self-hosted MedGemma deployment (vLLM, Ollama, Triton, or Docker). Zero external API keys required.'}
+                    ? 'మీ లోకల్ సర్వర్‌లో AI ఇంజిన్ రన్ అవుతుంటే, దాని ఎండ్‌పాయింట్ URLని ఇక్కడ కనెక్ట్ చేయండి. దీనికి బాహ్య క్లౌడ్ కీలు అవసరం లేదు.'
+                    : 'Connect Aarogya Mytra AI directly to a self-hosted AI engine endpoint. Zero external API keys required.'}
                 </div>
 
                 <form onSubmit={handleSaveEndpoint}>
@@ -1553,11 +1447,11 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
                     <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                     <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0F766E' }}>
-                      Google-Health/medgemma Submodule Cloned
+                      {isTe ? 'ఆరోగ్య మైత్ర లోకల్ AI మోడల్ సిద్ధంగా ఉంది' : 'Aarogya Mytra Local AI Model Ready'}
                     </span>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#134E4A', lineHeight: 1.55 }}>
-                    మీ కోడ్‌బేస్‌లో అధికారిక Google-Health MedGemma రిపోజిటరీ (`external/medgemma`, Commit: <code>{repoStatus?.details?.commit_hash?.slice(0, 7) || 'a60a660'}</code>) డౌన్‌లోడ్ చేయబడి సిద్ధంగా ఉంది.
+                    {isTe ? 'మీ సిస్టమ్‌లో అధికారిక ఆరోగ్య మైత్ర AI క్లినికల్ మోడల్ డౌన్‌లోడ్ చేయబడి ఆఫ్‌లైన్ ఉపయోగం కోసం సిద్ధంగా ఉంది.' : 'Aarogya Mytra AI official clinical model is installed locally and ready for zero-key offline use.'}
                   </div>
                 </div>
 
@@ -1610,7 +1504,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                     }}
                   >
                     <Sparkles size={14} />
-                    <span>{activatingLocal ? (isTe ? 'యాక్టివేట్ అవుతోంది...' : 'Activating...') : (isTe ? 'లోకల్ MedGemma యాక్టివేట్ చేయి (Zero-Key)' : 'Use Local MedGemma (Zero-Key)')}</span>
+                    <span>{activatingLocal ? (isTe ? 'యాక్టివేట్ అవుతోంది...' : 'Activating...') : (isTe ? 'లోకల్ AI యాక్టివేట్ చేయి (Zero-Key)' : 'Use Local AI (Zero-Key)')}</span>
                   </button>
                 </div>
               </div>
@@ -1632,9 +1526,9 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                       {[
-                        { id: 'gemini', name: 'Google Gemini (MedGemma Cloud)', badge: 'Recommended • Free' },
+                        { id: 'gemini', name: 'Aarogya Mytra Cloud AI', badge: 'Recommended • Free' },
                         { id: 'groq', name: 'Groq LPU (Ultra-Fast)', badge: '500 tok/sec • Free' },
-                        { id: 'huggingface', name: 'Hugging Face (MedGemma 4B)', badge: 'Official Model' },
+                        { id: 'huggingface', name: 'Aarogya Mytra Clinical AI', badge: 'Clinical Model' },
                         { id: 'openai', name: 'OpenAI / OpenRouter', badge: 'Standard' }
                       ].map(p => (
                         <div

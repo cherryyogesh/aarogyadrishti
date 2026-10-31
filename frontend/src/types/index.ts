@@ -69,6 +69,8 @@ export interface Patient {
   age: number;
   gender: string;
   phone_masked: string;
+  phone?: string | null;
+  address?: string | null;
   preferred_language: string;
   village_town?: string | null;
   habitation?: string | null;
@@ -120,10 +122,12 @@ export interface ImageUploadResponse {
 export interface ScreeningImage {
   id: number;
   original_filename: string;
-  file_size_bytes: number;
-  width: number;
-  height: number;
-  preview_url: string;
+  file_size_bytes?: number;
+  width?: number;
+  height?: number;
+  preview_url?: string;
+  stored_path?: string;
+  processing_results?: any;
   enhanced_url?: string | null;
   quality_state?: string | null;
   guidance_message?: string | null;

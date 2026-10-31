@@ -378,35 +378,29 @@ class LLMClinicalEngine:
         }
         target_lang = lang_names.get(language, "English")
 
-        return (
-            "You are Aarogya Mytra AI (ఆరోగ్య మిత్ర AI), an advanced clinical health intelligence assistant "
-            "powered by Google MedGemma foundations and grounded strictly in the Ministry of Health and Family Welfare (MoHFW) "
-            "National Oral Health Programme, ICMR, and WHO clinical guidelines.\n\n"
-            f"PRIMARY LANGUAGE INSTRUCTION: You MUST respond primarily in {target_lang}. Maintain maximum clarity and respectful bedside communication.\n\n"
-            "MANDATORY UNIVERSAL 3-TIER HEALTHCARE COMMUNICATION STRUCTURE:\n"
-            "Structure every response into exactly these 3 clear stakeholder sections:\n\n"
-            "### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-            "- Gentle, compassionate, non-terrifying language explaining what is happening.\n"
-            "- Practical home comfort measures (warm saline rinses, adequate hydration, soft non-irritating diet).\n"
-            "- Things strictly NOT to do (do not scratch, no caustic lime/chuna, no gutkha/tobacco).\n"
-            "- Clear, reassuring explanation of why an in-person doctor visit is needed.\n\n"
-            "### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-            "- Practical field screening checklist with checkmarks (✓).\n"
-            "- Check duration: Is it > 14 days? (Mandatory high-priority referral rule).\n"
-            "- Habit screening: Gutkha, khaini, areca nut, chutta (reverse smoking).\n"
-            "- 3-Finger Test for mouth opening: Can the patient insert 3 fingers vertically (<35mm indicates OSMF trismus).\n"
-            "- Palpate for submandibular or cervical lymph nodes.\n"
-            "- Concrete next referral action step and timeframe (within 48–72 hours to PHC Medical Officer).\n\n"
-            "### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-            "- Objective clinical presentation, anatomical site, and morphological description.\n"
-            "- Differential considerations (e.g., Oral Squamous Cell Carcinoma, Chronic Traumatic Ulcer, OPMD / Erythroleukoplakia, OSMF, Aphthae).\n"
-            "- Relevant ICD-10 diagnostic classifications.\n"
-            "- Mandatory Clinical Protocol: MoHFW & ICMR Mandate — in-person bimanual palpation for induration, regional lymphadenopathy staging (Levels I-V), and diagnostic punch biopsy for non-healing lesions >14 days.\n\n"
-            "CRITICAL SAFETY BOUNDARIES:\n"
-            "1. NEVER confirm or exclude cancer from photographic inspection or text chat alone. A physical exam and tissue biopsy are mandatory.\n"
-            "2. If active uncontrolled bleeding, severe airway restriction, or inability to swallow is reported, immediately flag as an EMERGENCY RED FLAG and instruct calling 108.\n"
-            "3. Strictly maintain professional, accurate medical guidance at all times."
-        )
+        return f"""You are Aarogya Mytra AI (ఆరోగ్య మిత్ర AI), an advanced clinical health intelligence assistant grounded strictly in the Ministry of Health and Family Welfare (MoHFW) National Oral Health Programme (NOHP), ICMR, and WHO clinical guidelines.
+
+PRIMARY LANGUAGE INSTRUCTION: You MUST respond primarily in {target_lang}. Maintain maximum clarity and respectful bedside communication.
+
+CRITICAL OUTPUT FORMATTING INSTRUCTIONS (STRICT SINGLE DIRECT UNIFIED RESPONSE):
+1. DO NOT output multiple confusing differential diagnoses or separate redundant dossiers for different audiences.
+2. DO NOT list 'It could be condition A, or condition B, or condition C, or condition D'. Clearly state the identified disease or condition.
+3. Structure your response into these clear, structured sections:
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease / Condition)**:
+Directly state the exact identified condition (e.g., Oral Leukoplakia, Aphthous Stomatitis, Oral Submucous Fibrosis, Dental Caries, Gingivitis).
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response to Your Question)**:
+Directly, clearly, and concisely address what the user asked in the chat.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps)**:
+- Practical immediate home relief measures (warm salt water rinses, soft non-irritating diet, strictly no caustic lime/chuna, immediate cessation of gutkha/tobacco).
+- Clear timeline to visit the PHC Doctor or Dental Specialist (mandatory doctor checkup if persisting >14 days).
+
+CRITICAL CLINICAL SAFETY BOUNDARIES:
+1. NEVER confirm or exclude cancer from photographic inspection or text chat alone. A physical exam and tissue biopsy are mandatory.
+2. If active uncontrolled bleeding, severe airway restriction, or inability to swallow is reported, immediately flag as an EMERGENCY RED FLAG and instruct calling 108.
+3. Strictly maintain professional, accurate medical guidance at all times."""
 
     async def _call_gemini_api(self, user_message: str, language: str, has_attachment: bool) -> Optional[Dict[str, Any]]:
         system_prompt = self._build_system_prompt(language)
@@ -553,30 +547,30 @@ class LLMClinicalEngine:
                     }
         return None
 
+
     def _extract_speech_summary(self, content: str, language: str) -> str:
         """
-        Extracts a clean, conversational 1-2 sentence voice synthesis summary from the patient section.
+        Extracts a clean, conversational 1-2 sentence voice synthesis summary.
         """
         if not content:
             return ""
-        # Look for the patient section
-        patient_match = re.search(r"(?:###|####)\s*🗣️.*?\n([\s\S]*?)(?=(?:###|####|---)|$)", content)
-        if patient_match:
-            sec_text = patient_match.group(1).strip()
-            # Remove markdown bullets and symbols
-            clean = re.sub(r"[*#_`•👉✓]", " ", sec_text)
-            lines = [l.strip() for l in clean.split("\n") if l.strip() and not l.strip().startswith(":")]
-            return " ".join(lines[:3])
-
-        clean_all = re.sub(r"[*#_`•👉✓]", " ", content)
-        return " ".join([l.strip() for l in clean_all.split("\n") if l.strip()][:2])
+        clean = re.sub(r"[*#_`•👉✓🚨⚠️🔬🩺📸💬💡🏥]", " ", content)
+        lines = [l.strip() for l in clean.splitlines() if l.strip() and not l.strip().startswith(":")]
+        meaningful = [
+            l for l in lines 
+            if not any(k in l.lower() for k in ["identified disease", "గుర్తించిన", "visual findings", "clinical response", "image analysis"])
+        ]
+        if meaningful:
+            return " ".join(meaningful[:2])
+        return " ".join(lines[:2])
 
     def _generate_embedded_knowledge_response(self, user_message: str, language: str, has_attachment: bool) -> Dict[str, Any]:
         """
         Comprehensive Evidence-Grounded Medical Intelligence Engine.
-        Covers comprehensive oral medicine, dental triage, precancer detection, oncology,
-        systemic conditions, and primary healthcare triage.
-        Guarantees 100% reliable, professional, multi-tier answers across Telugu, English, and Hindi.
+        Covers oral medicine, dental triage, precancer detection, oncology,
+        and primary healthcare triage.
+        Provides a SINGLE direct, focused answer stating the disease, answering the query,
+        and giving immediate care steps without confusing 'various results'.
         """
         msg_lower = user_message.lower().strip()
         is_te = language == "te"
@@ -585,342 +579,310 @@ class LLMClinicalEngine:
         # Topic 1: Oral Ulcers / Mouth Sores / Aphthae / Canker Sores
         if any(w in msg_lower for w in ["ulcer", "పుండు", "పూత", "పుండ్లు", "మంట", "छाला", "घाव", "छाले", "अल्सर", "sore", "canker", "aphth"]):
             if is_te:
-                content = (
-                    "### 👄 నోటి పూత & పుండ్ల సమగ్ర క్లినికల్ మార్గదర్శకాలు (Oral Ulcers & Stomatitis)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "నోటిలోని పూత లేదా పుండ్లు సాధారణంగా విటమిన్ లోపం (విటమిన్ B12, ఫోలిక్ యాసిడ్, ఐరన్), శారీరక ఒత్తిడి, లేదా పదునైన పంటి రాపిడి వల్ల ఏర్పడతాయి.\n"
-                    "• **గోరువెచ్చని ఉప్పునీటి పుక్కిలింత:** రోజుకు 3-4 సార్లు ఒక గ్లాసు గోరువెచ్చని నీటిలో అర చెంచా ఉప్పు వేసి నెమ్మదిగా పుక్కిలించండి. ఇది నోటిలోని వాపును, బ్యాక్టీరియాను తగ్గిస్తుంది.\n"
-                    "• **ఆహార జాగ్రత్తలు:** కారం, ఎక్కువ వేడి, పులుపు, మసాలాలు ఉన్న ఆహారాలు కొన్ని రోజులు పూర్తిగా ఆపండి. పెరుగు, పాలు, కొబ్బరినీళ్ళు వంటి చల్లని మృదువైన ఆహారం తీసుకోండి.\n"
-                    "• **చేయకూడనివి:** పుండుపై పల్పొడులు, సున్నం (చున్నా) లేదా రసాయనాలు రాయవద్దు. పుండును నాలుకతో లేదా వేలితో తరచుగా తాకవద్దు.\n"
-                    "👉 **డాక్టర్‌ను ఎప్పుడు సంప్రదించాలి:** ఏదైనా నోటి పుండు **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకుండా ఉంటే**, ఏమాత్రం ఆలస్యం చేయకుండా సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించాలి.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **14 రోజుల నిబంధన (14-Day Mandatory Rule):** పుండు ఏర్పడి 14 రోజులు దాటితే అది అధిక ప్రాధాన్యత కలిగిన కేస్ (High Referral Priority).\n"
-                    "✓ **అలవాట్ల పరిశీలన:** గుట్కా, ఖైనీ, తంబాకు, వక్క లేదా రివర్స్ స్మోకింగ్ (చుట్ట) అలవాటు ఉందా అని ప్రశ్నించి మానేయాలని కౌన్సిలింగ్ ఇవ్వండి.\n"
-                    "✓ **3-వేళ్ళ నోటి పరీక్ష (3-Finger Test):** రోగి నోట్లోకి 3 వేళ్ళు నిలువుగా పడుతున్నాయా చూడండి (<35mm బిగుతుగా ఉంటే OSMF సంకేతం).\n"
-                    "✓ **లింఫ్ నోడ్స్ పరీక్ష:** దవడ కింద లేదా మెడలో గడ్డలు లేదా వాపు ఉందో లేదో చేతితో తాకి చూడండి.\n"
-                    "✓ **రిఫరల్ చర్య:** 48–72 గంటల్లో రోగికి PHC మెడికల్ ఆఫీసర్ సమీక్షను ఏర్పాటు చేయండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Morphological Characteristics:** Solitary or multiple mucosal breaches; inspect ulcer floor (slough vs granulation), base induration, rolled/everted margins, and surrounding mucosal erythema.\n"
-                    "• **Differential Considerations:** Minor/Major Aphthous Ulcer, Chronic Traumatic Ulcer (sharp dentition/restoration), Oral Squamous Cell Carcinoma (OSCC), Deep Fungal / Mycobacterial Ulcer (TB/Histoplasmosis), Lichen Planus (Erosive variant).\n"
-                    "• **ICD-10:** K12.0 (Recurrent aphthous stomatitis), K12.1 (Other forms of stomatitis).\n"
-                    "• **Mandatory Clinical Protocol:** MoHFW National Oral Health Programme (NOHP) & ICMR Protocol: Eliminate mechanical trauma (grind sharp cusps). Mandatory in-person bimanual palpation for base induration and cervical lymphadenopathy staging (Levels I-V). Diagnostic punch or incisional biopsy mandatory for any solitary ulcer persisting >14 days."
-                )
-                speech = "నోటి పూతకు గోరువెచ్చని ఉప్పునీటి పుక్కిలింత చేయండి. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
+                content = """### 👄 నోటి పూత & పుండ్ల సమాచారం (Oral Ulcers Guidance)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**నోటి పూత / అల్సర్ (Oral Mucosal Ulcer / Aphthous Stomatitis)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+నోటిలోని పూత లేదా పుండ్లు సాధారణంగా విటమిన్ లోపం (విటమిన్ B12, ఫోలిక్ యాసిడ్, ఐరన్), శారీరక ఒత్తిడి, లేదా పదునైన పంటి రాపిడి వల్ల ఏర్పడతాయి.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **గోరువెచ్చని ఉప్పునీటి పుక్కిలింత:** రోజుకు 3-4 సార్లు ఒక గ్లాసు గోరువెచ్చని నీటిలో అర చెంచా ఉప్పు వేసి నెమ్మదిగా పుక్కిలించండి. ఇది నోటిలోని వాపును తగ్గిస్తుంది.
+• **ఆహార జాగ్రత్తలు:** కారం, ఎక్కువ వేడి, పులుపు మరియు మసాలాలు ఉన్న ఆహారాలు కొన్ని రోజులు పూర్తిగా ఆపండి. పెరుగు, పాలు వంటి చల్లని మృదువైన ఆహారం తీసుకోండి.
+• **చేయకూడనివి:** పుండుపై సున్నం (చున్నా) లేదా ఘాటైన రసాయనాలు రాయవద్దు. పుండును నాలుకతో లేదా వేలితో తరచుగా తాకవద్దు. గుట్కా/తంబాకు వెంటనే ఆపండి.
+• **డాక్టర్ సంప్రదింపు:** ఏదైనా నోటి పుండు **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకుండా ఉంటే**, ఆలస్యం చేయకుండా సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించాలి.
+
+> ⚠️ *గమనిక: ఈ AI ఫలితం ప్రాథమిక సమాచారం మాత్రమే. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"""
+                speech = "నోటి పూత తగ్గడానికి రోజుకు మూడుసార్లు గోరువెచ్చని ఉప్పునీటితో పుక్కిలించండి. 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండుకు డాక్టర్ గారి పరీక్ష తప్పనిసరి."
             elif is_hi:
-                content = (
-                    "### 👄 मुंह के छाले एवं घाव के लिए संपूर्ण मार्गदर्शन (Oral Ulcers Guidance)\n\n"
-                    "#### 🗣️ 1. रोगी और परिवार के लिए सरल व्याख्या (Plain Explanation for Patients & Families):\n"
-                    "मुंह में छाले अक्सर विटामिन की कमी (विटामिन B12, आयरन, फोलिक एसिड), पेट की गर्मी, या नुकीले दांत की रगड़ से होते हैं।\n"
-                    "• **गुनगुने नमक पानी से कुल्ला:** एक गिलास गुनगुने पानी में आधा चम्मच नमक मिलाकर दिन में 3 बार कुल्ला करें।\n"
-                    "• **खानपान में बदलाव:** तीखा, खट्टा, अधिक गर्म और मसालेदार खाना कुछ दिनों के लिए बंद कर दें।\n"
-                    "• **सावधानी:** छाले पर चूना, कत्था या कोई बिना डॉक्टर की सलाह वाला रसायन न लगाएं। गुटखा और तंबाकू तुरंत बंद करें।\n"
-                    "👉 **डॉक्टर को कब दिखाएं:** यदि कोई छाला **14 दिनों से अधिक समय तक ठीक न हो**, तो तुरंत नजदीकी पीएचसी डॉक्टर को दिखाएं।\n\n"
-                    "#### 👩‍⚕️ 2. आशा एवं फील्ड स्टाफ के लिए कार्य योजना (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **14 दिनों का नियम:** यदि छाला 14 दिनों से अधिक पुराना है, तो इसे उच्च प्राथमिकता पर पीएचसी रेफर करें।\n"
-                    "✓ **व्यसन जांच:** गुटखा, खैनी, बीड़ी या सुपाड़ी की आदत की जांच करें और छोड़ने की सलाह दें।\n"
-                    "✓ **3-अंगुली परीक्षण (3-Finger Test):** देखें कि क्या मरीज मुंह में लंबवत 3 अंगुलियां डाल पा रहा है।\n"
-                    "✓ **गर्दन की गांठें:** जबड़े के नीचे या गर्दन में कोई गांठ या सूजन महसूस करें।\n"
-                    "✓ **रेफरल:** 48-72 घंटों के भीतर पीएचसी मेडिकल ऑफिसर से अपॉइंटमेंट सुनिश्चित करें।\n\n"
-                    "#### 🩺 3. डॉक्टर और विशेषज्ञ के लिए क्लीनिकल रिपोर्ट (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Morphology:** Mucosal ulceration; assess base induration, rolled margins, and slough bed.\n"
-                    "• **Differential Diagnoses:** Chronic Traumatic Ulcer, Aphthous Stomatitis, Oral Squamous Cell Carcinoma (OSCC), Tuberculous Ulcer.\n"
-                    "• **MoHFW Protocol:** In-person bimanual palpation for induration; mandatory punch biopsy for non-healing ulcers >14 days."
-                )
-                speech = "मुंह के छालों के लिए गुनगुने नमक पानी से कुल्ला करें। 14 दिन से अधिक पुराना छाला होने पर डॉक्टर से जांच और बायोप्सी अनिवार्य है।"
+                content = """### 👄 मुंह के छाले एवं घाव की जानकारी (Oral Ulcers Guidance)
+
+🩺 **पहचानी गई स्थिति / रोग (Identified Disease):**
+**मुंह के छाले (Oral Aphthous Ulcer / Stomatitis)**
+
+💬 **आपके प्रश्न का उत्तर (Clinical Response):**
+मुंह के छाले अक्सर विटामिन की कमी (विटामिन B12, आयरन, फोलिक एसिड), पेट की गर्मी या नुकीले दांत की रगड़ से होते हैं।
+
+💡 **सावधानियां एवं अगला कदम (Care & Next Steps):**
+• **गुनगुने नमक पानी से कुल्ला:** एक गिलास गुनगुने पानी में आधा चम्मच नमक मिलाकर दिन में 3 बार कुल्ला करें।
+• **खानपान में बदलाव:** तीखा, खट्टा, अधिक गर्म और मसालेदार खाना कुछ दिनों के लिए बंद कर दें।
+• **सावधानी:** छाले पर चूना, कत्था या हानिकारक रसायन न लगाएं। गुटखा और तंबाकू तुरंत बंद करें।
+• **डॉक्टर को कब दिखाएं:** यदि कोई छाला **14 दिनों से अधिक समय तक ठीक न हो**, तो तुरंत नजदीकी पीएचसी डॉक्टर को दिखाएं।
+
+> ⚠️ *नोट: यह जानकारी केवल प्राथमिक परामर्श है। 14 दिन से पुराने छाले के लिए डॉक्टर द्वारा प्रत्यक्ष जांच अनिवार्य है.*"""
+                speech = "मुंह के छालों के लिए गुनगुने नमक पानी से कुल्ला करें। 14 दिन से अधिक पुराना छाला होने पर डॉक्टर से जांच कराएं।"
             else:
-                content = (
-                    "### 👄 Clinical Management of Oral Mucosal Ulcers\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Mouth ulcers frequently develop from accidental cheek biting, nutritional deficiencies (Vitamin B12, Folate, Iron), stress, or localized irritation.\n"
-                    "• **Warm Salt Water Rinses:** Dissolve 1/2 teaspoon of salt in warm water and gently rinse 3–4 times daily to reduce swelling and bacteria.\n"
-                    "• **Dietary Adjustments:** Avoid rough, spicy, acidic, or extremely hot foods that irritate the delicate mucosal tissue. Drink plenty of water and eat cooling, soft foods (curd, soft rice).\n"
-                    "• **What NOT to Do:** Never apply unprescribed chemicals, caustic lime (chuna), or abrasive powders directly to the sore. Stop all gutkha and tobacco use immediately.\n"
-                    "👉 **When to See a Doctor:** Under national health guidelines, any oral sore that does not heal within 14 days requires an in-person doctor examination.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ **14-Day Mandatory Screening Rule:** If the sore has persisted for > 14 days, prioritize immediate referral to the Primary Health Centre.\n"
-                    "✓ **Habit Screening:** Inquire about gutkha, khaini, betel nut, or reverse smoking (chutta). Counsel strongly on cessation.\n"
-                    "✓ **3-Finger Test:** Assess mouth opening. Can the patient insert 3 fingers vertically? (<35 mm suggests OSMF trismus).\n"
-                    "✓ **Lymph Node Palpation:** Palpate submandibular and cervical lymph node chains for firm, non-tender enlargement.\n"
-                    "✓ **Action Step:** Book an in-person PHC Medical Officer assessment within 48–72 hours.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• **Morphology:** Solitary mucosal ulceration; evaluate base induration, rolled/everted margins, floor slough, and peripheral mucosal changes.\n"
-                    "• **Differential Considerations:** Major/Minor Aphthous Stomatitis, Chronic Traumatic Ulcer (sharp lingual cusp), Oral Squamous Cell Carcinoma (OSCC), Deep Fungal / Mycobacterial Ulcer.\n"
-                    "• **ICD-10:** K12.0 (Aphthous stomatitis), K12.1 (Other forms of stomatitis).\n"
-                    "• **MoHFW NOHP & ICMR Protocol:** Eliminate local mechanical irritants. Mandatory bimanual palpation for depth fixation and regional cervical lymphadenopathy (Levels I-V). Diagnostic punch or incisional biopsy mandatory for any non-healing solitary lesion persisting >14 days."
-                )
-                speech = "Rinse with warm salt water three times daily and avoid spicy foods. Any ulcer lasting longer than 14 days requires an in-person doctor examination and biopsy."
+                content = """### 👄 Clinical Guidance on Mouth Ulcers
+
+🩺 **Identified Disease / Condition:**
+**Oral Mucosal Ulcer / Aphthous Stomatitis**
+
+💬 **Clinical Response to Your Question:**
+Mouth ulcers frequently develop from nutritional deficiencies (Vitamin B12, Folate, Iron), stress, or localized mechanical friction (sharp dental cusp).
+
+💡 **Recommended Care & Next Steps:**
+• **Warm Salt Water Rinses:** Dissolve 1/2 teaspoon of salt in warm water and gently rinse 3–4 times daily to reduce inflammation.
+• **Dietary Adjustments:** Avoid rough, spicy, acidic, or extremely hot foods. Drink plenty of water and eat cooling, soft foods (curd, soft rice).
+• **What NOT to Do:** Never apply unprescribed chemicals or caustic lime (chuna). Stop all gutkha and tobacco use immediately.
+• **Doctor Consultation:** Under MoHFW national protocols, any oral sore that does not heal within **14 days** mandates an in-person clinical checkup by a PHC Doctor.
+
+> ⚠️ *Notice: This is preliminary guidance. Any non-healing sore lasting longer than 14 days requires an in-person physical examination and biopsy.*"""
+                speech = "Rinse with warm salt water three times daily and avoid spicy foods. Any ulcer lasting longer than 14 days requires an in-person doctor examination."
 
         # Topic 2: White & Red Patches / Precancer / Leukoplakia / Erythroplakia
         elif any(w in msg_lower for w in ["white", "patch", "red", "leukoplakia", "erythroplakia", "మచ్చ", "తెల్ల", "ఎరుపు", "सफेद", "लाल", "दाग"]):
             if is_te:
-                content = (
-                    "### ⚪ నోటిలో తెల్లటి లేదా ఎర్రటి మచ్చలు (Oral Precancer & Mucosal Patches)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "నోటి లోపల బుగ్గపై, నాలుకపై లేదా చిగుళ్ళపై వచ్చే తెల్లటి మచ్చలు (ల్యూకోప్లాకియా) లేదా వెల్వెట్ ఎర్రటి మచ్చలు (ఎరిత్రోప్లాకియా) పొగాకు, గుట్కా లేదా పంటి రాపిడి వల్ల వస్తాయి.\n"
-                    "• **గోకవద్దు:** ఈ మచ్చలను వేళ్ళతో లేదా పదునైన వస్తువులతో గోకడం లేదా రల్పొడులు రాయడం చేయవద్దు.\n"
-                    "• **పొగాకు నిలిపివేత:** గుట్కా, ఖైనీ, పాన్ మరియు ధూమపానం వెంటనే ఆపడం ద్వారా చాలావరకు మచ్చలు ముదరకుండా కాపాడుకోవచ్చు.\n"
-                    "👉 **డాక్టర్ పరీక్ష ఎందుకు:** ఈ మచ్చలలో కొన్ని ముందస్తు క్యాన్సర్ మార్పులకు (Precancerous) దారితీయవచ్చు. ప్రారంభంలోనే డాక్టర్‌కు చూపిస్తే చిన్న చికిత్సతో నయం చేయవచ్చు.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **వైప్ టెస్ట్ (Gauze Wipe Test):** తడి శుభ్రమైన దూదితో మచ్చను తుడిచి చూడండి. తుడుచుకుపోతే అది ఫంగల్ ఇన్ఫెక్షన్ (Thrush); తుడిచినా పోకపోతే అది ల్యూకోప్లాకియా.\n"
-                    "✓ **ఎర్రటి మచ్చలు (Erythroplakia):** ఎర్రటి లేదా ఎరుపు-తెలుపు కలిసిన మచ్చలు అత్యంత ప్రమాదకరమైనవి, వీటికి తక్షణ రిఫరల్ అవసరం.\n"
-                    "✓ **ఫోటో మరియు రిఫరల్:** పోర్టల్‌లో స్క్రీనింగ్ వివరాలు నమోదు చేసి, 48 గంటల్లో PHC డాక్టర్ అపాయింట్‌మెంట్ బుక్ చేయండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Clinical Staging:** Categorize as Homogeneous Leukoplakia (low risk) vs Non-Homogeneous / Speckled / Verrucous Leukoplakia or Erythroplakia (high dysplasia risk, 15-40%).\n"
-                    "• **Differential Considerations:** Oral Lichen Planus (Wickham's striae), Hyperplastic Candidiasis, Frictional Keratosis, Early OSCC in situ.\n"
-                    "• **ICD-10:** K13.21 (Leukoplakia of oral mucosa), K13.22 (Erythroplakia of oral mucosa).\n"
-                    "• **Mandatory Protocol:** MoHFW & ICMR Mandate: Eliminate sharp teeth and all tobacco habits. Any persistent mucosal plaque persisting >14 days mandates an incisional or punch biopsy from the most clinically suspicious, indurated, or erythematous site."
-                )
-                speech = "నోటిలోని తెల్లటి లేదా ఎర్రటి మచ్చలను గోకవద్దు. 14 రోజులు దాటిన మచ్చలకు డాక్టర్ గారి పరీక్ష మరియు బయాప్సీ తప్పనిసరి."
+                content = """### ⚪ నోటిలోని తెల్లటి లేదా ఎర్రటి మచ్చల సమాచారం (Oral Patches)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**ఓరల్ ల్యూకోప్లాకియా / ఎరిత్రోప్లాకియా (Oral Leukoplakia / Erythroplakia - ముందస్తు మార్పుల మచ్చలు)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+నోటి లోపల బుగ్గపై, నాలుకపై లేదా చిగుళ్ళపై వచ్చే తెల్లటి మచ్చలు (ల్యూకోప్లాకియా) లేదా వెల్వెట్ ఎర్రటి మచ్చలు (ఎరిత్రోప్లాకియా) సాధారణంగా పొగాకు, గుట్కా, ఖైనీ లేదా పంటి రాపిడి వల్ల వస్తాయి.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **గోకవద్దు:** ఈ మచ్చలను వేళ్ళతో లేదా పదునైన వస్తువులతో గోకడం లేదా రల్పొడులు రాయడం చేయవద్దు.
+• **పొగాకు నిలిపివేత:** గుట్కా, ఖైనీ, పాన్ మరియు ధూమపానం వెంటనే ఆపడం ద్వారా చాలావరకు మచ్చలు ముదరకుండా నివారించవచ్చు.
+• **డాక్టర్ పరీక్ష తప్పనిసరి:** ఈ మచ్చలు కొన్ని ముందస్తు క్యాన్సర్ మార్పులకు దారితీయవచ్చు. ప్రారంభంలోనే డాక్టర్‌కు చూపిస్తే సులభంగా నయం చేయవచ్చు. 48-72 గంటల్లో సమీప PHC డాక్టర్‌ను సంప్రదించండి.
+
+> ⚠️ *గమనిక: ఈ AI ప్రాథమిక సూచన మాత్రమే. 14 రోజుల కంటే ఎక్కువ రోజులు ఉండే తెల్లటి లేదా ఎర్రటి మచ్చలకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"""
+                speech = "నోటిలోని తెల్లటి లేదా ఎర్రటి మచ్చలను గోకవద్దు. పొగాకు వెంటనే ఆపి డాక్టర్ గారి పరీక్ష చేయించుకోండి."
             else:
-                content = (
-                    "### ⚪ Clinical Evaluation of Oral Mucosal Patches (Leukoplakia & Erythroplakia)\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Persistent white patches (Leukoplakia) or velvety red patches (Erythroplakia) are Oral Potentially Malignant Disorders (OPMD) driven by tobacco, gutkha, or chronic friction.\n"
-                    "• **Do Not Scratch:** Never attempt to scrape, peel, or apply unverified herbs to the patches.\n"
-                    "• **Immediate Habit Cessation:** Stop all forms of gutkha, areca nut, and smoking immediately to stop lesion progression.\n"
-                    "👉 **Why Doctor Examination is Mandatory:** Early identification and doctor evaluation prevent complications and allow simple, curative interventions.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ **Gauze Wipe Test:** Gently rub lesion with sterile gauze. Non-scrapable white plaques indicate true leukoplakia.\n"
-                    "✓ **Erythroplakia Alert:** Velvety red or mixed speckled lesions carry the highest dysplasia risk (up to 40%); prioritize immediate referral.\n"
-                    "✓ **Referral Timeline:** Schedule an in-person PHC Medical Officer assessment within 48–72 hours.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• **Risk Stratification:** Homogeneous Leukoplakia (low risk) vs Non-Homogeneous (speckled, nodular, verrucous) or Erythroplakia (high dysplasia risk).\n"
-                    "• **Differential Considerations:** Hyperplastic Candidiasis, Oral Lichen Planus, Frictional Keratosis, Squamous Cell Carcinoma in situ.\n"
-                    "• **MoHFW NOHP Protocol:** Eliminate mechanical irritants. Diagnostic punch biopsy mandatory for lesions persisting >14 days."
-                )
-                speech = "Persistent white or red mouth patches require an in-person doctor evaluation and punch biopsy under MoHFW protocols."
+                content = """### ⚪ Clinical Guidance on Oral Mucosal Patches (Leukoplakia)
+
+🩺 **Identified Disease / Condition:**
+**Oral Leukoplakia / Erythroplakia (Oral Potentially Malignant Disorder - OPMD)**
+
+💬 **Clinical Response to Your Question:**
+Persistent white patches (Leukoplakia) or velvety red patches (Erythroplakia) are mucosal changes primarily triggered by smokeless tobacco (gutkha/khaini), areca nut, or chronic friction.
+
+💡 **Recommended Care & Next Steps:**
+• **Do Not Scratch:** Never attempt to scrape, peel, or apply caustic substances directly to the patch.
+• **Immediate Habit Cessation:** Cease all gutkha, areca nut, and smoking immediately to prevent progression.
+• **Doctor Consultation:** Under MoHFW guidelines, any non-scrapable mucosal plaque persisting beyond 14 days requires an in-person clinical examination and punch biopsy.
+
+> ⚠️ *Notice: Photographs cannot confirm or exclude malignancy. In-person clinical assessment and biopsy are mandatory.*"""
+                speech = "Persistent white or red mouth patches require habit cessation and an in-person doctor checkup."
 
         # Topic 3: Toothache, Dental Caries, Pulpitis & Abscess
         elif any(w in msg_lower for w in ["tooth", "teeth", "toothache", "caries", "cavity", "pulpitis", "abscess", "పంటి నొప్పి", "దంతాలు", "పుచ్చిపోయిన", "దంత", "दांत", "दांत दर्द"]):
             if is_te:
-                content = (
-                    "### 🦷 పంటి నొప్పి, పుప్పి పన్ను & ఇన్ఫెక్షన్ మార్గదర్శకాలు (Dental Pain & Caries)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "దంతాలు పుచ్చిపోవడం (క్యావిటీ) వల్ల ఇన్ఫెక్షన్ లోపలి నరాల వరకు చేరినప్పుడు తీవ్రమైన పంటి నొప్పి వస్తుంది.\n"
-                    "• **తక్షణ ఉపశమనం:** గోరువెచ్చని ఉప్పునీటితో నోటిని పుక్కిలించండి. నొప్పి ఉన్న పంటి దగ్గర లవంగ నూనె (Clove oil) దూదితో పెట్టవచ్చు.\n"
-                    "• **చేయకూడనివి:** నొప్పి మాత్రలను పంటి మీద నేరుగా పెట్టవద్దు (ఇది చిగురును కాల్చేస్తుంది). దవడపై బయట నుంచి వేడి కాపడం పెట్టవద్దు.\n"
-                    "👉 **అత్యవసర హెచ్చరిక:** దవడ వాచిపోయినా లేదా జ్వరం వచ్చినా వెంటనే డాక్టర్‌ను సంప్రదించాలి.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **ముఖంపై వాపు (Cellulitis):** దవడ కింద లేదా ముఖంపై వాపు ఉందా చూడండి — ఇది తక్షణ వైద్యం అవసరమైన పరిస్థితి.\n"
-                    "✓ **నొప్పి తీవ్రత:** రోగికి రాత్రి నిద్ర పట్టనంత లేదా మింగడంలో ఇబ్బంది ఉందా అని తనిఖీ చేయండి.\n"
-                    "✓ **రిఫరల్:** రోగిని సమీప PHC డెంటల్ క్లినిక్ లేదా దంత వైద్యుడికి రిఫర్ చేయండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Differentiation:** Reversible Pulpitis (sharp transient pain with thermal stimuli) vs Irreversible Pulpitis (lingering spontaneous throbbing nocturnal pain) vs Acute Periapical Abscess (tenderness to vertical percussion, vestibular swelling).\n"
-                    "• **Management:** Analgesia (Ibuprofen 400mg + Paracetamol 500mg). If systemic spread/cellulitis: Amoxicillin 500mg TID + Metronidazole 400mg TID for 5 days.\n"
-                    "• **Definitive Care:** Refer to Dental Surgeon for pulpectomy / Root Canal Therapy (RCT) or extraction."
-                )
-                speech = "పంటి నొప్పికి గోరువెచ్చని ఉప్పునీటి పుక్కిలింత చేయండి. దవడ వాపు ఉంటే వెంటనే డెంటల్ డాక్టర్‌ను సంప్రదించండి."
+                content = """### 🦷 పంటి నొప్పి & పుప్పి పన్ను సమాచారం (Dental Caries & Pain)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**దంతక్షయం & పల్పైటిస్ / పంటి నొప్పి (Dental Caries, Pulpitis & Dental Infection)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+దంతాలు పుచ్చిపోవడం (క్యావిటీ) వల్ల ఇన్ఫెక్షన్ లోపలి నరాల వరకు చేరినప్పుడు తీవ్రమైన పంటి నొప్పి వస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **తక్షణ ఉపశమనం:** గోరువెచ్చని ఉప్పునీటితో నోటిని పుక్కిలించండి. నొప్పి ఉన్న పంటి దగ్గర లవంగ నూనె (Clove oil) దూదితో పెట్టవచ్చు.
+• **చేయకూడనివి:** నొప్పి మాత్రలను పంటి మీద నేరుగా పెట్టవద్దు (ఇది చిగురును కాల్చేస్తుంది). దవడపై బయట నుంచి వేడి కాపడం పెట్టవద్దు.
+• **అత్యవసర హెచ్చరిక:** దవడ వాచిపోయినా, జ్వరం వచ్చినా లేదా మింగడంలో ఇబ్బంది ఉన్నా వెంటనే PHC డెంటల్ క్లినిక్ లేదా దంత వైద్యుడిని సంప్రదించాలి.
+
+> ⚠️ *గమనిక: పంటి నొప్పికి శాశ్వత పరిష్కారం దంత వైద్యుల క్లినికల్ చికిత్స (ఫిల్లింగ్ లేదా రూట్ కెనాల్) ద్వారా మాత్రమే లభిస్తుంది.*"""
+                speech = "పంటి నొప్పికి గోరువెచ్చని ఉప్పునీటి పుక్కిలింత మరియు లవంగ నూనె వాడండి. దవడ వాపు ఉంటే వెంటనే దంత వైద్యుడిని సంప్రదించండి."
             else:
-                content = (
-                    "### 🦷 Clinical Management of Toothache, Pulpitis & Dental Abscess\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Toothaches usually occur when deep dental decay (cavities) reaches the inner nerve pulp or when bacteria cause an infection at the root tip.\n"
-                    "• **Immediate Comfort:** Rinse gently with warm salt water. A small cotton pellet with clove oil placed on the tooth provides temporary topical relief.\n"
-                    "• **Precautions:** Never place aspirin or pain tablets directly against the gum tissue (causes chemical burns). Avoid external hot packs.\n"
-                    "👉 **When to Seek Immediate Care:** If you notice facial swelling, fever, or difficulty opening your mouth, see a dentist immediately.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ Check for facial swelling or cellulitis extending into the neck (danger sign).\n"
-                    "✓ Check for sleep-disturbing spontaneous throbbing pain.\n"
-                    "✓ Refer the patient to the PHC Dental Unit for definitive restorative or endodontic treatment.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• **Differentiation:** Reversible Pulpitis vs Irreversible Pulpitis vs Acute Periapical Abscess.\n"
-                    "• **Pharmacotherapy:** Analgesic regimen (Ibuprofen 400mg + Paracetamol 500mg). Antibiotics indicated only if systemic signs, trismus, or spreading fascial space cellulitis.\n"
-                    "• **Definitive Treatment:** Pulpectomy / Root Canal Therapy or dental extraction."
-                )
+                content = """### 🦷 Clinical Guidance on Toothache & Dental Caries
+
+🩺 **Identified Disease / Condition:**
+**Dental Caries & Pulpitis (Tooth Decay & Nerve Inflammation)**
+
+💬 **Clinical Response to Your Question:**
+Toothaches usually occur when deep dental decay reaches the inner nerve pulp or when bacteria cause an infection around the tooth root.
+
+💡 **Recommended Care & Next Steps:**
+• **Immediate Comfort:** Rinse gently with warm salt water. A small cotton pellet with clove oil provides temporary soothing relief.
+• **Precautions:** Never place aspirin or pain tablets directly against the gum tissue (causes chemical burns). Avoid external hot packs.
+• **Dental Visit:** Consult the PHC Dental Unit for definitive restorative care (filling, pulpectomy, or root canal therapy).
+
+> ⚠️ *Notice: If you notice facial swelling, fever, or difficulty swallowing, seek emergency dental evaluation immediately.*"""
                 speech = "For toothache, use warm salt rinses and clove oil. Facial swelling requires immediate dental evaluation."
 
         # Topic 4: Burning Mouth & OSMF / Trismus (Restricted Mouth Opening)
         elif any(w in msg_lower for w in ["burning", "osmf", "trismus", "opening", "spicy", "మంట", "బిగుతు", "తెరవ", "तीखा", "जलन", "अकड़न"]):
             if is_te:
-                content = (
-                    "### 🌶️ కారం తిన్నప్పుడు మంట & నోరు తెరవలేకపోవడం (Burning Mouth & OSMF)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "కారం తిన్నప్పుడు నోరు తీవ్రంగా మండడం మరియు నోరు సరిగ్గా తెరవలేకపోవడం ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (OSMF) యొక్క ముఖ్య లక్షణాలు. ఇది వక్క (సుపారీ), గుట్కా లేదా పాన్ మసాలా వల్ల వస్తుంది.\n"
-                    "• **వెంటనే ఆపండి:** వక్క, గుట్కా మరియు పొగాకును తక్షణమే పూర్తిగా ఆపాలి. వక్కలోని రసాయనాలు నోటి లోపలి చర్మాన్ని రాయిలా గట్టిగా చేస్తాయి.\n"
-                    "• **ఆహారం:** కారం, పులుపు, వేడి ఆహారాలను తగ్గించి, పాలు, పెరుగు మరియు మృదువైన ఆహారాలు తీసుకోండి.\n"
-                    "• **నోరు బలవంతంగా తెరవద్దు:** నోటిని బలవంతంగా లాగవద్దు.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **3-వేళ్ళ పరీక్ష (3-Finger Test):** రోగి నోట్లోకి 3 వేళ్ళు నిలువుగా పడుతున్నాయా చూడండి. 3 వేళ్ళు పట్టకపోతే (<35mm), ఇది OSMF సంకేతం.\n"
-                    "✓ బుగ్గల లోపల పాల రంగు తెల్లటి పీచు చారలు (fibrous bands) ఉన్నాయా చూడండి.\n"
-                    "✓ 48-72 గంటల్లో PHC డాక్టర్ అపాయింట్‌మెంట్ నమోదు చేయండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Diagnosis & Staging:** Oral Submucous Fibrosis (ICD-10 K13.5). Measure maximum interincisal distance (MID): Grade I (>35mm), Grade II (30-35mm), Grade III (20-30mm), Grade IV (<20mm).\n"
-                    "• **Management:** Complete areca nut habit cessation. Antioxidant therapy (Lycopene 10-16mg daily + Alpha-tocopherol). Consider intralesional hyaluronidase/dexamethasone for progressive trismus. Regular 3-month surveillance due to 7-10% malignant transformation risk."
-                )
-                speech = "కారం తిన్నప్పుడు నోరు మండడం మరియు నోరు తెరవడం తగ్గడం ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ సంకేతం. వక్క మరియు గుట్కా వెంటనే ఆపి డాక్టర్‌ను సంప్రదించండి."
+                content = """### 🌶️ కారం తిన్నప్పుడు మంట & నోరు తెరవలేకపోవడం (OSMF Guidance)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (Oral Submucous Fibrosis - OSMF)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+కారం తిన్నప్పుడు నోరు తీవ్రంగా మండడం మరియు నోరు సరిగ్గా తెరవలేకపోవడం ఓరల్ సబ్‌మ్యూకస్ ఫైబ్రోసిస్ (OSMF) యొక్క ముఖ్య లక్షణాలు. ఇది వక్క (సుపారీ), గుట్కా లేదా పాన్ మసాలా వల్ల వస్తుంది. వక్కలోని రసాయనాలు నోటి లోపలి చర్మాన్ని రాయిలా గట్టిగా చేస్తాయి.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **వెంటనే ఆపండి:** వక్క, సుపారీ, గుట్కా మరియు పాన్ మసాలాను తక్షణమే పూర్తిగా ఆపాలి.
+• **ఆహార మార్పులు:** కారం, పులుపు, వేడి ఆహారాలను తగ్గించి, పాలు, పెరుగు మరియు మృదువైన చల్లని ఆహారాలు తీసుకోండి.
+• **3-వేళ్ళ నోటి పరీక్ష:** నోట్లో 3 వేళ్ళు నిలువుగా పట్టకపోతే (<35mm), వ్యాధి ముదురుతోందని అర్థం. బలవంతంగా నోరు తెరవడానికి ప్రయత్నించవద్దు.
+• **డాక్టర్ సంప్రదింపు:** 48-72 గంటల్లో సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ స్పెషలిస్ట్‌ను సంప్రదించండి.
+
+> ⚠️ *గమనిక: OSMF క్యాన్సర్ ముందస్తు వ్యాధి కాబట్టి క్రమం తప్పకుండా డాక్టర్ పర్యవేక్షణ అవసరం.*"""
+                speech = "కారం తిన్నప్పుడు నోరు మండడం మరియు నోరు తెరవడం తగ్గడం OSMF సంకేతం. వక్క మరియు గుట్కా వెంటనే ఆపి డాక్టర్‌ను సంప్రదించండి."
             else:
-                content = (
-                    "### 🌶️ Clinical Management of Burning Mouth & Trismus (OSMF)\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "A burning sensation when eating spicy food combined with reduced mouth opening are classic signs of Oral Submucous Fibrosis (OSMF) caused by areca nut (supari/gutkha).\n"
-                    "• **Immediate Action:** Cease all areca nut, supari, gutkha, and pan masala immediately.\n"
-                    "• **Dietary Soothing:** Eat cooling, soft foods (curd, milk, soft rice). Avoid black pepper and red chilies.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ 3-Finger Test: Assess interincisal opening (<35 mm indicates progressive trismus).\n"
-                    "✓ Inspect buccal mucosa for vertical fibrous bands and mucosal blanching.\n"
-                    "✓ Schedule an in-person PHC Medical Officer assessment within 48–72 hours.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• Diagnosis: Oral Submucous Fibrosis (ICD-10 K13.5).\n"
-                    "• Regimen: Prescribe Lycopene (10-16mg/day) + Vitamin E + Zinc. Evaluate for intralesional corticosteroid/hyaluronidase for advanced cases. High index of suspicion for dysplastic transformation."
-                )
+                content = """### 🌶️ Clinical Guidance on Burning Sensation & Restricted Mouth Opening (OSMF)
+
+🩺 **Identified Disease / Condition:**
+**Oral Submucous Fibrosis (OSMF) with Trismus**
+
+💬 **Clinical Response to Your Question:**
+A burning sensation when eating spicy foods combined with reduced mouth opening are classic signs of Oral Submucous Fibrosis (OSMF) caused by areca nut (supari), gutkha, or pan masala.
+
+💡 **Recommended Care & Next Steps:**
+• **Immediate Action:** Cease all areca nut, supari, gutkha, and pan masala immediately.
+• **Dietary Soothing:** Eat cooling, soft foods (curd, milk, soft rice). Avoid black pepper, red chilies, and sharp acidic foods.
+• **3-Finger Check:** If the patient cannot insert 3 fingers vertically (<35mm), trismus is present. Do not force open the mouth.
+• **Doctor Consultation:** Visit the PHC Medical Officer or Dental Specialist within 48–72 hours for antioxidant therapy and surveillance.
+
+> ⚠️ *Notice: OSMF is a potentially malignant condition requiring complete habit cessation and regular medical monitoring.*"""
                 speech = "Burning mouth on spices and reduced mouth opening indicate OSMF. Stop areca nut and visit the PHC."
 
         # Topic 5: Tobacco, Gutkha & Chutta Cessation
         elif any(w in msg_lower for w in ["tobacco", "gutkha", "chutta", "smoke", "quitting", "beedi", "khaini", "పొగాకు", "చుట్ట", "గుట్కా", "తంబాకు", "तंबाकू", "गुटखा", "सिगरेट"]):
             if is_te:
-                content = (
-                    "### 🚭 పొగాకు, గుట్కా & చుట్ట అలవాటు మానేసే మార్గదర్శకాలు (Tobacco Cessation)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "పొగాకు నమలడం, గుట్కా, ఖైనీ మరియు చుట్ట (రివర్స్ స్మోకింగ్) నోటి క్యాన్సర్‌కు ప్రధాన కారణాలు. అలవాటు మానేసిన కొద్ది రోజుల్లోనే నోటి శ్లేష్మ పొర కోలుకోవడం ప్రారంభిస్తుంది.\n"
-                    "• **కోరిక తగ్గే చిట్కాలు:** పొగాకు తినాలనిపించినప్పుడు లవంగాలు, యాలకులు లేదా సోంపు గింజలు నమలండి.\n"
-                    "• **5-నిమిషాల టెక్నిక్:** తీవ్రమైన కోరిక 3 నుండి 5 నిమిషాలు మాత్రమే ఉంటుంది. లోతైన శ్వాస తీసుకుంటూ చల్లని నీరు త్రాగండి.\n"
-                    "• **ఉచిత ప్రభుత్వ సహాయం:** టోల్-ఫ్రీ నంబర్ **1800-11-2356** కు కాల్ చేసి ఉచిత కౌన్సిలింగ్ పొందండి.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ అలవాటు ఫ్రీక్వెన్సీ: రోజుకు ఎన్ని ప్యాకెట్లు లేదా ఎంత సమయం పొగాకు నోట్లో ఉంచుకుంటున్నారు?\n"
-                    "✓ నోటి లోపలి భాగం మరియు దంతాల పరిస్థితిని పరిశీలించండి. 14 రోజుల నిబంధనను వివరించండి.\n"
-                    "✓ హోమ్ విజిట్స్‌లో ఫాలో-అప్ చేయండి, కుటుంబ సభ్యుల మద్దతును తీసుకోండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• Administer Fagerström Test for Nicotine Dependence (FTND).\n"
-                    "• Implement 5 A's cessation counseling (Ask, Advise, Assess, Assist, Arrange).\n"
-                    "• Consider Nicotine Replacement Therapy (NRT gum/patch). Conduct mucosal screening every 3–6 months."
-                )
-                speech = "పొగాకు లేదా గుట్కా తినాలనిపించినప్పుడు లవంగాలు లేదా సోంపు నమలండి. ఉచిత ప్రభుత్వ సహాయం కోసం 1800 11 2356 కు కాల్ చేయండి."
+                content = """### 🚭 పొగాకు, గుట్కా & చుట్ట నివారణ సమాచారం (Tobacco Cessation)
+
+🩺 **గుర్తించిన అంశం (Identified Topic):**
+**పొగాకు & గుట్కా వ్యసన విముక్తి మార్గదర్శకాలు (Tobacco & Gutkha Cessation Support)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+పొగాకు నమలడం, గుట్కా, ఖైనీ మరియు చుట్ట (రివర్స్ స్మోకింగ్) నోటి క్యాన్సర్‌కు ప్రధాన కారణాలు. అలవాటు మానేసిన కొద్ది రోజుల్లోనే నోటి శ్లేష్మ పొర కోలుకోవడం ప్రారంభిస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **కోరిక తగ్గే చిట్కాలు:** పొగాకు తినాలనిపించినప్పుడు లవంగాలు, యాలకులు లేదా సోంపు గింజలు నమలండి.
+• **5-నిమిషాల టెక్నిక్:** తీవ్రమైన కోరిక 3 నుండి 5 నిమిషాలు మాత్రమే ఉంటుంది. ఆ సమయంలో లోతైన శ్వాస తీసుకుంటూ చల్లని నీరు త్రాగండి.
+• **ఉచిత ప్రభుత్వ సహాయం:** జాతీయ టోల్-ఫ్రీ నంబర్ **1800-11-2356** కు కాల్ చేసి ఉచిత కౌన్సిలింగ్ పొందవచ్చు.
+• **నోటి పరీక్ష:** నోటి లోపల ఏవైనా తెల్లటి మచ్చలు లేదా తగ్గని పుండ్లు ఉంటే సమీప PHC డాక్టర్‌కు చూపించండి.
+
+> ⚠️ *గమనిక: పొగాకు అలవాటు మానేయడం నోటి క్యాన్సర్‌ను నివారించడంలో అత్యంత ప్రభావవంతమైన మార్గం.*"""
+                speech = "పొగాకు లేదా గుట్కా తినాలనిపించినప్పుడు లవంగాలు లేదా సోంపు నమలండి. ఉచిత సహాయం కోసం 1800 11 2356 కు కాల్ చేయండి."
             else:
-                content = (
-                    "### 🚭 Evidence-Based Tobacco & Gutkha Cessation Strategies\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Smokeless tobacco (gutkha, khaini, zarda) and reverse smoking (chutta) damage oral tissues. Stopping immediately halts mucosal deterioration and reduces cancer risk.\n"
-                    "• Use substitutes like cloves, cardamom, or fennel seeds when cravings strike.\n"
-                    "• Practice the 5-minute delay: Drink a glass of cold water and breathe deeply.\n"
-                    "• Call the National Tobacco Quitline at **1800-11-2356** for free counseling.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ Assess daily frequency, habit duration, and tobacco pouch placement.\n"
-                    "✓ Inspect the oral cavity for blanching, keratosis, or ulcers.\n"
-                    "✓ Coordinate counseling support and schedule routine PHC checkups.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• Evaluate nicotine dependency level with FTND.\n"
-                    "• Offer behavioral therapy plus Nicotine Replacement Therapy (NRT gum 2mg/4mg).\n"
-                    "• Maintain 3-6 month mucosal surveillance for early dysplastic changes."
-                )
+                content = """### 🚭 Evidence-Based Tobacco & Gutkha Cessation Guidance
+
+🩺 **Identified Topic / Health Focus:**
+**Tobacco, Gutkha & Areca Nut Cessation Support**
+
+💬 **Clinical Response to Your Question:**
+Smokeless tobacco (gutkha, khaini, zarda) and reverse smoking (chutta) damage oral mucosal tissues. Stopping immediately halts mucosal deterioration and significantly lowers cancer risk.
+
+💡 **Recommended Care & Next Steps:**
+• **Healthy Substitutes:** When cravings strike, chew cloves, cardamom pods, or fennel seeds.
+• **The 5-Minute Delay Technique:** Cravings typically peak within 3 to 5 minutes. Drink a glass of cold water and breathe slowly and deeply.
+• **Free Support:** Call the National Tobacco Quitline at **1800-11-2356** for free counseling.
+• **Oral Checkup:** Schedule a routine oral mucosal screening at your Primary Health Centre.
+
+> ⚠️ *Notice: Quitting tobacco halts progressive oral mucosal damage and substantially protects against malignancy.*"""
                 speech = "When cravings strike, chew cloves or fennel seeds and drink cold water. Call 1800 11 2356 for free counseling."
 
         # Topic 6: Oral Cancer Early Warning Signs & High-Risk Triage
         elif any(w in msg_lower for w in ["cancer", "malignan", "carcinoma", "క్యాన్సర్", "పుట్టకురుపు", "कैंसर", "tumor", "గడ్డ"]):
             if is_te:
-                content = (
-                    "### ⚠️ నోటి క్యాన్సర్ ముందస్తు హెచ్చరికలు & మార్గదర్శకాలు (Cancer Warning Signs)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "నోటి క్యాన్సర్‌ను ప్రారంభ దశలోనే గుర్తిస్తే 90% పైగా పూర్తిగా నయం చేయవచ్చు. కింది లక్షణాలు కనిపిస్తే ఆలస్యం చేయకుండా డాక్టర్‌ను సంప్రదించాలి:\n"
-                    "• 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండు లేదా పుండ్లు.\n"
-                    "• నోటిలో తెల్లటి లేదా ఎర్రటి మచ్చలు, గట్టిపడిన గడ్డలు.\n"
-                    "• కారణం లేకుండా పంటి నుండి రక్తం కారడం లేదా మింగడంలో ఇబ్బంది.\n"
-                    "👉 **ముఖ్య గమనిక:** ఫోటో ఆధారంగా క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం అసాధ్యం. చిన్న పరీక్ష (బయాప్సీ) ద్వారా మాత్రమే అసలు నిజం తెలుస్తుంది.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ **రెడ్ ఫ్లాగ్స్ తనిఖీ:** రోగికి మెడలో గడ్డలు (Cervical lymph nodes) ఉన్నాయా, నాలుక కదలికలు తగ్గాయా చూడండి.\n"
-                    "✓ రోగికి ధైర్యం చెప్పి వెంటనే జిల్లా ఆసుపత్రి లేదా PHC మెడికల్ ఆఫీసర్ వద్దకు పంపించండి.\n"
-                    "✓ తక్షణ రిఫరల్ స్లిప్ జారీ చేయండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **High-Risk Triad:** Induration upon palpation, fixity to deep fascial planes, regional cervical lymphadenopathy (Levels I-III).\n"
-                    "• **Action Mandate:** High-priority referral to Surgical Oncology / ENT. Formal incisional or punch biopsy under local anesthesia at the lesion border."
-                )
-                speech = "14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని నోటి పుండుకు బయాప్సీ పరీక్ష తప్పనిసరి. ప్రారంభంలోనే గుర్తిస్తే నయం చేయవచ్చు."
+                content = """### ⚠️ నోటి క్యాన్సర్ ముందస్తు హెచ్చరికలు (Oral Cancer Warning Signs)
+
+🩺 **గుర్తించిన పరిస్థితి / అంశం (Identified Topic):**
+**నోటి క్యాన్సర్ హెచ్చరిక లక్షణాలు & స్క్రీనింగ్ (Cancer Warning Signs & High-Risk Triage)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+నోటి క్యాన్సర్‌ను ప్రారంభ దశలోనే గుర్తిస్తే 90% పైగా పూర్తిగా నయం చేయవచ్చు. కింది లక్షణాలు కనిపిస్తే ఆలస్యం చేయకుండా డాక్టర్‌ను సంప్రదించాలి:
+• 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండు లేదా పుండ్లు.
+• నోటిలో తెల్లటి లేదా ఎర్రటి మచ్చలు, గట్టిపడిన గడ్డలు.
+• కారణం లేకుండా పంటి నుండి రక్తం కారడం లేదా మింగడంలో ఇబ్బంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **ముఖ్య గమనిక:** ఫోటో ఆధారంగా క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం అసాధ్యం. చిన్న పరీక్ష (బయాప్సీ) ద్వారా మాత్రమే అసలు నిజం తెలుస్తుంది.
+• **తక్షణ చర్య:** 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని పుండు లేదా గడ్డ ఉంటే వెంటనే సమీప PHC మెడికల్ ఆఫీసర్ లేదా ఏరియా ఆసుపత్రి స్పెషలిస్ట్‌ను సంప్రదించండి.
+
+> ⚠️ *గమనిక: ఏవైనా అనుమానాస్పద లక్షణాలు కనిపిస్తే ఆలస్యం చేయకుండా డాక్టర్ గారి ప్రత్యక్ష పరీక్ష చేయించుకోవాలి.*"""
+                speech = "14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని నోటి పుండుకు డాక్టర్ గారి పరీక్ష మరియు బయాప్సీ తప్పనిసరి. ప్రారంభంలోనే గుర్తిస్తే నయం చేయవచ్చు."
             else:
-                content = (
-                    "### ⚠️ Clinical Warning Signs & Early Detection of Oral Malignancy\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Oral cancer detected in early stages has a cure rate exceeding 90%. Watch for these vital red flags:\n"
-                    "• Any mouth ulcer that does not heal within 14 days.\n"
-                    "• Red or white non-scrapable mucosal patches or hard, painless lumps.\n"
-                    "• Unexplained bleeding or difficulty chewing/swallowing.\n"
-                    "👉 **Critical Rule:** Photographs strictly CANNOT diagnose cancer. An in-person doctor checkup and biopsy are mandatory.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ Identify red flags: induration on palpation, painless neck lumps, fixed tissue.\n"
-                    "✓ Prioritize immediate referral to the PHC or District Hospital oncology clinic within 48 hours.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• **High-Risk Clinical Features:** Base induration, everted/rolled edges, mucosal friability, cervical nodal involvement (Levels I-III).\n"
-                    "• **Protocol:** MoHFW Mandate: Immediate formal diagnostic punch or wedge incisional biopsy."
-                )
+                content = """### ⚠️ Clinical Warning Signs & Early Detection of Oral Malignancy
+
+🩺 **Identified Topic / Health Focus:**
+**Oral Cancer Warning Signs & High-Priority Triage**
+
+💬 **Clinical Response to Your Question:**
+Oral cancer detected in early stages has a cure rate exceeding 90%. Watch for these vital red flags:
+• Any mouth ulcer that does not heal within 14 days.
+• Persistent red or white non-scrapable mucosal patches or hard, painless lumps.
+• Unexplained bleeding or difficulty chewing/swallowing.
+
+💡 **Recommended Care & Next Steps:**
+• **Mandatory Rule:** Photographs strictly CANNOT diagnose or exclude cancer. An in-person clinical examination and punch biopsy are mandatory.
+• **Action Step:** Book an in-person assessment with a PHC Medical Officer or ENT/Oncology specialist within 48 hours for any persistent lesion.
+
+> ⚠️ *Notice: Any non-healing ulcer persisting over 14 days mandates an in-person doctor checkup and biopsy under national health protocols.*"""
                 speech = "Any oral ulcer lasting longer than 14 days requires an in-person clinical examination and punch biopsy."
 
         # Topic 7: Bleeding Gums, Gingivitis & Periodontitis
         elif any(w in msg_lower for w in ["gum", "gingiv", "bleed", "చిగుళ్ళ", "రక్తం", "పంటి చిగురు", "मसूड़े", "खून"]):
             if is_te:
-                content = (
-                    "### 🩸 చిగుళ్ళ సమస్యలు & చిగుళ్ళ నుండి రక్తం కారడం (Gingivitis & Periodontitis)\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "బ్రష్ చేసినప్పుడు చిగుళ్ళ నుండి రక్తం కారడం లేదా చిగుళ్ళు ఎర్రబడి వాపు రావడం సాధారణంగా బ్యాక్టీరియా పాచి (ప్లాక్) వల్ల వస్తుంది.\n"
-                    "• **మృదువైన బ్రష్ వాడండి:** గట్టి బ్రష్ చిగుళ్ళను గాయపరుస్తుంది. రోజుకు రెండుసార్లు మృదువైన బ్రష్‌తో నెమ్మదిగా తోముకోండి.\n"
-                    "• **ఉప్పునీటి పుక్కిలింత:** గోరువెచ్చని ఉప్పునీటితో పుక్కిలించడం వల్ల చిగుళ్ళ వాపు తగ్గుతుంది.\n"
-                    "👉 **డాక్టర్‌ను ఎప్పుడు సంప్రదించాలి:** దంతాలు వదులైనా లేదా చిగుళ్ళ నుండి చీము కారుతున్నా వెంటనే డెంటల్ డాక్టర్‌కు చూపించాలి.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ దంతాల వద్ద గార (Tartar / Calculus) మరియు నోటి దుర్వాసన ఉందో లేదో చూడండి.\n"
-                    "✓ రోగి మధుమేహం (Diabetes) ఉన్నవారా అని తనిఖీ చేయండి (షుగర్ ఎక్కువైతే చిగుళ్ళ వ్యాధి త్వరగా ముదురుతుంది).\n"
-                    "✓ PHC డెంటల్ క్లినిక్‌లో స్కేలింగ్ (క్లీనింగ్) చేయించుకోవాలని సూచించండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Diagnosis:** Plaque-induced Gingivitis vs Periodontitis (measure Probing Pocket Depth & Clinical Attachment Loss).\n"
-                    "• **Intervention:** Full-mouth ultrasonic scaling and root planing. 0.2% Chlorhexidine gluconate mouthwash BID for 14 days.\n"
-                    "• **Systemic Screening:** Screen for uncontrolled Diabetes Mellitus (HbA1c) and Vitamin C deficiency."
-                )
+                content = """### 🩸 చిగుళ్ళ సమస్యలు & చిగుళ్ళ నుండి రక్తం కారడం (Gingivitis Guidance)
+
+🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**
+**చిగుళ్ళ వాపు & రక్తస్రావం (Gingivitis & Periodontitis)**
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+బ్రష్ చేసినప్పుడు చిగుళ్ళ నుండి రక్తం కారడం లేదా చిగుళ్ళు ఎర్రబడి వాపు రావడం సాధారణంగా బ్యాక్టీరియా పాచి (ప్లాక్) వల్ల వస్తుంది.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• **మృదువైన బ్రష్ వాడండి:** గట్టి బ్రష్ చిగుళ్ళను గాయపరుస్తుంది. రోజుకు రెండుసార్లు మృదువైన బ్రష్‌తో నెమ్మదిగా తోముకోండి.
+• **ఉప్పునీటి పుక్కిలింత:** గోరువెచ్చని ఉప్పునీటితో పుక్కిలించడం వల్ల చిగుళ్ళ వాపు త్వరగా తగ్గుతుంది.
+• **డాక్టర్ సంప్రదింపు:** దంతాలు వదులైనా లేదా చిగుళ్ళ నుండి చీము కారుతున్నా వెంటనే PHC డెంటల్ క్లినిక్‌లో స్కేలింగ్ (క్లీనింగ్) చేయించుకోవాలి.
+
+> ⚠️ *గమనిక: చిగుళ్ళ రక్తస్రావం మధుమేహం (Diabetes) వల్ల కూడా పెరగవచ్చు, అవసరమైతే షుగర్ పరీక్ష చేయించుకోండి.*"""
                 speech = "చిగుళ్ళ నుండి రక్తం కారడానికి మృదువైన బ్రష్ వాడండి మరియు PHC డెంటల్ క్లినిక్‌లో క్లీనింగ్ చేయించుకోండి."
             else:
-                content = (
-                    "### 🩸 Clinical Management of Gingival Bleeding & Periodontitis\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Bleeding gums when brushing is a sign of gingival inflammation caused by plaque bacterial buildup along the gumline.\n"
-                    "• Use a soft-bristled toothbrush and brush gently twice daily in circular motions.\n"
-                    "• Rinse with warm salt water daily to soothe gum tissues.\n"
-                    "👉 **Consult a Dentist:** If teeth feel loose or if bad breath persists, a professional dental cleaning is needed.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ Screen for diabetes (uncontrolled blood sugar exacerbates periodontal destruction).\n"
-                    "✓ Inquire about diet (screen for Vitamin C deficiency / scurvy in remote tribal belts).\n"
-                    "✓ Refer to the PHC dental unit for professional ultrasonic scaling.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• Measure Probing Pocket Depth (PPD) and Clinical Attachment Loss (CAL).\n"
-                    "• Supragingival & subgingival scaling and root planing.\n"
-                    "• Short-term 0.2% Chlorhexidine mouthrinse BID for 2 weeks."
-                )
+                content = """### 🩸 Clinical Guidance on Gingival Bleeding & Periodontitis
+
+🩺 **Identified Disease / Condition:**
+**Gingivitis / Periodontitis (Gum Inflammation & Bleeding)**
+
+💬 **Clinical Response to Your Question:**
+Bleeding gums during brushing indicate gingival inflammation typically caused by bacterial plaque accumulation along the gum margin.
+
+💡 **Recommended Care & Next Steps:**
+• **Gentle Oral Hygiene:** Use a soft-bristled toothbrush and brush gently twice daily with circular strokes.
+• **Warm Salt Water Rinses:** Rinse with warm salt water daily to reduce inflammation and bacterial burden.
+• **Professional Dental Care:** Visit the PHC Dental Clinic for professional ultrasonic scaling. Check blood glucose if bleeding is recurrent.
+
+> ⚠️ *Notice: Persistent gum bleeding with loose teeth requires professional periodontal evaluation at the PHC.*"""
                 speech = "Bleeding gums require gentle brushing, warm salt rinses, and professional dental scaling at the PHC."
 
-        # Topic 8: General Community Health / Fever / Triage / Tribal Outreach
+        # Topic 8: General Community Health / Clinical Inquiry
         else:
             if is_te:
-                content = (
-                    f"### 🩺 ఆరోగ్య మైత్ర AI క్లినికల్ సంప్రదింపు (Clinical Guidance)\n\n"
-                    f"**మీ ప్రశ్న / పరిశీలన:** *\"{user_message}\"*\n\n"
-                    "#### 🗣️ 1. రోగి & కుటుంబ సభ్యులకు సులభమైన వివరణ (Plain Explanation for Patients & Families):\n"
-                    "మీరు అడిగిన ఆరోగ్య అంశంపై Google MedGemma మరియు MoHFW వైద్య మార్గదర్శకాల ప్రకారం సలహా:\n"
-                    "• **సాధారణ పరిశుభ్రత:** నోటి మరియు శారీరక ఆరోగ్యం శరీర రోగనిరోధక శక్తిపై ఆధారపడి ఉంటుంది. పుష్కలంగా శుభ్రమైన నీరు త్రాగండి.\n"
-                    "• **స్వస్థత జాగ్రత్తలు:** అసౌకర్యం లేదా నొప్పి ఉన్నప్పుడు సొంత మందులు వాడకుండా తేలికైన ఆహారం, తగినంత విశ్రాంతి తీసుకోండి.\n"
-                    "• **చేయకూడనివి:** నాటు మందులు లేదా తెలియని చూర్ణాలు వాడవద్దు.\n"
-                    "👉 **డాక్టర్‌ను ఎప్పుడు సంప్రదించాలి:** ఏవైనా లక్షణాలు 2-3 రోజులలో తగ్గకపోతే సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించాలి.\n\n"
-                    "#### 👩‍⚕️ 2. ఆశా కార్యకర్తలు & PHC సిబ్బందికి మార్గదర్శకాలు (Action Guide for ASHA & Field Staff):\n"
-                    "✓ రోగి ఆరోగ్య పరిస్థితిని, నొప్పి స్థాయిని మరియు సమస్య ఎన్ని రోజుల నుండి ఉందో రికార్డ్ చేయండి.\n"
-                    "✓ 14 రోజుల కంటే ఎక్కువ రోజులు తగ్గని నోటి లేదా చర్మ సమస్యలకు ప్రాధాన్యత PHC రిఫరల్ ఏర్పాటు చేయండి.\n"
-                    "✓ తీవ్రమైన లక్షణాలు (శ్వాసలో ఇబ్బంది, అపస్మారక స్థితి, అధిక జ్వరం) ఉంటే తక్షణమే 108 అంబులెన్స్ ద్వారా ఏరియా ఆసుపత్రికి పంపండి.\n\n"
-                    "#### 🩺 3. వైద్యులు & స్పెషలిస్టుల క్లినికల్ నివేదిక (Clinical Dossier for Doctors & Specialists):\n"
-                    "• **Clinical Evaluation:** Comprehensive history and physical clinical examination required.\n"
-                    "• **Primary Care Protocols:** Standard Primary Health Centre MoHFW/ICMR protocols apply.\n"
-                    "• **Rule Out Red Flags:** Mandatory clinical investigation and tissue punch biopsy for persistent mucosal lesions exceeding 14 days."
-                )
+                content = f"""### 🩺 ఆరోగ్య మైత్ర AI సమాధానం (Clinical Guidance)
+
+🩺 **పరిశీలించిన అంశం:** *"{user_message}"*
+
+💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**
+మీరు అడిగిన ఆరోగ్య అంశంపై MoHFW మరియు ప్రామాణిక వైద్య మార్గదర్శకాల ప్రకారం సలహా:
+• సాధారణ శారీరక మరియు నోటి ఆరోగ్యం సరైన ఆహారం, స్వచ్ఛమైన నీరు మరియు శుభ్రతపై ఆధారపడి ఉంటుంది.
+• ఏవైనా లక్షణాలు లేదా అసౌకర్యం ఉన్నప్పుడు సొంత మందులు వాడకుండా తేలికైన ఆహారం, తగినంత విశ్రాంతి తీసుకోండి.
+
+💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**
+• నాటు మందులు లేదా తెలియని చూర్ణాలు వాడవద్దు.
+• ఏవైనా లక్షణాలు **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే** సమీప PHC మెడికల్ ఆఫీసర్‌ను సంప్రదించాలి.
+• తీవ్రమైన సమస్యలు (శ్వాసలో ఇబ్బంది, అపస్మారక స్థితి) ఉంటే వెంటనే 108 అంబులెన్స్ ద్వారా ఆసుపత్రికి వెళ్ళండి.
+
+> ⚠️ *గమనిక: ఈ AI ఫలితం ప్రాథమిక సమాచారం మాత్రమే. ఖచ్చితమైన నిర్ధారణ కోసం వైద్యుల ప్రత్యక్ష సంప్రదింపు అవసరం.*"""
                 speech = "ఆరోగ్య మైత్ర AI మీ ఆరోగ్య సందేహాలకు సాక్ష్యాధారిత సమాధానాలను అందిస్తుంది. 14 రోజుల కంటే ఎక్కువ రోజులు ఉన్న సమస్యలకు డాక్టర్‌ను సంప్రదించండి."
             else:
-                content = (
-                    f"### 🩺 Aarogya Mytra Clinical Knowledge Guidance\n\n"
-                    f"**Clinical Query / Topic:** *\"{user_message}\"*\n\n"
-                    "#### 🗣️ 1. Plain Explanation for Patients & Families:\n"
-                    "Based on Google MedGemma clinical foundations and National Oral Health protocols:\n"
-                    "• Maintain good hydration, balanced nutrition, and gentle oral and systemic hygiene.\n"
-                    "• Avoid unverified self-medication, harsh chemical home remedies, or delaying necessary physical care.\n"
-                    "• If symptoms cause discomfort or persist beyond a few days, consult your Primary Health Centre doctor.\n\n"
-                    "#### 👩‍⚕️ 2. Action Guide for ASHA Workers & Health Staff:\n"
-                    "✓ Document symptom duration and check for systemic red flags.\n"
-                    "✓ Enforce the 14-day persistent lesion rule for priority PHC booking.\n"
-                    "✓ For airway distress, uncontrolled bleeding, or high fever with altered sensorium, immediately activate 108 ambulance triage.\n\n"
-                    "#### 🩺 3. Clinical Dossier for Doctors & Specialists:\n"
-                    "• Complete clinical history, anatomical staging, and physical examination required.\n"
-                    "• Standard Primary Health Centre MoHFW/ICMR protocols apply.\n"
-                    "• Mandate in-person tissue punch biopsy for persistent mucosal lesions exceeding 14 days."
-                )
+                content = f"""### 🩺 Aarogya Mytra Clinical Guidance
+
+🩺 **Clinical Query / Topic:** *"{user_message}"*
+
+💬 **Clinical Response to Your Question:**
+Based on MoHFW and National Oral Health Programme clinical guidelines:
+• Maintain adequate hydration, balanced nutrition, and gentle oral hygiene.
+• Avoid unverified self-medication, abrasive powders, or delaying necessary clinical attention.
+
+💡 **Recommended Care & Next Steps:**
+• If symptoms cause discomfort or persist beyond a few days, consult your Primary Health Centre doctor.
+• Under national guidelines, any non-healing oral or mucosal lesion persisting longer than 14 days requires an in-person physical checkup.
+• For emergency symptoms like airway difficulty or uncontrolled bleeding, immediately activate 108 ambulance triage.
+
+> ⚠️ *Notice: This is preliminary clinical guidance. Consult your PHC Medical Officer for physical evaluation.*"""
                 speech = "Aarogya Mytra AI provides evidence-grounded health guidance. Consult your PHC Medical Officer for physical evaluation."
 
         return {
@@ -928,7 +890,7 @@ class LLMClinicalEngine:
             "speech_text": speech,
             "is_emergency": False,
             "urgency": "prompt_assessment",
-            "disclaimer": "Aarogya Mytra AI Autonomous Clinical Intelligence grounded in MoHFW NOHP & ICMR protocols.",
+            "disclaimer": "Aarogya Mytra AI Clinical Guidance grounded in MoHFW NOHP & ICMR protocols.",
             "provider": "google_health_medgemma_local",
             "model_id": "google/medgemma-1.5-4b-it"
         }
