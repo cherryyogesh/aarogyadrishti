@@ -1674,7 +1674,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                         Aarogya Mytra AI: Sections A–G Complete Assessment
                       </span>
                       <span style={{ fontSize: '0.72rem', background: '#0D9488', padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 700 }}>
-                        MedGemma 1.5 4B + MoHFW RAG
+                        MoHFW Evidence-Grounded
                       </span>
                     </div>
 

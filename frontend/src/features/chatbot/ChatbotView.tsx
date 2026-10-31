@@ -231,11 +231,11 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const getWelcomeMessage = (lang: string) => {
     switch (lang) {
       case 'te':
-        return 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — Google MedGemma 1.5 4B మరియు MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.';
+        return 'నమస్కారం! నేను ఆరోగ్య మైత్ర AI (Aarogya Mytra AI) — MoHFW/ICMR/WHO మార్గదర్శకాల ఆధారంగా రూపొందించబడిన మీ క్లినికల్ AI ఆరోగ్య సహాయకుడిని. నోటి పుండ్లు, మచ్చలు, చర్మం, కన్ను లేదా ఇతర ఆరోగ్య సందేహాలను అడగవచ్చు లేదా ఫొటోను జతచేసి ప్రాథమిక విశ్లేషణ పొందవచ్చు. గమనిక: ఇది క్యాన్సర్‌ను నిర్ధారించదు.';
       case 'hi':
-        return 'नमस्ते! मैं आरोग्य मैत्र AI हूँ — Google MedGemma 1.5 4B और MoHFW/ICMR/WHO दिशानिर्देशों पर आधारित आपका क्लीनिकल AI स्वास्थ्य सहायक। आप मुंह के छाले, दाग, त्वचा या स्वास्थ्य संबंधी प्रश्न पूछ सकते हैं या फोटो भेजकर प्राथमिक विश्लेषण प्राप्त कर सकते हैं। नोट: यह कैंसर की पुष्टि नहीं करता।';
+        return 'नमस्ते! मैं आरोग्य मैत्र AI हूँ — MoHFW/ICMR/WHO दिशानिर्देशों पर आधारित आपका क्लीनिकल AI स्वास्थ्य सहायक। आप मुंह के छाले, दाग, त्वचा या स्वास्थ्य संबंधी प्रश्न पूछ सकते हैं या फोटो भेजकर प्राथमिक विश्लेषण प्राप्त कर सकते हैं। नोट: यह कैंसर की पुष्टि नहीं करता।';
       default:
-        return 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant powered by Google MedGemma 1.5 4B and verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.';
+        return 'Hello! I am Aarogya Mytra AI — your clinical multimodal health assistant grounded in verified MoHFW/ICMR/WHO guidelines. You can ask health questions or attach an image (oral mucosa, skin lesion, anterior eye, external ear, wound) for an evidence-grounded preliminary assessment. Notice: This system does not diagnose or exclude cancer.';
     }
   };
 
@@ -574,7 +574,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 color: '#475569'
               }}>
                 <summary style={{ fontWeight: 700, cursor: 'pointer', color: '#0F766E' }}>
-                  💭 {tr('Google MedGemma 1.5 4B క్లినికల్ రీజనింగ్ ట్రేస్', 'Google MedGemma 1.5 4B Clinical Reasoning Trace', 'Google MedGemma 1.5 4B नैदानिक तर्क ट्रेस')}
+                  💭 {tr('ఆరోగ్య మైత్ర AI క్లినికల్ రీజనింగ్ ట్రేస్', 'Aarogya Mytra AI Clinical Reasoning Trace', 'आरोग्य मित्र AI नैदानिक तर्क ट्रेस')}
                 </summary>
                 <div style={{ marginTop: '0.4rem', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.73rem', background: '#FFFFFF', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', color: '#334155' }}>
                   {clean}
@@ -692,53 +692,9 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: '1.08rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                {tr('ఆరోగ్య మైత్ర AI అసిస్టెంట్', 'Aarogya Mytra AI', 'आरोग्य मित्र AI सहायक')}
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                {tr('ఆరోగ్య మైత్ర AI', 'Aarogya Mytra AI', 'आरोग्य मित्र AI')}
               </h3>
-              <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700 }}>
-                Google MedGemma 1.5 4B
-              </span>
-              <a
-                href="https://github.com/Google-Health/medgemma"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="badge badge-secondary"
-                style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                title="Connected to official Google-Health/medgemma repository submodule (external/medgemma)"
-              >
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-                <span>Google-Health/medgemma ({repoStatus?.details?.commit_hash?.slice(0, 7) || 'a60a660'}) ↗</span>
-              </a>
-
-              {/* Fast API Key / LLM Status Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setModalTab('cloud');
-                  setShowKeyModal(true);
-                }}
-                style={{
-                  background: aiStatus?.is_live_llm_connected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                  color: aiStatus?.is_live_llm_connected ? '#065F46' : '#92400E',
-                  border: `1.5px solid ${aiStatus?.is_live_llm_connected ? '#10B981' : '#F59E0B'}`,
-                  borderRadius: '12px',
-                  padding: '0.15rem 0.6rem',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  cursor: 'pointer'
-                }}
-                title={aiStatus?.is_live_llm_connected ? "Live AI Reasoning Connected" : "Click to connect Google Gemini API Key"}
-              >
-                <Zap size={11} color={aiStatus?.is_live_llm_connected ? "#059669" : "#D97706"} />
-                <span>
-                  {aiStatus?.is_live_llm_connected
-                    ? `🟢 Live AI: ${aiStatus.active_model}`
-                    : `⚡ MedGemma Offline • Connect Live Gemini API`}
-                </span>
-              </button>
               <span className="ai-badge-voice">
                 <Radio size={11} style={{ animation: 'pulse 1.5s infinite' }} />
                 {tr('వాయిస్ + విజన్', 'Vision + Voice', 'विज़न + वॉइस')}

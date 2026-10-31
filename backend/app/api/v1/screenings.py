@@ -476,7 +476,7 @@ def get_screening_mytra_assessment(
         urgency_reason=mytra.urgency_reason or res.get("urgency_reason", ""),
         medical_references=[MedicalReferenceDetail(**r) for r in res.get("medical_references", [])],
         cancer_safety_notice=res.get("cancer_safety_notice", ""),
-        model_name=res.get("model_name", "MedGemma"),
+        model_name="Aarogya Mytra AI",
         model_version=res.get("model_version", "1.5-4b-it"),
         created_at=mytra.created_at.isoformat(),
         clinician_review_status=mytra.clinician_review_status,

@@ -78,3 +78,4 @@ class NetworkStatusService {
 }
 
 export const networkStatus = new NetworkStatusService();
+

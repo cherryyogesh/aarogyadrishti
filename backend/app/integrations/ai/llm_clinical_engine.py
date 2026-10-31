@@ -134,12 +134,12 @@ class LLMClinicalEngine:
         # Determine Active Provider
         if self.gemini_key:
             active_provider = "gemini"
-            active_model = "Google Gemini 1.5 Flash (MedGemma Cloud)"
-            message = "Google Gemini Live AI Connected (Free Cloud Tier)"
+            active_model = "Aarogya Mytra AI (Live Cloud)"
+            message = "Aarogya Mytra AI Live Connected"
         elif has_endpoint:
             active_provider = "custom_vllm"
-            active_model = f"MedGemma ({self.medgemma_model} @ {self.custom_endpoint})"
-            message = f"Self-Hosted MedGemma / vLLM active on {self.custom_endpoint}"
+            active_model = f"Aarogya Mytra AI ({self.custom_endpoint})"
+            message = f"Aarogya Mytra AI active on {self.custom_endpoint}"
         elif self.groq_key:
             active_provider = "groq"
             active_model = "llama-3.3-70b-versatile (Groq LPU)"
@@ -154,8 +154,8 @@ class LLMClinicalEngine:
             message = "OpenAI compatible endpoint active"
         else:
             active_provider = "google_health_medgemma_local"
-            active_model = "Google Health MedGemma (Offline Autonomous Engine)"
-            message = "Offline MedGemma Clinical Knowledge Engine Active (Connect a free Gemini API key for Live AI reasoning)"
+            active_model = "Aarogya Mytra AI"
+            message = "Aarogya Mytra AI Clinical Knowledge Engine Active"
 
         return {
             "is_live_llm_connected": is_live_connected,
