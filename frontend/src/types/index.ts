@@ -377,7 +377,7 @@ export interface AuditEvent {
   timestamp: string;
 }
 
-// ----------------- AAROGYA MYTRA AI TYPES (MedGemma 1.5 4B & Evidence RAG) -----------------
+// ----------------- AAROGYA MYTRA AI TYPES (Google Gemini API & Evidence RAG) -----------------
 export interface ImageQualityDetail {
   status: 'adequate' | 'inadequate' | 'unknown';
   blur_score?: number | null;

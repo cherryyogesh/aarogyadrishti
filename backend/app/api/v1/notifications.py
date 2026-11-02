@@ -49,15 +49,18 @@ async def list_notifications(
         mins = max(1, int(time_diff.total_seconds() / 60))
         time_str = f"{mins}m ago" if mins < 60 else f"{mins // 60}h ago"
 
+        patient_name = s.patient.name if s.patient else f"Patient #{s.patient_id}"
+        mandal_name = (s.patient.mandal if s.patient and s.patient.mandal else (s.phc.name if s.phc else "Agency PHC"))
+
         if s.status in ["under_phc_review", "submitted"]:
             results.append(NotificationItem(
                 id=f"scr-{s.id}",
-                title=f"New Screening: {s.patient_name} ({s.reference_id})",
-                title_te=f"కొత్త స్క్రీనింగ్: {s.patient_name} ({s.reference_id})",
-                title_hi=f"नई स्क्रीनिंग: {s.patient_name} ({s.reference_id})",
-                message=f"Category: {s.category or 'Oral Lesion'} • Symptoms: {s.symptoms or 'Oral discomfort'} reported from {s.mandal or 'Agency PHC'}.",
-                message_te=f"వర్గం: {s.category or 'ఓరల్ లీజన్'} • లక్షణాలు: {s.symptoms or 'నోటి సమస్య'} - {s.mandal or 'ఏజెన్సీ PHC'} నుండి సమర్పించబడింది.",
-                message_hi=f"श्रेणी: {s.category or 'मुख घाव'} • लक्षण: {s.symptoms or 'मुंह की समस्या'} - {s.mandal or 'पीएचसी'} से दर्ज किया गया।",
+                title=f"New Screening: {patient_name} ({s.reference_id})",
+                title_te=f"కొత్త స్క్రీనింగ్: {patient_name} ({s.reference_id})",
+                title_hi=f"नई स्क्रीनिंग: {patient_name} ({s.reference_id})",
+                message=f"Category: {s.category or 'Oral Lesion'} • Symptoms: {s.symptoms or 'Oral discomfort'} reported from {mandal_name}.",
+                message_te=f"వర్గం: {s.category or 'ఓరల్ లీజన్'} • లక్షణాలు: {s.symptoms or 'నోటి సమస్య'} - {mandal_name} నుండి సమర్పించబడింది.",
+                message_hi=f"श्रेणी: {s.category or 'मुख घाव'} • लक्षण: {s.symptoms or 'मुंह की समस्या'} - {mandal_name} से दर्ज किया गया।",
                 type="screening",
                 target_route="screening" if current_user.role == "chw" else "phc_cases",
                 is_read=False,
@@ -66,9 +69,9 @@ async def list_notifications(
         elif s.status == "consultation_recommended":
             results.append(NotificationItem(
                 id=f"rec-{s.id}",
-                title=f"Doctor Review Completed for {s.patient_name}",
-                title_te=f"{s.patient_name} గారికి డాక్టర్ సమీక్ష పూర్తయింది",
-                title_hi=f"{s.patient_name} के लिए डॉक्टर समीक्षा पूर्ण",
+                title=f"Doctor Review Completed for {patient_name}",
+                title_te=f"{patient_name} గారికి డాక్టర్ సమీక్ష పూర్తయింది",
+                title_hi=f"{patient_name} के लिए डॉक्टर समीक्षा पूर्ण",
                 message=f"Specialist assessment completed. Prescription and follow-up care instructions ready in patient docket.",
                 message_te=f"స్పెషలిస్ట్ వైద్యుల పరిశీలన పూర్తయింది. ప్రిస్క్రిప్షన్ మరియు తదుపరి సంరక్షణ సూచనలు అందుబాటులో ఉన్నాయి.",
                 message_hi=f"विशेषज्ञ मूल्यांकन पूर्ण हुआ। नुस्खा और अनुवर्ती देखभाल निर्देश रोगी डॉकेट में तैयार हैं।",

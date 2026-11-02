@@ -16,7 +16,7 @@ from app.schemas.all_schemas import (
 from app.integrations.ai.analysis_pipeline import analysis_pipeline
 from app.integrations.ai.image_scope_registry import scope_registry
 from app.integrations.ai.medical_rag import medical_rag
-from app.integrations.ai.medgemma_provider import medgemma_provider
+from app.integrations.ai.gemini_provider import gemini_provider
 from app.api.deps import get_current_user, require_roles
 
 router = APIRouter(prefix="/mytra-ai", tags=["Aarogya Mytra AI"])
@@ -24,26 +24,26 @@ router = APIRouter(prefix="/mytra-ai", tags=["Aarogya Mytra AI"])
 @router.get("/health")
 async def get_mytra_ai_health():
     """
-    Check operational health and configuration of MedGemma 1.5 4B model provider.
+    Check operational health and configuration of Google Gemini model provider.
     """
-    health = await medgemma_provider.check_provider_health()
-    metadata = medgemma_provider.get_model_metadata()
+    health = await gemini_provider.check_provider_health()
+    metadata = gemini_provider.get_model_metadata()
     return {
         "service": "Aarogya Mytra AI",
         "provider_health": health,
         "model_metadata": metadata,
-        "google_health_medgemma_repo": medgemma_provider.bridge.get_repo_info()
+        "provider": "google_gemini"
     }
 
-@router.get("/google-health-repo")
-def get_google_health_repo_status():
+@router.get("/ai-provider-status")
+def get_ai_provider_status():
     """
-    Check connection status with official Google-Health/medgemma repository.
+    Check connection status with primary Google Gemini AI integration.
     """
     return {
         "status": "connected",
-        "repository_url": "https://github.com/Google-Health/medgemma.git",
-        "details": medgemma_provider.bridge.get_repo_info()
+        "provider": "google_gemini",
+        "model": gemini_provider.model_name
     }
 
 @router.get("/scope-registry")
@@ -85,7 +85,7 @@ async def analyze_medical_image(
     """
     Execute 12-Stage Medical Image Analysis Pipeline:
     1. Consent & Auth -> 2. OpenCV Quality -> 3. Scope Registry -> 4. Preparation ->
-    5. MedGemma Vision -> 6. Observational Prompting -> 7. Schema Parsing ->
+    5. Google Gemini Multimodal Vision -> 6. Observational Prompting -> 7. Schema Parsing ->
     8. Evidence RAG -> 9. Preliminary Explanation -> 10. Deterministic Safety & Urgency ->
     11. Provenance Storage -> 12. Clinician Routing.
     """
@@ -169,7 +169,7 @@ async def analyze_medical_image(
         medical_references=[MedicalReferenceDetail(**r) for r in result.get("medical_references", [])],
         cancer_safety_notice=result.get("cancer_safety_notice", ""),
         model_name="Aarogya Mytra AI",
-        model_version=result.get("model_version", "1.5-4b-it"),
+        model_version=result.get("model_version", gemini_provider.model_name),
         created_at=result.get("created_at", datetime.now(timezone.utc).isoformat()),
         clinician_review_status=assessment_record.clinician_review_status,
         guidance_message=result.get("guidance_message"),

@@ -4,13 +4,8 @@ from PIL import Image
 from pathlib import Path
 from typing import Tuple, Dict, Any
 
-def analyze_image_quality(file_path: str) -> Dict[str, Any]:
-    """
-    Inspect image for blur, lighting, resolution, and basic framing.
-    Uses Laplacian variance for blur detection and grayscale luminance distribution.
-    """
-    # 1. Read image with OpenCV
-    img = cv2.imread(file_path)
+
+def _analyze_cv2_image(img: np.ndarray) -> Dict[str, Any]:
     if img is None:
         return {
             "is_blurry": True,
@@ -24,7 +19,7 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
         }
 
     height, width = img.shape[:2]
-    # Adequate resolution: Minimum 160px per dimension or at least 40,000 total pixels (e.g. 200x200, 474x248, 640x480)
+    # Adequate resolution: Minimum 160px per dimension or at least 40,000 total pixels
     resolution_adequate = (width >= 160 and height >= 160) or (width * height >= 40000)
 
     # 2. Convert to grayscale for blur and luminance analysis
@@ -69,3 +64,19 @@ def analyze_image_quality(file_path: str) -> Dict[str, Any]:
         "quality_state": quality_state,
         "guidance_message": guidance_message
     }
+
+
+def analyze_image_quality(file_path: str) -> Dict[str, Any]:
+    """
+    Inspect image for blur, lighting, resolution, and basic framing.
+    Uses Laplacian variance for blur detection and grayscale luminance distribution.
+    """
+    img = cv2.imread(file_path)
+    return _analyze_cv2_image(img)
+
+
+def analyze_image_quality_bytes(image_bytes: bytes) -> Dict[str, Any]:
+    """Inspect image bytes directly for blur, lighting, resolution, and framing."""
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    return _analyze_cv2_image(img)

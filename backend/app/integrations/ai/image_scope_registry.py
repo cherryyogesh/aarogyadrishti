@@ -22,7 +22,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Oral Mucosa & Mouth",
         display_name_te="నోటి శ్లేష్మం మరియు నోటి కుహరం",
         intended_use="Preliminary triage for visible mucosal plaques (leukoplakia), fibrosis/blanching (OSMF), erythroplakia, gingival swelling, and aphthous ulcerations in primary care screening.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal + Evidence RAG + MoHFW/NOHP Guidelines",
+        approved_pipeline="Google Gemini Multimodal AI + Evidence RAG + MoHFW/NOHP Guidelines",
         required_metadata=["body_site", "duration_days", "pain_score", "mouth_opening_mm"],
         known_limitations=[
             "Cannot differentiate dysplastic pre-cancer from invasive squamous cell carcinoma without tissue biopsy.",
@@ -40,7 +40,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Skin & Dermatology",
         display_name_te="చర్మ సమస్యలు మరియు దద్దుర్లు",
         intended_use="Advisory detection of visible cutaneous rashes, eczema, scabies, fungal plaques, chronic non-healing ulcers, and pigmentation boundaries.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal + Indian Dermatological Guidance",
+        approved_pipeline="Google Gemini Multimodal AI + Indian Dermatological Guidance",
         required_metadata=["body_site", "duration_days", "itching", "lesion_evolution"],
         known_limitations=[
             "Cannot rule out melanoma or cutaneous malignancies without dermoscopy and histopathology.",
@@ -57,7 +57,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Eye & Ocular Surface",
         display_name_te="కంటి ఉపరితలం & ముందరి భాగం",
         intended_use="Inspection of anterior ocular surface: conjunctival redness, pterygium, corneal opacity, or lid margin abnormalities.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal + NPCB Guidelines",
+        approved_pipeline="Google Gemini Multimodal AI + NPCB Guidelines",
         required_metadata=["body_site", "vision_blur", "photophobia", "discharge_type"],
         known_limitations=[
             "External photographs CANNOT assess intraocular pressure, glaucoma, posterior uveitis, or retinal detachment.",
@@ -74,7 +74,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Ear & External Canal",
         display_name_te="బాహ్య చెవి మరియు కర్ణభేరి",
         intended_use="External pinna, auricular chondritis, preauricular sinuses, and otoscopic canal discharge inspection.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal + ENT Guidelines",
+        approved_pipeline="Google Gemini Multimodal AI + ENT Guidelines",
         required_metadata=["body_site", "hearing_loss", "discharge", "vertigo"],
         known_limitations=[
             "Ordinary smartphone camera cannot reliably view the tympanic membrane without a validated digital otoscope adapter.",
@@ -91,7 +91,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Wound & Chronic Ulcers",
         display_name_te="దీర్ఘకాలిక పుండ్లు & గాయాలు",
         intended_use="Evaluation of ulcer bed characteristics (slough, granulation, maceration, eschar) in diabetic foot and trauma wounds.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal + Diabetic Foot Wound Guidelines",
+        approved_pipeline="Google Gemini Multimodal AI + Diabetic Foot Wound Guidelines",
         required_metadata=["body_site", "duration_days", "diabetic_history", "wound_discharge"],
         known_limitations=[
             "Cannot detect underlying osteomyelitis (bone infection) without radiograph/MRI and probe-to-bone test.",
@@ -108,7 +108,7 @@ IMAGE_SCOPE_REGISTRY: Dict[str, ImageScopeCategory] = {
         display_name_en="Medical Documents & Lab Reports",
         display_name_te="వైద్య నివేదికలు మరియు ల్యాబ్ రికార్డులు",
         intended_use="Assisting healthcare personnel in parsing printed lab biochemistry, CBC values, discharge cards, and biopsy pathology reports.",
-        approved_pipeline="Google MedGemma 1.5 4B Multimodal Document Intelligence",
+        approved_pipeline="Google Gemini Multimodal AI Document Intelligence",
         required_metadata=["document_type", "patient_case_id"],
         known_limitations=[
             "Handwritten cursive clinical notes may have transcription errors.",

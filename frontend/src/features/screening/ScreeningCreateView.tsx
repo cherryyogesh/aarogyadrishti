@@ -1656,7 +1656,7 @@ export const ScreeningCreateView: React.FC<Props> = ({ currentLang, user, onScre
                 )}
               </div>
 
-              {/* Aarogya Mytra AI MedGemma 1.5 4B & Evidence RAG Integrated Assessment */}
+              {/* Aarogya Mytra AI Google Gemini API & Evidence RAG Integrated Assessment */}
               {mytraAssessment ? (
                 <div style={{ marginTop: '1.5rem' }}>
                   <div style={{

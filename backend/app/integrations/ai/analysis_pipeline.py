@@ -3,22 +3,22 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
-from app.integrations.ai.medgemma_provider import medgemma_provider
+from app.integrations.ai.gemini_provider import gemini_provider
 from app.integrations.ai.image_scope_registry import scope_registry
 from app.integrations.ai.medical_rag import medical_rag
 from app.integrations.ai.clinical_safety import clinical_safety
-from app.integrations.image.quality import analyze_image_quality
+from app.integrations.image.quality import analyze_image_quality, analyze_image_quality_bytes
 
 logger = logging.getLogger("analysis_pipeline")
 
 class MedicalImageAnalysisPipeline:
     """
     12-Stage Evidence-Grounded Medical Image Analysis Pipeline:
-    Aarogya Mytra AI Engine with Google MedGemma 1.5 4B Vision & Clinical AI.
+    Aarogya Mytra AI Engine with Google Gemini API Multimodal Vision.
     """
 
     def __init__(self, provider=None, registry=None, rag=None, safety=None):
-        self.provider = provider or medgemma_provider
+        self.provider = provider or gemini_provider
         self.registry = registry or scope_registry
         self.rag = rag or medical_rag
         self.safety = safety or clinical_safety
@@ -65,16 +65,21 @@ class MedicalImageAnalysisPipeline:
                 audit_trail=audit_trail
             )
 
-        quality_results = analyze_image_quality(image_path) if os.path.exists(image_path) else {
-            "is_blurry": False,
-            "blur_score": 120.0,
-            "is_dark": False,
-            "is_overexposed": False,
-            "luminance_score": 110.0,
-            "resolution_adequate": True,
-            "quality_state": "acceptable",
-            "guidance_message": "Quality verified from memory buffer."
-        }
+        if os.path.exists(image_path):
+            quality_results = analyze_image_quality(image_path)
+        elif image_bytes:
+            quality_results = analyze_image_quality_bytes(image_bytes)
+        else:
+            quality_results = {
+                "is_blurry": False,
+                "blur_score": 120.0,
+                "is_dark": False,
+                "is_overexposed": False,
+                "luminance_score": 110.0,
+                "resolution_adequate": True,
+                "quality_state": "acceptable",
+                "guidance_message": "Quality verified from memory buffer."
+            }
 
         quality_status = "adequate" if quality_results.get("quality_state") in ["acceptable", "excellent"] else "inadequate"
         quality_limitations = []
@@ -115,8 +120,9 @@ class MedicalImageAnalysisPipeline:
                 "urgency_reason": "Image quality is insufficient for preliminary visual assessment.",
                 "medical_references": [],
                 "model_name": "Aarogya Mytra AI",
-                "model_version": "1.5-4b-it",
+                "model_version": getattr(self.provider, "model_name", "gemini-3.6-flash"),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                "doctor_review_required": True,
                 "clinician_review_status": "pending",
                 "audit_trail": audit_trail
             }
@@ -147,8 +153,9 @@ class MedicalImageAnalysisPipeline:
                 "urgency_reason": "Automated AI assessment is intentionally disabled for this category. In-person clinical review required.",
                 "medical_references": [],
                 "model_name": "Aarogya Mytra AI",
-                "model_version": "1.5-4b-it",
+                "model_version": getattr(self.provider, "model_name", "gemini-3.6-flash"),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                "doctor_review_required": True,
                 "clinician_review_status": "pending",
                 "audit_trail": audit_trail
             }
@@ -165,7 +172,7 @@ class MedicalImageAnalysisPipeline:
         audit_trail.append({"stage": 4, "status": "PASSED", "input_bytes_prepared": len(image_bytes) if image_bytes else 0})
 
         # =========================================================================
-        # Stage 5 & 6: Send to MedGemma asking for observable features, uncertainty, limitations
+        # Stage 5 & 6: Send to Google Gemini asking for observable features, uncertainty, limitations
         # =========================================================================
         inference_result = await self.provider.analyze_image(
             image_bytes=image_bytes or b"",
@@ -193,8 +200,9 @@ class MedicalImageAnalysisPipeline:
                 "urgency_reason": "AI inference unavailable. Human clinician oversight preserved.",
                 "medical_references": [],
                 "model_name": "Aarogya Mytra AI",
-                "model_version": "1.5-4b-it",
+                "model_version": getattr(self.provider, "model_name", "gemini-3.6-flash"),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                "doctor_review_required": True,
                 "clinician_review_status": "pending",
                 "audit_trail": audit_trail
             }
@@ -300,7 +308,7 @@ class MedicalImageAnalysisPipeline:
             "cancer_safety_notice": self.safety.get_mandatory_cancer_notice(language=language),
             "stakeholder_views": inference_result.get("stakeholder_views", {}),
             "model_name": "Aarogya Mytra AI",
-            "model_version": "1.5-4b-it",
+            "model_version": getattr(self.provider, "model_name", "gemini-3.6-flash"),
             "created_at": datetime.now(timezone.utc).isoformat(),
             "clinician_review_status": "pending",
             "audit_trail": audit_trail

@@ -9,8 +9,8 @@ logger = logging.getLogger("hf_client")
 
 class HuggingFaceClient:
     def __init__(self):
-        self.api_key = settings.HUGGINGFACE_API_KEY
-        self.model_id = settings.AI_MODEL_ID
+        self.api_key = getattr(settings, "HUGGINGFACE_API_KEY", "")
+        self.model_id = getattr(settings, "AI_MODEL_ID", "meta-llama/Llama-3.2-3B-Instruct")
         self.api_url = f"https://api-inference.huggingface.co/models/{self.model_id}"
         # Local DeepSeek V3 Flash / Ollama support
         self.local_ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")

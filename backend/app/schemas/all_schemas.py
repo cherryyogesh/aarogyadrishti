@@ -517,7 +517,7 @@ class AuditEventResponse(BaseModel):
     ip_address: Optional[str] = None
     timestamp: datetime
 
-# ----------------- AAROGYA MYTRA AI SCHEMAS (MedGemma 1.5 4B & Evidence RAG) -----------------
+# ----------------- AAROGYA MYTRA AI SCHEMAS (Google Gemini API & Evidence RAG) -----------------
 class ImageQualityDetail(BaseModel):
     status: str = "adequate"  # adequate, inadequate, unknown
     blur_score: Optional[float] = None

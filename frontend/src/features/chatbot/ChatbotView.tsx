@@ -30,7 +30,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const [isOnline, setIsOnline] = useState<boolean>(() => networkStatus.isOnline());
   const [sessionId] = useState(() => 'sess_' + Math.random().toString(36).substring(2, 10));
 
-  // Fast AI Key & MedGemma LLM Connection State
+  // Fast AI Key & Google Gemini LLM Connection State
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [modalTab, setModalTab] = useState<'vllm' | 'local' | 'cloud'>('cloud');
   const [aiStatus, setAiStatus] = useState<any>(null);
@@ -39,9 +39,9 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   const [savingKey, setSavingKey] = useState(false);
   const [keySuccess, setKeySuccess] = useState<string | null>(null);
 
-  // Custom MedGemma / vLLM Endpoint State
+  // Custom AI Endpoint State
   const [endpointUrl, setEndpointUrl] = useState('http://localhost:8080/v1');
-  const [endpointModel, setEndpointModel] = useState('google/medgemma-1.5-4b-it');
+  const [endpointModel, setEndpointModel] = useState('gemini-3.6-flash');
   const [endpointToken, setEndpointToken] = useState('');
   const [endpointProbing, setEndpointProbing] = useState(false);
   const [endpointProbeResult, setEndpointProbeResult] = useState<any>(null);
@@ -303,7 +303,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
   useEffect(() => {
     api.getGoogleHealthRepoStatus()
       .then(res => setRepoStatus(res))
-      .catch(() => setRepoStatus({ status: 'connected', details: { connected: true, submodule_path: 'external/medgemma' } }));
+      .catch(() => setRepoStatus({ status: 'connected', details: { connected: true, provider: 'google_gemini' } }));
   }, []);
 
   useEffect(() => {
@@ -494,7 +494,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     setActivatingLocal(true);
     setKeySuccess(null);
     try {
-      const res = await api.activateLocalMedGemma();
+      const res = await api.activateLocalAi();
       setAiStatus(res.status);
       setKeySuccess(isTe ? 'లోకల్ ఆరోగ్య మైత్ర AI యాక్టివేట్ అయింది!' : 'Local Aarogya Mytra AI activated in Zero-Key mode!');
       setTimeout(() => {
@@ -1135,7 +1135,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
           </div>
         </div>
       )}
-      {/* Fast API Key & Self-Hosted MedGemma Connector Modal */}
+      {/* Fast API Key & Google Gemini AI Connector Modal */}
       {showKeyModal && (
         <div style={{
           position: 'fixed',
@@ -1267,7 +1267,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               </div>
             )}
 
-            {/* TAB 1: CUSTOM MEDGEMMA / vLLM ENDPOINT */}
+            {/* TAB 1: CUSTOM AI / vLLM ENDPOINT */}
             {modalTab === 'vllm' && (
               <div>
                 <div style={{ fontSize: '0.81rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
@@ -1355,7 +1355,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                       type="text"
                       value={endpointModel}
                       onChange={(e) => setEndpointModel(e.target.value)}
-                      placeholder="google/medgemma-1.5-4b-it"
+                      placeholder="gemini-3.6-flash"
                       style={{
                         width: '100%',
                         padding: '0.6rem 0.75rem',
@@ -1392,10 +1392,10 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
                   {/* Quick-Start Command Snippet */}
                   <div style={{ background: '#0F172A', color: '#E2E8F0', padding: '0.75rem', borderRadius: '8px', fontSize: '0.72rem', fontFamily: 'monospace', marginBottom: '1.2rem', lineHeight: 1.5 }}>
-                    <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.25rem' }}># Launch local MedGemma via vLLM:</div>
-                    <code>vllm serve google/medgemma-1.5-4b-it --port 8080</code>
+                    <div style={{ color: '#38BDF8', fontWeight: 700, marginBottom: '0.25rem' }}># Launch local engine via vLLM:</div>
+                    <code>vllm serve google/gemma-2b --port 8080</code>
                     <div style={{ color: '#38BDF8', fontWeight: 700, margin: '0.4rem 0 0.25rem' }}># Or run via Ollama:</div>
-                    <code>ollama run medgemma</code>
+                    <code>ollama run gemma2</code>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
@@ -1461,7 +1461,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   </div>
                   <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
                     <li><strong>Serving Framework:</strong> <code>python/serving/predictor.py</code> & <code>vertex_schemata</code></li>
-                    <li><strong>Prompt Architecture:</strong> Official MedGemma thinking trace tokens (<code>&lt;unused94&gt;thought...&lt;unused95&gt;</code>)</li>
+                    <li><strong>Architecture:</strong> Multimodal Clinical Reasoning and Multilingual Intelligence</li>
                     <li><strong>Medical QA Benchmarks:</strong> MedQA clinical question answering protocols</li>
                     <li><strong>Universal Communication:</strong> 3-tier guidance (Patients, ASHA Workers, Doctors) in 6 languages</li>
                     <li><strong>100% Offline & Private:</strong> No cloud transmission or external token needed</li>

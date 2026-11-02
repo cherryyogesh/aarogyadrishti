@@ -37,26 +37,28 @@ class Settings(BaseSettings):
     DLT_SENDER_ID: str = os.getenv("DLT_SENDER_ID", "AARDRI")
     DLT_ENTITY_ID: str = os.getenv("DLT_ENTITY_ID", "")
 
-    # Fast AI LLM & MedGemma Integration
+    # Primary AI Provider: Google Gemini API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+    GEMINI_TIMEOUT_SECONDS: int = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "30"))
+    GEMINI_MAX_RETRIES: int = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-    HUGGINGFACE_API_KEY: str = os.getenv("HUGGINGFACE_API_KEY", "")
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    FAST_API_KEY: str = os.getenv("FAST_API_KEY", "")
-    AI_MODEL_ID: str = os.getenv("AI_MODEL_ID", "meta-llama/Llama-3.2-3B-Instruct")
 
-    # Aarogya Mytra AI — Google MedGemma 1.5 4B Vision & Clinical AI
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+
+
+
+    # Aarogya Mytra AI Configuration
     MYTRA_AI_ENABLED: bool = True
-    GOOGLE_HEALTH_MEDGEMMA_REPO: str = "https://github.com/Google-Health/medgemma.git"
-    GOOGLE_HEALTH_MEDGEMMA_SUBMODULE: str = str(BASE_DIR.parent / "external" / "medgemma")
-    MEDGEMMA_PROVIDER_TYPE: str = os.getenv("MEDGEMMA_PROVIDER_TYPE", "auto")  # local, managed, auto, mock_test, none
-    MEDGEMMA_ENDPOINT_URL: str = os.getenv("MEDGEMMA_ENDPOINT_URL", "")
-    MEDGEMMA_API_KEY: str = os.getenv("MEDGEMMA_API_KEY", "")
-    MEDGEMMA_HF_TOKEN: str = os.getenv("MEDGEMMA_HF_TOKEN", "")
-    MEDGEMMA_MODEL_ID: str = os.getenv("MEDGEMMA_MODEL_ID", "google/medgemma-1.5-4b-it")
-    MEDGEMMA_TIMEOUT_SECONDS: int = int(os.getenv("MEDGEMMA_TIMEOUT_SECONDS", "30"))
-    MEDGEMMA_USE_QUANTIZATION: bool = os.getenv("MEDGEMMA_USE_QUANTIZATION", "true").lower() == "true"
+
+
+
+
+
+
+
+
+
 
     # Telemedicine WebRTC
     STUN_SERVER_URL: str = os.getenv("STUN_SERVER_URL", "stun:stun.l.google.com:19302")

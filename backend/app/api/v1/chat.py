@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models.entities import ChatMessage, ScreeningImage
 from app.schemas.all_schemas import ChatMessagePayload, ChatMessageResponse
 from app.integrations.ai.hf_client import hf_client
-from app.integrations.ai.medgemma_chat_engine import medgemma_chat_engine
+from app.integrations.ai.gemini_chat_engine import gemini_chat_engine
 from app.integrations.ai.triage import detect_emergency_symptoms, check_cancer_claim_guard
 from app.integrations.ai.medical_rag import medical_rag
 from app.integrations.ai.clinical_safety import clinical_safety
@@ -51,6 +51,13 @@ async def send_chat_message(
     db.add(user_msg)
     db.flush()
 
+    # Fetch recent conversation context (last 6 messages) for multi-turn coherence
+    past_msgs = db.query(ChatMessage).filter(
+        ChatMessage.session_id == session_id,
+        ChatMessage.id != user_msg.id
+    ).order_by(ChatMessage.created_at.desc()).limit(6).all()
+    history = [{"role": m.role, "content": m.content} for m in reversed(past_msgs)]
+
     # 1. If an image is attached, execute the 12-stage medical vision pipeline
     warning_flag = None
 
@@ -89,10 +96,11 @@ async def send_chat_message(
 
             user_query_answer = ""
             if not is_generic_caption:
-                ai_resp = await medgemma_chat_engine.generate_chat_response_async(
+                ai_resp = await gemini_chat_engine.generate_chat_response_async(
                     user_message=text,
                     language=payload.language,
-                    has_attachment=True
+                    has_attachment=True,
+                    conversation_history=history
                 )
                 if ai_resp.get("is_emergency"):
                     warning_flag = "EMERGENCY_RED_FLAG"
@@ -152,11 +160,12 @@ async def send_chat_message(
             final_content = pipeline_res.get("guidance_message", "Photo review pending doctor examination.")
 
     else:
-        # 2. Text-only Query - Query MedGemma Unified Clinical LLM & Dialogue Engine
-        ai_resp = await medgemma_chat_engine.generate_chat_response_async(
+        # 2. Text-only Query - Query Google Gemini Clinical Dialogue Engine
+        ai_resp = await gemini_chat_engine.generate_chat_response_async(
             user_message=text,
             language=payload.language,
-            has_attachment=False
+            has_attachment=False,
+            conversation_history=history
         )
 
         if ai_resp.get("is_emergency"):

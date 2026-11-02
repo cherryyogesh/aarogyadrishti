@@ -4,9 +4,10 @@ from typing import Dict, Any, List, Optional
 EMERGENCY_RED_FLAGS = [
     r"chest\s*(pain|pressure|tightness)",
     r"breathing\s*(difficulty|trouble|shortness|severe)",
+    r"cannot\s*breathe|can't\s*breathe|choking",
     r"stroke",
     r"unconscious",
-    r"uncontrolled\s*bleed",
+    r"uncontrolled\s*bleed|bleeding\s*heavily|heavy\s*bleed",
     r"sudden\s*vision\s*loss",
     r"sudden\s*numbness|face\s*droop",
     r"coughing\s*blood",

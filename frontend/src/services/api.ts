@@ -469,7 +469,7 @@ class ApiService {
     });
   }
 
-  // --- Aarogya Mytra AI (Google MedGemma 1.5 4B & Evidence RAG) ---
+  // --- Aarogya Mytra AI (Google Gemini API & Evidence RAG) ---
   async analyzeMedicalImage(payload: MytraAnalysisRequest): Promise<MytraAnalysisResponse> {
     return this.request<MytraAnalysisResponse>('/mytra-ai/analyze', {
       method: 'POST',
@@ -497,7 +497,7 @@ class ApiService {
   }
 
   async getGoogleHealthRepoStatus(): Promise<any> {
-    return this.request<any>('/mytra-ai/google-health-repo');
+    return this.request<any>('/mytra-ai/ai-provider-status');
   }
 
   async getMytraScopeRegistry(): Promise<any> {
@@ -526,7 +526,7 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({
         endpoint_url: endpointUrl,
-        model_id: modelId || 'google/medgemma-1.5-4b-it',
+        model_id: modelId || 'gemini-3.6-flash',
         api_key: apiKey || ''
       }),
     });
@@ -536,11 +536,8 @@ class ApiService {
     return this.request<any>(`/config/probe-endpoint?url=${encodeURIComponent(endpointUrl)}`);
   }
 
-  async activateLocalMedGemma(): Promise<any> {
-    return this.request<any>('/config/ai-keys', {
-      method: 'POST',
-      body: JSON.stringify({ provider: 'medgemma_local', api_key: '' }),
-    });
+  async activateLocalAi(): Promise<any> {
+    return this.request<any>('/config/ai-status');
   }
 
   async listNotifications(): Promise<AppNotification[]> {
