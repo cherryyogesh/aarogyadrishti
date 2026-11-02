@@ -4,7 +4,8 @@ import { translations } from '../../i18n/translations';
 import { LanguageCode, Appointment, Patient, User } from '../../types';
 import {
   Calendar, Clock, UserCheck, AlertCircle, X, Check,
-  RefreshCw, Trash2, Plus, Video, CheckCircle
+  RefreshCw, Trash2, Plus, Video, CheckCircle,
+  Smartphone, QrCode, Copy, PhoneCall, Sparkles
 } from 'lucide-react';
 
 interface Props {
@@ -37,6 +38,8 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
   // Post-booking video conference prompt
   const [bookedAppointment, setBookedAppointment] = useState<Appointment | null>(null);
   const [connectingId, setConnectingId] = useState<number | null>(null);
+  const [selectedAptForQr, setSelectedAptForQr] = useState<Appointment | null>(null);
+  const [copiedQrLink, setCopiedQrLink] = useState(false);
 
   // Reschedule / Cancel Modal
   const [actionApt, setActionApt] = useState<Appointment | null>(null);
@@ -162,6 +165,72 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
         </button>
       </div>
 
+      {/* Live WhatsApp-Style Telemedicine Video Calling Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #064E3B 0%, #065F46 50%, #047857 100%)',
+        borderRadius: '14px',
+        padding: '1rem 1.25rem',
+        marginBottom: '1.25rem',
+        color: '#FFFFFF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        boxShadow: '0 4px 14px rgba(6, 95, 70, 0.25)',
+        border: '1px solid #10B981'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#A7F3D0'
+          }}>
+            <PhoneCall size={24} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF' }}>
+                {currentLang === 'te' ? 'లైవ్ వాట్సాప్-స్టైల్ టెలి-కన్సల్టేషన్' : 'Live WhatsApp-Style Tele-Consultation'}
+              </h3>
+              <span style={{
+                background: '#25D366',
+                color: '#FFFFFF',
+                fontSize: '0.68rem',
+                fontWeight: 800,
+                padding: '0.15rem 0.55rem',
+                borderRadius: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#FFFFFF', animation: 'pulse 1s infinite' }} />
+                Live WebRTC
+              </span>
+            </div>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#D1FAE5' }}>
+              {currentLang === 'te'
+                ? 'PHC సెంటర్లు మరియు స్పెషలిస్ట్ డాక్టర్ల మధ్య ప్రత్యక్ష వీడియో కాలింగ్ • ల్యాప్‌టాప్ వెబ్‌క్యామ్ మరియు స్మార్ట్‌ఫోన్ మొబైల్ క్యామ్ సపోర్ట్.'
+                : 'Direct live video calling between PHC centres and doctors with laptop webcam and smartphone mobile cam support.'}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span style={{ background: 'rgba(0,0,0,0.25)', padding: '0.25rem 0.6rem', borderRadius: '8px', fontSize: '0.74rem', color: '#ECFDF5' }}>
+            💻 Laptop Webcam
+          </span>
+          <span style={{ background: 'rgba(0,0,0,0.25)', padding: '0.25rem 0.6rem', borderRadius: '8px', fontSize: '0.74rem', color: '#ECFDF5' }}>
+            📱 Mobile Cam (Front/Rear)
+          </span>
+        </div>
+      </div>
+
       {/* Appointments List Card */}
       <div className="card">
         {loading ? (
@@ -224,28 +293,65 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         {apt.status !== 'cancelled' && apt.status !== 'completed' && (
-                          <button
-                            className="btn btn-primary"
-                            style={{
-                              minHeight: '28px',
-                              padding: '0.2rem 0.6rem',
-                              fontSize: '0.74rem',
-                              background: 'linear-gradient(135deg, #0D9488 0%, #059669 100%)',
-                              borderColor: '#0D9488',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              whiteSpace: 'nowrap'
-                            }}
-                            disabled={connectingId === apt.id}
-                            onClick={() => handleJoinCall(apt)}
-                            title={currentLang === 'te' ? 'PHC రోగి మరియు డాక్టర్ మధ్య వీడియో కాన్ఫరెన్స్ ప్రారంభించండి' : 'Connect PHC clinic (patient with medical staff) to doctor video call'}
-                          >
-                            <Video size={13} />
-                            {connectingId === apt.id
-                              ? (currentLang === 'te' ? 'కనెక్ట్...' : 'Connecting...')
-                              : (currentLang === 'te' ? 'వీడియో కాల్' : 'Video Call')}
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <button
+                              className="btn"
+                              style={{
+                                minHeight: '32px',
+                                padding: '0.25rem 0.75rem',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '20px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                boxShadow: '0 2px 8px rgba(37, 211, 102, 0.35)',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                              disabled={connectingId === apt.id}
+                              onClick={() => handleJoinCall(apt)}
+                              title={currentLang === 'te' ? 'లైవ్ వాట్సాప్ స్టైల్ వీడియో కాల్ ప్రారంభించండి (ల్యాప్‌టాప్ వెబ్‌క్యామ్ లేదా మొబైల్ కామ్)' : 'Start Live WhatsApp-style Video Call (Webcam or Mobile Cam)'}
+                            >
+                              <span style={{
+                                width: '7px',
+                                height: '7px',
+                                borderRadius: '50%',
+                                backgroundColor: '#FFFFFF',
+                                display: 'inline-block',
+                                animation: (apt.status === 'in_consultation' || apt.status === 'waiting_for_doctor') ? 'pulse 1s infinite' : 'none'
+                              }} />
+                              <Video size={14} />
+                              <span>{connectingId === apt.id
+                                ? (currentLang === 'te' ? 'కనెక్ట్...' : 'Connecting...')
+                                : (currentLang === 'te' ? 'లైవ్ వీడియో కాల్' : 'Live Video Call')}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              style={{
+                                minHeight: '32px',
+                                width: '32px',
+                                padding: 0,
+                                borderRadius: '50%',
+                                border: '1.5px solid #25D366',
+                                background: '#F0FDF4',
+                                color: '#065F46',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title={currentLang === 'te' ? 'మొబైల్ ఫోన్ కెమెరాతో జాయిన్ అవ్వడానికి QR కోడ్' : 'Scan QR code to connect mobile phone camera'}
+                              onClick={() => setSelectedAptForQr(apt)}
+                            >
+                              <Smartphone size={15} color="#128C7E" />
+                            </button>
+                          </div>
                         )}
                         {(apt.status === 'scheduled' || apt.status === 'rescheduled') && (
                           <>
@@ -578,6 +684,141 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                 {connectingId === bookedAppointment.id
                   ? (currentLang === 'te' ? 'కనెక్ట్ అవుతోంది...' : 'Connecting...')
                   : (currentLang === 'te' ? 'వీడియో కాల్ ప్రారంభించండి' : 'Start Video Conference Now')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Mobile Cam Connect QR Modal */}
+      {selectedAptForQr && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 80,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '18px',
+            maxWidth: '480px',
+            width: '100%',
+            padding: '1.75rem',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            textAlign: 'center'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Smartphone size={22} color="#128C7E" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0F172A' }}>
+                  {currentLang === 'te' ? 'మొబైల్ కెమెరాతో జాయిన్ అవ్వండి' : 'Connect Mobile Phone Camera'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAptForQr(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: '#64748B', marginBottom: '1.25rem' }}>
+              {currentLang === 'te'
+                ? `${selectedAptForQr.patient_name} గారి కన్సల్టేషన్ కోసం మీ స్మార్ట్‌ఫోన్ కెమెరా (ఫ్రంట్ లేదా బ్యాక్) ను ఉపయోగించి ఈ QR కోడ్‌ను స్కాన్ చేయండి.`
+                : `Scan this QR code with any smartphone to stream the patient (${selectedAptForQr.patient_name}) camera directly into the doctor call.`}
+            </p>
+
+            <div style={{
+              background: '#F8FAFC',
+              border: '2px dashed #CBD5E1',
+              borderRadius: '14px',
+              padding: '1.25rem',
+              display: 'inline-block',
+              marginBottom: '1.25rem'
+            }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`http://192.168.1.54:5173/?join_call=ad-telemed-apt-${selectedAptForQr.id}`)}`}
+                alt="Mobile Video Call QR Code"
+                style={{ width: '180px', height: '180px', display: 'block', borderRadius: '8px' }}
+                onError={(e) => {
+                  (e.target as any).style.display = 'none';
+                }}
+              />
+            </div>
+
+            <div style={{
+              background: '#F1F5F9',
+              padding: '0.6rem 0.8rem',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              color: '#334155',
+              wordBreak: 'break-all',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem'
+            }}>
+              <span style={{ fontFamily: 'monospace' }}>
+                http://192.168.1.54:5173/?join_call=ad-telemed-apt-{selectedAptForQr.id}
+              </span>
+              <button
+                type="button"
+                style={{
+                  background: copiedQrLink ? '#10B981' : '#0D9488',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.3rem 0.6rem',
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  flexShrink: 0
+                }}
+                onClick={() => {
+                  navigator.clipboard.writeText(`http://192.168.1.54:5173/?join_call=ad-telemed-apt-${selectedAptForQr.id}`);
+                  setCopiedQrLink(true);
+                  setTimeout(() => setCopiedQrLink(false), 2000);
+                }}
+              >
+                {copiedQrLink ? <Check size={12} /> : <Copy size={12} />}
+                {copiedQrLink ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSelectedAptForQr(null)}
+              >
+                {currentLang === 'te' ? 'మూసివేయి' : 'Close'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onClick={() => {
+                  const apt = selectedAptForQr;
+                  setSelectedAptForQr(null);
+                  handleJoinCall(apt);
+                }}
+              >
+                <Video size={16} />
+                {currentLang === 'te' ? 'ఈ స్క్రీన్‌పై కాల్ ప్రారంభించండి' : 'Start Call on this PC'}
               </button>
             </div>
           </div>

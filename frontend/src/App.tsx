@@ -286,7 +286,7 @@ export const App: React.FC = () => {
           session={activeConsultation}
           onClose={() => {
             setActiveConsultation(null);
-            setActiveRoute('queue');
+            setActiveRoute(currentUser.role === 'doctor' ? 'queue' : 'appointments');
           }}
         />
       </div>
@@ -707,7 +707,7 @@ export const App: React.FC = () => {
               user={currentUser}
               onCheckinSuccess={() => {
                 if (currentUser.role === 'doctor') {
-                  setActiveRoute('queue');
+                  setActiveRoute(currentUser.role === 'doctor' ? 'queue' : 'appointments');
                 }
               }}
             />

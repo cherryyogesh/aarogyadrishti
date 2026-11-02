@@ -49,7 +49,7 @@ async def list_notifications(
         mins = max(1, int(time_diff.total_seconds() / 60))
         time_str = f"{mins}m ago" if mins < 60 else f"{mins // 60}h ago"
 
-        patient_name = s.patient.name if s.patient else f"Patient #{s.patient_id}"
+        patient_name = s.patient.full_name if s.patient else f"Patient #{s.patient_id}"
         mandal_name = (s.patient.mandal if s.patient and s.patient.mandal else (s.phc.name if s.phc else "Agency PHC"))
 
         if s.status in ["under_phc_review", "submitted"]:

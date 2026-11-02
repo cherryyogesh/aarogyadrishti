@@ -18,7 +18,7 @@ router = APIRouter(prefix="/doctor", tags=["Doctor Queue & Telemedicine"])
 def get_doctor_waiting_queue(
     phc_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.PHC_STAFF, UserRole.ADMIN]))
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.PHC_STAFF, UserRole.CHW, UserRole.NAVIGATOR, UserRole.ADMIN]))
 ):
     query = db.query(Appointment).filter(
         Appointment.status.in_([
@@ -74,13 +74,14 @@ def get_doctor_waiting_queue(
 def accept_patient_case(
     appointment_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.PHC_STAFF, UserRole.ADMIN]))
+    current_user: User = Depends(require_roles([UserRole.DOCTOR, UserRole.PHC_STAFF, UserRole.CHW, UserRole.NAVIGATOR, UserRole.ADMIN]))
 ):
     apt = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not apt:
         raise HTTPException(status_code=404, detail="Appointment not found.")
 
     valid_statuses = [
+        AppointmentStatus.REQUESTED,
         AppointmentStatus.SCHEDULED,
         AppointmentStatus.WAITING_FOR_DOCTOR,
         AppointmentStatus.IN_CONSULTATION,

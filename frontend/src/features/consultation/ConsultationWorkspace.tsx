@@ -6,7 +6,8 @@ import {
   Video, VideoOff, Mic, MicOff, Stethoscope, FileText, CheckCircle,
   AlertCircle, ArrowLeft, Send, Sparkles, Building, Printer, Download,
   Plus, Users, LayoutGrid, Maximize2, ShieldCheck, Check, X, PhoneCall,
-  Activity, Clock, QrCode, Smartphone, ExternalLink, Copy
+  Activity, Clock, QrCode, Smartphone, ExternalLink, Copy,
+  RotateCw, PhoneOff
 } from 'lucide-react';
 
 interface Props {
@@ -20,7 +21,10 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const t = translations[currentLang] || translations.en;
   const [videoActive, setVideoActive] = useState(true);
   const [audioActive, setAudioActive] = useState(true);
-  const [viewMode, setViewMode] = useState<'dual' | 'pip'>('dual');
+  const [viewMode, setViewMode] = useState<'whatsapp' | 'dual' | 'pip'>('whatsapp');
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isSwapped, setIsSwapped] = useState(false);
+  const [isDocketOpen, setIsDocketOpen] = useState(false);
 
   // Elapsed Call Timer
   const [elapsedSeconds, setElapsedSeconds] = useState(38);
@@ -136,7 +140,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     }
   };
 
-  const startLocalCamera = async () => {
+  const startLocalCamera = async (mode: 'user' | 'environment' = facingMode) => {
     setCameraLoading(true);
     setCameraError(null);
 
@@ -155,14 +159,14 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } },
           audio: true
         });
       } catch (errAudio) {
         console.warn('Audio device unavailable or restricted, fallback to video-only:', errAudio);
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } },
             audio: false
           });
         } catch {
@@ -172,6 +176,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
 
       localStreamRef.current = stream;
       setLocalStream(stream);
+      setFacingMode(mode);
       setCameraPermissionGranted(true);
       setCameraError(null);
       setStreamStarted(true);
@@ -211,6 +216,11 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     } finally {
       setCameraLoading(false);
     }
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    await startLocalCamera(nextMode);
   };
 
   // Initialize camera preview on mount
@@ -308,8 +318,12 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
     return pc;
   };
 
-  const lanIp = '192.168.1.40';
-  const mobileJoinUrl = `http://${lanIp}:5173/?join_call=${roomId}`;
+  const currentHost = typeof window !== 'undefined'
+    ? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '192.168.1.54' : window.location.hostname)
+    : '192.168.1.54';
+  const mobileJoinUrl = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${currentHost}:${window.location.port || '5173'}/?join_call=${roomId}`
+    : `http://192.168.1.54:5173/?join_call=${roomId}`;
   const localJoinUrl = typeof window !== 'undefined' ? `${window.location.origin}/?join_call=${roomId}` : '';
 
   // WebRTC Signaling WebSocket Client
@@ -677,10 +691,10 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               background: 'rgba(255,255,255,0.15)',
               borderColor: 'rgba(255,255,255,0.2)'
             }}
-            onClick={() => setViewMode(viewMode === 'dual' ? 'pip' : 'dual')}
+            onClick={() => setViewMode(viewMode === 'whatsapp' ? 'dual' : 'whatsapp')}
           >
             <LayoutGrid size={13} style={{ marginRight: '4px' }} />
-            {viewMode === 'dual' ? 'PiP Mode' : 'Dual Grid'}
+            {viewMode === 'whatsapp' ? 'Dual Grid' : 'WhatsApp Mode'}
           </button>
         </div>
       </div>
@@ -703,7 +717,264 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
             border: '1px solid #1E293B',
             padding: '0.75rem'
           }}>
-            {viewMode === 'dual' ? (
+            {viewMode === 'whatsapp' ? (
+              /* WHATSAPP CALLING VIEW */
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '16/10',
+                minHeight: '440px',
+                background: 'radial-gradient(ellipse at center, #111b21 0%, #0c1317 100%)',
+                borderRadius: '14px',
+                overflow: 'hidden',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)'
+              }}>
+                {/* 1. Primary Full-Frame Feed (Remote or Swapped Local) */}
+                {(!isSwapped ? (isCallConnected && remoteStream) : (localStream && videoActive)) ? (
+                  <video
+                    ref={(el) => {
+                      if (!isSwapped) {
+                        bindVideoNode(el, remoteStream, false, false);
+                      } else {
+                        bindVideoNode(el, localStream, true, facingMode === 'user');
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    muted={isSwapped}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block'
+                    }}
+                  />
+                ) : (
+                  /* WhatsApp Calling / Ringing Screen when remote not connected yet */
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem',
+                    textAlign: 'center',
+                    color: '#FFFFFF'
+                  }}>
+                    {/* Pulsing Avatar with WhatsApp Green Wave */}
+                    <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                      <div style={{
+                        position: 'absolute',
+                        top: '-12px', left: '-12px', right: '-12px', bottom: '-12px',
+                        borderRadius: '50%',
+                        border: '2px solid rgba(37, 211, 102, 0.4)',
+                        animation: 'pulse 1.8s infinite'
+                      }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-24px', left: '-24px', right: '-24px', bottom: '-24px',
+                        borderRadius: '50%',
+                        border: '1.5px solid rgba(37, 211, 102, 0.2)',
+                        animation: 'pulse 2.4s infinite'
+                      }} />
+                      <div style={{
+                        width: '110px',
+                        height: '110px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '3px solid #25D366',
+                        boxShadow: '0 8px 24px rgba(37, 211, 102, 0.35)',
+                        background: '#1E293B',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <img
+                          src={isDoctorUser ? "/assets/patient_face_feed.jpg" : "/assets/doctor_face_feed.jpg"}
+                          alt="Participant Face"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            (e.target as any).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.4rem', color: '#FFFFFF' }}>
+                      {isDoctorUser
+                        ? `${session.patient_name} (PHC Patient)`
+                        : (session.doctor_name || 'Dr. Priya Sundaram')}
+                    </h3>
+
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(37, 211, 102, 0.15)',
+                      border: '1px solid #25D366',
+                      color: '#6EE7B7',
+                      padding: '0.25rem 0.85rem',
+                      borderRadius: '20px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      marginBottom: '1rem'
+                    }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#25D366', animation: 'pulse 1s infinite' }} />
+                      {peerCount > 1
+                        ? (currentLang === 'te' ? 'కనెక్ట్ అవుతోంది...' : 'Connecting WebRTC Video...')
+                        : (currentLang === 'te' ? 'కాల్ రింగింగ్... (డాక్టర్/PHC కోసం వేచి ఉంది)' : 'Ringing... Waiting for Doctor / PHC to join')}
+                    </div>
+
+                    <p style={{ fontSize: '0.8rem', color: '#94A3B8', maxWidth: '380px', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
+                      {currentLang === 'te'
+                        ? 'స్మార్ట్‌ఫోన్ ద్వారా కూడా ప్రత్యక్షంగా కనెక్ట్ అవ్వవచ్చు. కింద ఉన్న "మొబైల్ కామ్" బటన్ ద్వారా QR కోడ్‌ను స్కాన్ చేయండి.'
+                        : 'Connect live with laptop webcam or smartphone mobile cam. Scan QR code to stream directly from any mobile phone.'}
+                    </p>
+
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setShowInviteModal(true)}
+                      style={{
+                        background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '0.45rem 1rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Smartphone size={14} />
+                      {currentLang === 'te' ? 'మొబైల్ ఫోన్ కెమెరా కనెక్ట్ చేయండి' : 'Connect Mobile Cam via QR'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 2. Floating Picture-in-Picture (PiP) Inset Tile */}
+                <div
+                  onClick={() => setIsSwapped(!isSwapped)}
+                  title="Click to swap views"
+                  style={{
+                    position: 'absolute',
+                    top: '14px',
+                    right: '14px',
+                    width: '150px',
+                    aspectRatio: '3/4',
+                    background: '#0B132B',
+                    borderRadius: '12px',
+                    border: '2px solid #25D366',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.7)',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    zIndex: 20,
+                    transition: 'transform 0.2s ease'
+                  }}
+                >
+                  {(isSwapped ? (isCallConnected && remoteStream) : (localStream && videoActive)) ? (
+                    <video
+                      ref={(el) => {
+                        if (isSwapped) {
+                          bindVideoNode(el, remoteStream, false, false);
+                        } else {
+                          bindVideoNode(el, localStream, true, facingMode === 'user');
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      muted={!isSwapped}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={isSwapped
+                        ? (isDoctorUser ? "/assets/patient_face_feed.jpg" : "/assets/doctor_face_feed.jpg")
+                        : (isDoctorUser ? "/assets/doctor_face_feed.jpg" : "/assets/patient_face_feed.jpg")}
+                      alt="PiP Feed"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        (e.target as any).style.display = 'none';
+                      }}
+                    />
+                  )}
+
+                  {/* PiP Badge */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '4px',
+                    left: '4px',
+                    background: 'rgba(0,0,0,0.7)',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '0.62rem',
+                    color: '#FFFFFF',
+                    fontWeight: 700
+                  }}>
+                    {isSwapped
+                      ? (isDoctorUser ? 'Remote Patient' : 'Remote Doctor')
+                      : (isDoctorUser ? `You (${facingMode === 'user' ? 'Front' : 'Rear'})` : `PHC (${facingMode === 'user' ? 'Front' : 'Rear'})`)}
+                  </div>
+
+                  {/* Tap-to-Swap hint */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    right: '4px',
+                    background: 'rgba(0,0,0,0.65)',
+                    padding: '2px 5px',
+                    borderRadius: '4px',
+                    fontSize: '0.58rem',
+                    color: '#A7F3D0',
+                    fontWeight: 600
+                  }}>
+                    ⇄ Swap
+                  </div>
+                </div>
+
+                {/* 3. Top Floating Glass Banner with Caller Info & Live Timer */}
+                <div style={{
+                  position: 'absolute',
+                  top: '14px',
+                  left: '14px',
+                  background: 'rgba(11, 20, 26, 0.82)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  zIndex: 15,
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isCallConnected ? '#25D366' : '#EAB308',
+                    animation: 'pulse 1s infinite'
+                  }} />
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#FFFFFF' }}>
+                    {isDoctorUser
+                      ? `${session.phc_name || 'PHC Clinic'} (Patient: ${session.patient_name})`
+                      : (session.doctor_name || 'Dr. Priya Sundaram')}
+                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>•</span>
+                  <span style={{ fontSize: '0.74rem', color: '#6EE7B7', fontWeight: 700, fontFamily: 'monospace' }}>
+                    {formatTimer(elapsedSeconds)}
+                  </span>
+                </div>
+              </div>
+            ) : viewMode === 'dual' ? (
               /* DUAL SPLIT GRID: PHC (Patient with Staff) & Specialist Doctor */
               <div style={{
                 display: 'grid',
@@ -787,7 +1058,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                             {!isDoctorUser ? (
                               <button
                                 type="button"
-                                onClick={startLocalCamera}
+                                onClick={() => startLocalCamera()}
                                 className="btn btn-primary"
                                 style={{ minHeight: '30px', padding: '0.3rem 0.75rem', fontSize: '0.74rem', gap: '5px' }}
                               >
@@ -986,7 +1257,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                             {isDoctorUser ? (
                               <button
                                 type="button"
-                                onClick={startLocalCamera}
+                                onClick={() => startLocalCamera()}
                                 className="btn btn-primary"
                                 style={{ minHeight: '30px', padding: '0.3rem 0.75rem', fontSize: '0.74rem', gap: '5px' }}
                               >
@@ -1206,7 +1477,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               {(!localStream || cameraError) && (
                 <button
                   type="button"
-                  onClick={startLocalCamera}
+                  onClick={() => startLocalCamera()}
                   style={{
                     background: '#0D9488',
                     border: 'none',
@@ -1321,7 +1592,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               {/* Grid / PiP Toggle */}
               <button
                 type="button"
-                onClick={() => setViewMode(viewMode === 'dual' ? 'pip' : 'dual')}
+                onClick={() => setViewMode(viewMode === 'whatsapp' ? 'dual' : 'whatsapp')}
                 style={{
                   background: 'rgba(255,255,255,0.15)',
                   border: '1px solid rgba(255,255,255,0.2)',
@@ -1383,6 +1654,53 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
               >
                 <ExternalLink size={14} />
                 2nd Window Test
+              </button>
+
+              {/* Flip Camera (Front / Rear for Webcams & Mobile Cams) */}
+              <button
+                type="button"
+                onClick={toggleCameraFacing}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.85rem',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700
+                }}
+                title={facingMode === 'user' ? 'Switch to Rear/Back Camera (Mobile Cam)' : 'Switch to Front/User Camera'}
+              >
+                <RotateCw size={14} />
+                Flip: {facingMode === 'user' ? 'Front Cam' : 'Rear Cam'}
+              </button>
+
+              {/* End Call Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: '#DC2626',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '0.35rem 0.95rem',
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 8px rgba(220, 38, 38, 0.4)'
+                }}
+                title="End Consultation Call"
+              >
+                <PhoneOff size={14} />
+                End Call
               </button>
             </div>
           </div>

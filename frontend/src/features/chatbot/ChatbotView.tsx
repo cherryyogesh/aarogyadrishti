@@ -1561,8 +1561,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
               <div>
                 <div style={{ fontSize: '0.81rem', color: '#475569', lineHeight: 1.55, marginBottom: '1rem' }}>
                   {isTe
-                    ? 'అతి వేగవంతమైన క్లౌడ్ ఇన్‌ఫరెన్స్ కోసం ఉచిత Google Gemini లేదా Groq API కీని నమోదు చేయండి.'
-                    : 'Connect to ultra-fast cloud LLM inference using a free Google Gemini (Google AI Studio) or Groq LPU key.'}
+                    ? 'అతి వేగవంతమైన క్లౌడ్ ఇన్‌ఫరెన్స్ కోసం ఆరోగ్య మైత్ర AI క్లౌడ్ కీని నమోదు చేయండి.'
+                    : 'Connect to ultra-fast cloud AI inference using an Aarogya Mytra Cloud AI key.'}
                 </div>
 
                 <form onSubmit={handleSaveKey}>
@@ -1603,7 +1603,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   <div style={{ background: '#F8FAFC', padding: '0.6rem 0.8rem', borderRadius: '8px', marginBottom: '1rem', border: '1px dashed #CBD5E1' }}>
                     <div style={{ fontSize: '0.74rem', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span>
-                        {keyProvider === 'gemini' && '👉 Free key from Google AI Studio:'}
+                        {keyProvider === 'gemini' && '👉 Aarogya Mytra Cloud AI Key:'}
                         {keyProvider === 'groq' && '👉 Free ultra-fast key from Groq Console:'}
                         {keyProvider === 'huggingface' && '👉 HuggingFace User Access Token:'}
                         {keyProvider === 'openai' && '👉 OpenAI API Key:'}
@@ -1630,7 +1630,7 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
 
                   <div style={{ marginBottom: '1.2rem' }}>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#1E293B', marginBottom: '0.35rem' }}>
-                      {keyProvider.toUpperCase()} API Key:
+                      {keyProvider === 'gemini' ? 'Aarogya Mytra AI' : keyProvider.toUpperCase()} Key:
                     </label>
                     <input
                       type="password"
