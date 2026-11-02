@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 import logging
 import asyncio
 from typing import Dict, Any, Optional, List
@@ -53,13 +54,15 @@ class GeminiChatEngine:
         user_message: str,
         language: str = "en",
         has_attachment: bool = False,
+        image_bytes: Optional[bytes] = None,
+        image_mime_type: Optional[str] = "image/jpeg",
         conversation_history: Optional[List[Dict[str, str]]] = None,
         patient_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Main dialogue generation entrypoint.
         1. Checks for emergency red flags (108).
-        2. Queries Google Gemini with patient context, multi-turn history, and clinical safety boundaries.
+        2. Queries Google Gemini (multimodal text + image if attached) with patient context, multi-turn history, and clinical safety boundaries.
         3. Enforces language consistency (Telugu, Hindi, English, Tamil, Malayalam, Kannada).
         4. Gracefully falls back to embedded MoHFW clinical knowledge if network/API is temporarily unavailable.
         """
@@ -81,6 +84,8 @@ class GeminiChatEngine:
                         clean_text,
                         lang,
                         has_attachment,
+                        image_bytes,
+                        image_mime_type,
                         conversation_history,
                         patient_context
                     )
@@ -92,6 +97,8 @@ class GeminiChatEngine:
                     clean_text,
                     lang,
                     has_attachment,
+                    image_bytes,
+                    image_mime_type,
                     conversation_history,
                     patient_context
                 )
@@ -109,12 +116,15 @@ class GeminiChatEngine:
         user_message: str,
         language: str,
         has_attachment: bool,
+        image_bytes: Optional[bytes],
+        image_mime_type: Optional[str],
         history: Optional[List[Dict[str, str]]],
         context: Optional[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        """Synchronous chat call using official google-genai SDK."""
+        """Synchronous chat call using official google-genai SDK with multimodal support."""
         try:
-            system_prompt = self._build_system_prompt(language, context)
+            has_image = bool(has_attachment and image_bytes)
+            system_prompt = self._build_system_prompt(language, context, has_image=has_image)
             contents = []
 
             # Add previous turns if provided (up to last 6 turns)
@@ -125,13 +135,25 @@ class GeminiChatEngine:
                     if turn_text:
                         contents.append(types.Content(role=role, parts=[types.Part.from_text(text=turn_text)]))
 
-            # Current turn
-            contents.append(types.Content(role="user", parts=[types.Part.from_text(text=user_message)]))
+            # Current turn parts (include image part if attached)
+            current_parts = []
+            if has_image and image_bytes:
+                img_mime = image_mime_type or "image/jpeg"
+                img_part = types.Part.from_bytes(data=image_bytes, mime_type=img_mime)
+                current_parts.append(img_part)
+
+            user_prompt_text = user_message or (
+                "దయచేసి నేను పంపిన ఈ ఫొటోను పరిశీలించి, ఇది ఏ వ్యాధి లేదా సమస్య, దీనికి గల కారణాలు మరియు తీసుకోవలసిన జాగ్రత్తలను వివరించండి."
+                if language == "te" else
+                "Please analyze this photograph, explain what condition or disease this appears to be, its causes, and what care and next steps I should take."
+            )
+            current_parts.append(types.Part.from_text(text=user_prompt_text))
+            contents.append(types.Content(role="user", parts=current_parts))
 
             config = types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                temperature=0.3,
-                max_output_tokens=1800
+                temperature=0.35,
+                max_output_tokens=2200
             )
 
             response = self._client.models.generate_content(
@@ -162,12 +184,15 @@ class GeminiChatEngine:
         user_message: str,
         language: str,
         has_attachment: bool,
+        image_bytes: Optional[bytes],
+        image_mime_type: Optional[str],
         history: Optional[List[Dict[str, str]]],
         context: Optional[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        """Asynchronous REST call using httpx."""
+        """Asynchronous REST call using httpx with multimodal image payload support."""
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self._api_key}"
-        system_prompt = self._build_system_prompt(language, context)
+        has_image = bool(has_attachment and image_bytes)
+        system_prompt = self._build_system_prompt(language, context, has_image=has_image)
 
         contents = []
         if history:
@@ -177,7 +202,24 @@ class GeminiChatEngine:
                 if turn_text:
                     contents.append({"role": role, "parts": [{"text": turn_text}]})
 
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
+        current_parts = []
+        if has_image and image_bytes:
+            img_mime = image_mime_type or "image/jpeg"
+            b64_image = base64.b64encode(image_bytes).decode("utf-8")
+            current_parts.append({
+                "inline_data": {
+                    "mime_type": img_mime,
+                    "data": b64_image
+                }
+            })
+
+        user_prompt_text = user_message or (
+            "దయచేసి నేను పంపిన ఈ ఫొటోను పరిశీలించి, ఇది ఏ వ్యాధి లేదా సమస్య, దీనికి గల కారణాలు మరియు తీసుకోవలసిన జాగ్రత్తలను వివరించండి."
+            if language == "te" else
+            "Please analyze this photograph, explain what condition or disease this appears to be, its causes, and what care and next steps I should take."
+        )
+        current_parts.append({"text": user_prompt_text})
+        contents.append({"role": "user", "parts": current_parts})
 
         payload = {
             "system_instruction": {
@@ -185,8 +227,8 @@ class GeminiChatEngine:
             },
             "contents": contents,
             "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": 1800
+                "temperature": 0.35,
+                "maxOutputTokens": 2200
             }
         }
 
@@ -213,7 +255,12 @@ class GeminiChatEngine:
 
         return None
 
-    def _build_system_prompt(self, language: str, context: Optional[Dict[str, Any]] = None) -> str:
+    def _build_system_prompt(
+        self,
+        language: str,
+        context: Optional[Dict[str, Any]] = None,
+        has_image: bool = False
+    ) -> str:
         lang_map = {
             "te": "Telugu (తెలుగు)",
             "hi": "Hindi (हिन्दी)",
@@ -233,30 +280,41 @@ class GeminiChatEngine:
             if age or gender or symptoms:
                 patient_info = f"\nPATIENT CONTEXT: Age: {age}, Gender: {gender}, Symptoms: {symptoms}, Duration: {duration} days."
 
-        return f"""You are Aarogya Mytra AI (ఆరోగ్య మైత్ర AI), an evidence-grounded clinical health intelligence assistant supporting Community Health Workers (ASHAs), patients, and Primary Health Centre (PHC) staff.
-You are strictly grounded in the guidelines of the Ministry of Health and Family Welfare (MoHFW), ICMR, and WHO.
+        return f"""You are Aarogya Mytra AI (ఆరోగ్య మైత్ర AI), an empathetic, highly knowledgeable, and warm clinical health companion — conversing naturally, compassionately, and clearly, just like ChatGPT and Gemini.
+You are strictly grounded in the clinical protocols of the Ministry of Health and Family Welfare (MoHFW), ICMR, and WHO.
 
-LANGUAGE REQUIREMENT:
-You MUST respond entirely and naturally in {target_lang}. Use clear, polite, and rural-accessible terms. Avoid needlessly dense academic jargon without an immediate plain-language explanation.{patient_info}
+LANGUAGE & CONVERSATIONAL TONE:
+- You MUST respond naturally, warmly, and fluently in {target_lang}.
+- Adopt an empathetic, caring, and humanized conversational voice (same as ChatGPT and Gemini).
+- Speak with reassurance, kindness, and clear everyday language. Avoid robotic database dumps or cold technical jargon without immediately explaining it in plain, simple terms.{patient_info}
 
-STRICT RESPONSE STRUCTURE:
-Structure your response into these clean sections:
+HOW TO ANALYZE AND EXPLAIN MEDICAL IMAGES (WHEN AN IMAGE IS PROVIDED):
+When an image is provided:
+1. **Identify the Condition / Disease**:
+   - Greet the user warmly and empathetically.
+   - Look at the photograph carefully and state clearly what disease or condition the visible signs most closely resemble (for example: Oral Aphthous Ulcer / Canker Sore, Oral Leukoplakia, Oral Thrush / Candidiasis, Oral Submucous Fibrosis, Lichen Planus, Gingivitis, Herpes Labialis, or visible Skin condition).
+   - In Telugu, use clear local terms (e.g. నోటి పూత / కాంకర్ సోర్, ల్యూకోప్లాకియా / తెల్లటి మచ్చ, ఓరల్ థ్రష్ / ఫంగల్ ఇన్ఫెక్షన్).
+2. **Reliable Disease Information**:
+   - Explain what this disease is in understandable terms.
+   - Explain common causes and contributing factors (e.g. minor mouth injuries/biting, friction from sharp teeth, vitamin deficiencies like B-complex or iron, stress, spicy/acidic foods, gutkha, paan, areca nut, smoking, or fungal/bacterial causes).
+   - Tell the user what typical symptoms accompany it and how it usually behaves.
+3. **Medical Safety Regarding Cancer (CRITICAL & STRICT)**:
+   - Reassure the user calmly while maintaining clinical accuracy: explain that the vast majority of mouth sores and patches are benign and heal with basic care.
+   - **DO NOT confirm cancer or diagnose cancer.**
+   - Clearly and calmly state that an image or AI scan **CANNOT confirm cancer, nor can it rule out cancer or serious conditions**.
+   - Emphasize that a definitive evaluation can ONLY be done through an in-person physical clinical examination and tissue biopsy (punch biopsy) conducted by a qualified doctor or specialist.
+4. **Actionable Comfort Care & Home Steps**:
+   - Offer gentle, safe, non-pharmacological comfort steps (warm salt water rinses 2–3 times daily with 1/2 tsp salt in warm water, eating a soft bland diet, avoiding hot chili, sour foods, and sharp spices, strictly stopping all tobacco, gutkha, paan, areca nut, and alcohol, drinking plenty of water).
+   - Enforce the **14-day MoHFW rule**: Explain that any sore, ulcer, or patch in the mouth that does not completely heal within **14 days (2 weeks)** must be checked in-person by a Primary Health Centre (PHC) Medical Officer or Dental Surgeon.
+5. **Answer Any Specific User Questions**:
+   - If the user asked specific questions in the chat (e.g. "Does it hurt?", "Is it cancer?", "Can I eat spices?", "Is it contagious?"), directly, warmly, and thoroughly answer those questions.
 
-🩺 **గుర్తించిన పరిస్థితి / విషయం (Clinical Topic / Condition)**:
-State clearly and directly what health condition, symptom, or topic the inquiry relates to (e.g., Oral Aphthous Ulcer, Oral Submucous Fibrosis, Viral Fever, Dental Caries, Dietary Guidance).
+GENERAL HEALTH INQUIRIES (TEXT-ONLY):
+- Answer questions directly with accurate causes, symptom explanations, and practical lifestyle or preventive care.
+- Never prescribe prescription medications, antibiotics, steroids, or exact milligram dosages.
+- If emergency red flags (severe breathlessness, airway restriction, massive bleeding, inability to swallow) are present, immediately instruct calling emergency ambulance 108.
 
-💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response)**:
-Directly, clearly, and compassionately answer what the user asked in the chat. Explain cause, prevention, and symptoms.
-
-💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps)**:
-- Practical home care and comfort steps (warm salt water rinses for oral sores, hydration, soft non-irritating diet, strictly avoid caustic lime/chuna, cease tobacco/gutkha/alcohol).
-- Clear doctor visit timeline: Under MoHFW national clinical protocols, ANY sore, ulcer, or patch persisting beyond 14 days mandates an in-person physical checkup by a PHC Medical Officer or Dental Specialist.
-
-MANDATORY MEDICAL SAFETY GUARDRAILS:
-1. NEVER confirm or exclude cancer from text chat or photo alone. A physical biopsy and specialist examination are legally and clinically mandatory.
-2. DO NOT prescribe prescription medications, antibiotics, steroids, or exact milligram dosages. Recommend safe non-pharmacological care and doctor consultation.
-3. If red flag emergency symptoms (severe difficulty breathing, airway compromise, uncontrolled bleeding, inability to swallow) are reported, immediately instruct calling emergency ambulance 108.
-4. Maintain utmost respect, empathy, and professional healthcare standards."""
+Maintain utmost empathy, warmth, and clinical trustworthiness."""
 
     def _extract_speech_summary(self, text: str, language: str) -> str:
         """Extracts a short 1-2 sentence spoken summary for the Voice Agent."""

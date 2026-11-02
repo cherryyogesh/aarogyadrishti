@@ -543,22 +543,35 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
     setMessages([welcomeMsg]);
   };
 
+  const renderInlineStyles = (str: string) => {
+    const parts = str.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, pIdx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={pIdx} style={{ fontWeight: 700, color: '#0F172A' }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   const renderMessageContent = (displayedText: string, isUser: boolean) => {
     if (isUser) {
       return <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{displayedText}</div>;
     }
 
-    const rawSections = displayedText.split(/\n(?=### |#### |---)/);
+    const lines = displayedText.split('\n');
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-        {rawSections.map((sec, idx) => {
-          const clean = sec.trim().replace(/^---\s*/, '').trim();
-          if (!clean) return null;
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', lineHeight: 1.65, fontSize: '0.86rem', color: '#1E293B' }}>
+        {lines.map((line, lIdx) => {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            return <div key={lIdx} style={{ height: '0.35rem' }} />;
+          }
 
-          if (clean.includes('Clinical Diagnostic Trace') || clean.includes('Clinical Thinking Trace') || clean.includes('Clinical Reasoning:')) {
+          // Diagnostic trace collapsible
+          if (trimmed.includes('Clinical Diagnostic Trace') || trimmed.includes('Clinical Thinking Trace') || trimmed.includes('Clinical Reasoning:')) {
             return (
-              <details key={idx} style={{
+              <details key={lIdx} style={{
                 background: '#F8FAFC',
                 border: '1px solid #CBD5E1',
                 borderRadius: '8px',
@@ -571,27 +584,60 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                   💭 {tr('ఆరోగ్య మైత్ర AI క్లినికల్ రీజనింగ్ ట్రేస్', 'Aarogya Mytra AI Clinical Reasoning Trace', 'आरोग्य मित्र AI नैदानिक तर्क ट्रेस')}
                 </summary>
                 <div style={{ marginTop: '0.4rem', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.73rem', background: '#FFFFFF', padding: '0.5rem', borderRadius: '6px', border: '1px solid #E2E8F0', color: '#334155' }}>
-                  {clean}
+                  {trimmed}
                 </div>
               </details>
             );
           }
 
-          const isDiseaseHeading = clean.includes('గుర్తించిన వ్యాధి') || clean.includes('Identified Disease') || clean.includes('पहचानी गई स्थिति');
-          const isCareHeading = clean.includes('తీసుకోవలసిన జాగ్రత్తలు') || clean.includes('Care & Next Steps') || clean.includes('Recommended Care');
+          // Markdown Headings
+          if (trimmed.startsWith('### ')) {
+            return (
+              <h4 key={lIdx} style={{ margin: '0.75rem 0 0.25rem', fontSize: '0.98rem', fontWeight: 800, color: '#0F766E' }}>
+                {renderInlineStyles(trimmed.replace(/^###\s*/, ''))}
+              </h4>
+            );
+          }
+          if (trimmed.startsWith('#### ')) {
+            return (
+              <h5 key={lIdx} style={{ margin: '0.55rem 0 0.2rem', fontSize: '0.89rem', fontWeight: 700, color: '#1E293B' }}>
+                {renderInlineStyles(trimmed.replace(/^####\s*/, ''))}
+              </h5>
+            );
+          }
+
+          // Blockquote / Medical Safety Notice Card
+          if (trimmed.startsWith('> ')) {
+            return (
+              <div key={lIdx} style={{
+                background: '#FFFBEB',
+                borderLeft: '3.5px solid #F59E0B',
+                padding: '0.55rem 0.8rem',
+                borderRadius: '6px',
+                margin: '0.5rem 0',
+                fontSize: '0.8rem',
+                color: '#92400E',
+                lineHeight: 1.55
+              }}>
+                {renderInlineStyles(trimmed.replace(/^>\s*/, ''))}
+              </div>
+            );
+          }
+
+          // Bullet items
+          if (trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+            const bulletText = trimmed.replace(/^[•*-]\s*/, '');
+            return (
+              <div key={lIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem', margin: '0.15rem 0', paddingLeft: '0.2rem' }}>
+                <span style={{ color: '#0D9488', fontWeight: 800, lineHeight: 1.4 }}>•</span>
+                <span style={{ flex: 1 }}>{renderInlineStyles(bulletText)}</span>
+              </div>
+            );
+          }
 
           return (
-            <div key={idx} style={{
-              whiteSpace: 'pre-wrap',
-              lineHeight: 1.6,
-              fontSize: '0.85rem',
-              color: '#1E293B',
-              background: isDiseaseHeading ? '#F0FDF4' : (isCareHeading ? '#F0F9FF' : 'transparent'),
-              borderLeft: isDiseaseHeading ? '3.5px solid #10B981' : (isCareHeading ? '3.5px solid #0284C7' : 'none'),
-              padding: (isDiseaseHeading || isCareHeading) ? '0.6rem 0.85rem' : '0.15rem 0',
-              borderRadius: (isDiseaseHeading || isCareHeading) ? '6px' : '0'
-            }}>
-              {clean}
+            <div key={lIdx} style={{ margin: '0.12rem 0' }}>
+              {renderInlineStyles(trimmed)}
             </div>
           );
         })}

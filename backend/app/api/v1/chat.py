@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -11,6 +12,7 @@ from app.integrations.ai.triage import detect_emergency_symptoms, check_cancer_c
 from app.integrations.ai.medical_rag import medical_rag
 from app.integrations.ai.clinical_safety import clinical_safety
 from app.integrations.ai.analysis_pipeline import analysis_pipeline
+from app.integrations.image.quality import analyze_image_quality_bytes
 
 router = APIRouter(prefix="/chat", tags=["Medical AI Chatbot"])
 
@@ -61,103 +63,56 @@ async def send_chat_message(
     # 1. If an image is attached, execute the 12-stage medical vision pipeline
     warning_flag = None
 
-    if has_attachment and attachment_path:
-        pipeline_res = await analysis_pipeline.execute_pipeline(
-            image_path=attachment_path,
-            image_bytes=None,
-            category="mouth_oral",
-            clinical_context={
-                "symptoms": text if text and text != "Attached photograph for review." else "Oral lesion visual inspection",
-                "duration_days": 14,
-                "body_site": "tongue_or_oral_mucosa",
-                "language": payload.language
-            },
-            consent_recorded=True,
-            language=payload.language
-        )
+    if has_attachment and attachment_path and os.path.exists(attachment_path):
+        # 1. Read attached image bytes
+        with open(attachment_path, "rb") as f:
+            attached_bytes = f.read()
 
-        if pipeline_res.get("assessment_status") == "preliminary":
-            explanations = pipeline_res.get("possible_explanations", [])
-            primary_expl = explanations[0] if explanations else {}
-            cond_title_te = primary_expl.get("condition_title_te") or primary_expl.get("name", "నోటి శ్లేష్మ పొర సమస్య (Oral Lesion)")
-            cond_title_en = primary_expl.get("condition_title_en") or primary_expl.get("name", "Oral Mucosal Lesion")
-            condition_display = cond_title_te if is_te else cond_title_en
+        mime_type = "image/jpeg"
+        if attached_bytes.startswith(b"\x89PNG"):
+            mime_type = "image/png"
+        elif attached_bytes.startswith(b"RIFF") and b"WEBP" in attached_bytes[:16]:
+            mime_type = "image/webp"
 
-            obs_list = pipeline_res.get("visible_observations", [])
-            obs_lines = "\n".join([f"• {obs}" for obs in obs_list[:2]]) if obs_list else (
-                "• ప్రభావిత ప్రాంతంలో శ్లేష్మ పొర ఉపరితల మార్పులు గమనించబడ్డాయి." if is_te else "• Observable mucosal surface changes identified on photograph."
-            )
-
-            is_generic_caption = not text or text.strip().lower() in [
-                "attached photograph for review.",
-                "photo", "photograph", "image", "review this photo",
-                "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో", "photo review"
-            ]
-
-            user_query_answer = ""
-            if not is_generic_caption:
-                ai_resp = await gemini_chat_engine.generate_chat_response_async(
-                    user_message=text,
-                    language=payload.language,
-                    has_attachment=True,
-                    conversation_history=history
-                )
-                if ai_resp.get("is_emergency"):
-                    warning_flag = "EMERGENCY_RED_FLAG"
-                user_query_answer = ai_resp.get("content", "").strip()
-
+        # 2. Check photographic quality
+        q_eval = analyze_image_quality_bytes(attached_bytes)
+        if q_eval.get("is_blurry") and q_eval.get("blur_score", 100) < 20.0:
             if is_te:
                 final_content = (
-                    "### 🔬 ఫొటో విశ్లేషణ ఫలితం (AI Image Analysis)\n\n"
-                    "🩺 **గుర్తించిన వ్యాధి / పరిస్థితి (Identified Disease):**\n"
-                    f"**{condition_display}**\n\n"
-                    "📸 **ఫొటోలో కనిపించిన ముఖ్య పరిశీలనలు (Visual Findings):**\n"
-                    f"{obs_lines}\n\n"
-                )
-                if user_query_answer:
-                    final_content += (
-                        "💬 **మీ ప్రశ్నకు సమాధానం (Clinical Response):**\n"
-                        f"{user_query_answer}\n\n"
-                    )
-                final_content += (
-                    "💡 **తీసుకోవలసిన జాగ్రత్తలు & తదుపరి చర్య (Care & Next Steps):**\n"
-                    "• **గోరువెచ్చని ఉప్పునీటి పుక్కిలింత:** రోజుకు 2-3 సార్లు గోరువెచ్చని నీటిలో అర చెంచా ఉప్పు వేసి నెమ్మదిగా పుక్కిలించండి.\n"
-                    "• **ఆహార జాగ్రత్తలు:** కారం, ఎక్కువ వేడి, పులుపు మరియు ఘాటైన మసాలాలను నివారించండి.\n"
-                    "• **పొగాకు నిలిపివేత:** పొగాకు, గుట్కా, ఖైనీ, చుట్ట లేదా మద్యం అలవాట్లు ఉంటే తక్షణమే ఆపండి.\n"
-                    "• **డాక్టర్ సంప్రదింపు:** ఏదైనా పుండు లేదా మచ్చ **14 రోజుల కంటే ఎక్కువ రోజులు తగ్గకపోతే**, సమీప PHC మెడికల్ ఆఫీసర్ లేదా డెంటల్ డాక్టర్‌ను సంప్రదించాలి.\n\n"
-                    "> ⚠️ *గమనిక: ఈ AI ఫలితం ప్రాథమిక పరిశీలన మాత్రమే. ఫోటో ఆధారంగా క్యాన్సర్‌ను నిర్ధారించడం లేదా తోసిపుచ్చడం జరగదు. ఖచ్చితమైన నిర్ధారణకు డాక్టర్ గారి ప్రత్యక్ష పరీక్ష మరియు బయాప్సీ తప్పనిసరి.*"
+                    "నమస్కారం! మీరు పంపిన ఫొటో చాలా అస్పష్టంగా (Blurry) ఉంది. సమస్య లేదా వ్యాధిని ఖచ్చితంగా పరిశీలించడానికి వివరాలు స్పష్టంగా కనిపించడం లేదు.\n\n"
+                    "📸 **మంచి ఫలితం కోసం:** మంచి వెలుతురులో, కెమెరాను కదలకుండా సమస్య ఉన్న భాగాన్ని దగ్గరగా కేంద్రీకరించి మరో స్పష్టమైన ఫొటో పంపండి.\n\n"
+                    "ఈలోగా మీకు నొప్పి, మంట లేదా ఇతర లక్షణాలు ఎంతకాలంగా ఉన్నాయో ఇక్కడ మెసేజ్ ద్వారా తెలియజేయండి."
                 )
             else:
                 final_content = (
-                    "### 🔬 AI Image Analysis Result\n\n"
-                    "🩺 **Identified Disease / Condition:**\n"
-                    f"**{condition_display}**\n\n"
-                    "📸 **Visual Findings on Photograph:**\n"
-                    f"{obs_lines}\n\n"
+                    "Hello! The photo you uploaded appears quite blurry or out of focus. To provide an accurate and reliable assessment of the condition, clearer visual details are needed.\n\n"
+                    "📸 **Recommendation:** Please capture a clearer photograph under good, bright lighting, holding the camera steady close to the affected area.\n\n"
+                    "In the meantime, feel free to describe your symptoms, how long you have had this, and if you have any pain or discomfort."
                 )
-                if user_query_answer:
-                    final_content += (
-                        "💬 **Clinical Response to Your Question:**\n"
-                        f"{user_query_answer}\n\n"
-                    )
-                final_content += (
-                    "💡 **Recommended Care & Next Steps:**\n"
-                    "• **Warm Salt Water Rinse:** Dissolve 1/2 tsp salt in warm water and rinse gently 2–3 times daily.\n"
-                    "• **Dietary Precautions:** Avoid rough, spicy, acidic, or very hot foods that irritate mucosal tissues.\n"
-                    "• **Habit Cessation:** Cease all gutkha, areca nut, tobacco, and smoking immediately.\n"
-                    "• **Doctor Consultation:** Under MoHFW national protocols, any oral sore persisting **beyond 14 days** mandates an in-person clinical examination by a PHC Doctor or Dental Specialist.\n\n"
-                    "> ⚠️ *Notice: This preliminary visual assessment cannot rule in or rule out cancer. In-person physical examination and biopsy are mandatory.*"
-                )
-
-        elif pipeline_res.get("assessment_status") == "quality_check_failed":
-            is_te = payload.language == "te"
-            final_content = (
-                f"### ⚠️ {'ఫొటో నాణ్యత సరిపోలేదు (Image Quality Warning)' if is_te else 'Image Quality Warning'}\n\n"
-                f"{pipeline_res.get('guidance_message')}\n\n"
-                f"> {'మంచి వెలుతురులో, కెమెరాను కదలకుండా ప్రభావిత ప్రాంతం స్పష్టంగా కనిపించేలా మరో ఫొటో తీయండి.' if is_te else 'Please retake a steady photo under bright lighting with the lesion clearly framed.'}"
-            )
         else:
-            final_content = pipeline_res.get("guidance_message", "Photo review pending doctor examination.")
+            # 3. Multimodal Analysis: Pass image directly to Google Gemini
+            ai_query = text if text and text.strip().lower() not in [
+                "attached photograph for review.", "photo", "photograph", "image", "review this photo",
+                "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో", "photo review"
+            ] else (
+                "దయచేసి నేను పంపిన ఈ ఫొటోను క్షుణ్ణంగా పరిశీలించి, ఇది ఏ వ్యాధి లేదా సమస్య, దీనికి గల కారణాలు, జాగ్రత్తలు మరియు తదుపరి చర్యలను మానవీయంగా మరియు వివరంగా తెలియజేయండి."
+                if is_te else
+                "Please analyze this medical photograph carefully. Identify what condition or disease this appears to be, explain its causes, what reliable care to take, and what next steps are needed."
+            )
+
+            ai_resp = await gemini_chat_engine.generate_chat_response_async(
+                user_message=ai_query,
+                language=payload.language,
+                has_attachment=True,
+                image_bytes=attached_bytes,
+                image_mime_type=mime_type,
+                conversation_history=history
+            )
+
+            if ai_resp.get("is_emergency"):
+                warning_flag = "EMERGENCY_RED_FLAG"
+
+            final_content = ai_resp.get("content", "")
 
     else:
         # 2. Text-only Query - Query Google Gemini Clinical Dialogue Engine
