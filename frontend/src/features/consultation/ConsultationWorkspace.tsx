@@ -96,6 +96,10 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Dedicated Video element refs for rock-solid reactive binding
+  const primaryVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pipVideoRef = useRef<HTMLVideoElement | null>(null);
+
   const RTC_CONFIG: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -153,70 +157,196 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
 
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
     }
 
-    try {
-      let stream: MediaStream;
+    let stream: MediaStream | null = null;
+    const fallbackConstraints = [
+      { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } }, audio: true },
+      { video: { facingMode: { ideal: mode } }, audio: true },
+      { video: true, audio: true },
+      { video: { facingMode: { ideal: mode } }, audio: false },
+      { video: true, audio: false }
+    ];
+
+    for (const c of fallbackConstraints) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } },
-          audio: true
-        });
-      } catch (errAudio) {
-        console.warn('Audio device unavailable or restricted, fallback to video-only:', errAudio);
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: { ideal: mode } },
-            audio: false
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia(c);
+        if (stream) {
+          console.log('[Webcam] Acquired media stream with constraints:', c);
+          break;
         }
+      } catch (e: any) {
+        console.warn('[Webcam] Constraint attempt failed:', c, e?.message || e);
       }
-
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      setFacingMode(mode);
-      setCameraPermissionGranted(true);
-      setCameraError(null);
-      setStreamStarted(true);
-
-      // If peer connection exists, add or update tracks
-      if (peerConnectionRef.current) {
-        const senders = peerConnectionRef.current.getSenders();
-        stream.getTracks().forEach((track) => {
-          const existingSender = senders.find(s => s.track && s.track.kind === track.kind);
-          if (existingSender) {
-            existingSender.replaceTrack(track);
-          } else {
-            try {
-              peerConnectionRef.current?.addTrack(track, stream);
-            } catch (e) {
-              console.warn('Could not add track to existing PC:', e);
-            }
-          }
-        });
-      }
-      return stream;
-    } catch (err: any) {
-      console.warn('Webcam permission or device error:', err);
-      setCameraPermissionGranted(false);
-      let msg = 'Could not access camera.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        msg = 'Camera permission was denied. Please click the camera icon in your browser address bar to allow camera access.';
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        msg = 'No camera found on this device.';
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        msg = 'Webcam is currently occupied by another program (e.g. Teams, Zoom). Please close other apps and click retry.';
-      } else if (err.message) {
-        msg = err.message;
-      }
-      setCameraError(msg);
-      return null;
-    } finally {
-      setCameraLoading(false);
     }
+
+    if (!stream) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      } catch (finalErr: any) {
+        console.error('[Webcam] All getUserMedia attempts failed:', finalErr);
+        let msg = 'Could not access camera.';
+        if (finalErr.name === 'NotAllowedError' || finalErr.name === 'PermissionDeniedError') {
+          msg = 'Camera permission was denied. Please click the camera/lock icon in your browser address bar to allow camera access.';
+        } else if (finalErr.name === 'NotFoundError' || finalErr.name === 'DevicesNotFoundError') {
+          msg = 'No camera found on this device.';
+        } else if (finalErr.name === 'NotReadableError' || finalErr.name === 'TrackStartError') {
+          msg = 'Webcam is currently occupied by another program (e.g. Teams, Zoom). Please close other apps and click retry.';
+        } else if (finalErr.message) {
+          msg = finalErr.message;
+        }
+        setCameraError(msg);
+        setCameraPermissionGranted(false);
+        setCameraLoading(false);
+        return null;
+      }
+    }
+
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    setFacingMode(mode);
+    setCameraPermissionGranted(true);
+    setCameraError(null);
+    setStreamStarted(true);
+    setVideoActive(true);
+
+    // If peer connection exists, add or update tracks
+    if (peerConnectionRef.current) {
+      const senders = peerConnectionRef.current.getSenders();
+      stream.getTracks().forEach((track) => {
+        const existingSender = senders.find(s => s.track && s.track.kind === track.kind);
+        if (existingSender) {
+          existingSender.replaceTrack(track);
+        } else {
+          try {
+            peerConnectionRef.current?.addTrack(track, stream!);
+          } catch (e) {
+            console.warn('Could not add track to existing PC:', e);
+          }
+        }
+      });
+    }
+
+    setCameraLoading(false);
+    return stream;
   };
+
+  // Reactive Stream Binding Hook to guarantee video elements display immediately
+  useEffect(() => {
+    // 1. Primary Video Element
+    if (primaryVideoRef.current) {
+      const el = primaryVideoRef.current;
+      let targetStream: MediaStream | null = null;
+      let shouldMute = true;
+      let shouldMirror = false;
+
+      if (remoteStream && isCallConnected) {
+        if (!isSwapped) {
+          targetStream = remoteStream;
+          shouldMute = false;
+          shouldMirror = false;
+        } else {
+          targetStream = videoActive ? localStream : null;
+          shouldMute = true;
+          shouldMirror = (facingMode === 'user');
+        }
+      } else {
+        // When peer is not connected yet, show user's own local camera full-screen!
+        targetStream = videoActive ? localStream : null;
+        shouldMute = true;
+        shouldMirror = (facingMode === 'user');
+      }
+
+      if (targetStream) {
+        if (el.srcObject !== targetStream) {
+          el.srcObject = targetStream;
+        }
+        el.muted = shouldMute;
+        el.playsInline = true;
+        el.style.transform = shouldMirror ? 'scaleX(-1)' : 'none';
+        const p = el.play();
+        if (p !== undefined) p.catch(() => {});
+      } else {
+        el.srcObject = null;
+      }
+    }
+
+    // 2. PiP Video Element (only active when call is connected)
+    if (pipVideoRef.current) {
+      const el = pipVideoRef.current;
+      let targetStream: MediaStream | null = null;
+      let shouldMute = true;
+      let shouldMirror = false;
+
+      if (remoteStream && isCallConnected) {
+        if (!isSwapped) {
+          targetStream = videoActive ? localStream : null;
+          shouldMute = true;
+          shouldMirror = (facingMode === 'user');
+        } else {
+          targetStream = remoteStream;
+          shouldMute = false;
+          shouldMirror = false;
+        }
+      } else {
+        targetStream = null;
+      }
+
+      if (targetStream) {
+        if (el.srcObject !== targetStream) {
+          el.srcObject = targetStream;
+        }
+        el.muted = shouldMute;
+        el.playsInline = true;
+        el.style.transform = shouldMirror ? 'scaleX(-1)' : 'none';
+        const p = el.play();
+        if (p !== undefined) p.catch(() => {});
+      } else {
+        el.srcObject = null;
+      }
+    }
+
+    // 3. Dual PHC Video Element
+    if (phcVideoRef.current) {
+      const el = phcVideoRef.current;
+      const isLocal = (!isDoctorUser || mirrorBothScreens);
+      const targetStream = isLocal
+        ? (phcCamActive && videoActive ? localStream : null)
+        : (isCallConnected ? remoteStream : null);
+
+      if (targetStream) {
+        if (el.srcObject !== targetStream) el.srcObject = targetStream;
+        el.muted = isLocal;
+        el.playsInline = true;
+        el.style.transform = isLocal ? 'scaleX(-1)' : 'none';
+        const p = el.play();
+        if (p !== undefined) p.catch(() => {});
+      } else {
+        el.srcObject = null;
+      }
+    }
+
+    // 4. Dual Doctor Video Element
+    if (doctorVideoRef.current) {
+      const el = doctorVideoRef.current;
+      const isLocal = (isDoctorUser || mirrorBothScreens);
+      const targetStream = isLocal
+        ? (doctorCamActive && videoActive ? localStream : null)
+        : (isCallConnected ? remoteStream : null);
+
+      if (targetStream) {
+        if (el.srcObject !== targetStream) el.srcObject = targetStream;
+        el.muted = isLocal;
+        el.playsInline = true;
+        el.style.transform = isLocal ? 'scaleX(-1)' : 'none';
+        const p = el.play();
+        if (p !== undefined) p.catch(() => {});
+      } else {
+        el.srcObject = null;
+      }
+    }
+  }, [localStream, remoteStream, isCallConnected, isSwapped, facingMode, viewMode, videoActive, phcCamActive, doctorCamActive, mirrorBothScreens, isDoctorUser]);
 
   const toggleCameraFacing = async () => {
     const nextMode = facingMode === 'user' ? 'environment' : 'user';
@@ -1023,7 +1153,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   ) : ((!isDoctorUser || mirrorBothScreens) && localStream && phcCamActive && videoActive) ? (
                     /* Real Live Webcam Feed for PHC / Patient (or Doctor mirror test mode) */
                     <video
-                      ref={(el) => bindVideoNode(el, localStream, true, true)}
+                      ref={phcVideoRef}
                       autoPlay
                       playsInline
                       muted
@@ -1222,7 +1352,7 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
                   ) : ((isDoctorUser || mirrorBothScreens) && localStream && doctorCamActive && videoActive) ? (
                     /* Real Live Webcam Feed for Doctor (mirrored self-view) */
                     <video
-                      ref={(el) => bindVideoNode(el, localStream, true, true)}
+                      ref={doctorVideoRef}
                       autoPlay
                       playsInline
                       muted

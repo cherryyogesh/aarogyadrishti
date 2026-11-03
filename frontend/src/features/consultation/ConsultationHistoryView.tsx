@@ -391,3 +391,4 @@ export const ConsultationHistoryView: React.FC<Props> = ({ user, onClose }) => {
     </div>
   );
 };
+

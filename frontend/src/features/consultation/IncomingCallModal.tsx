@@ -304,3 +304,4 @@ export const IncomingCallModal: React.FC<Props> = ({ call, doctorName, onAccept,
     </div>
   );
 };
+

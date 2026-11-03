@@ -221,14 +221,16 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user, onStartConsul
         </div>
 
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowConsultationHistory(prev => !prev)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
-          >
-            <Video size={16} color="#0D9488" />
-            {showConsultationHistory ? 'Hide Call History' : 'Consultation Call History'}
-          </button>
+          {user.role !== 'chw' && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowConsultationHistory(prev => !prev)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+            >
+              <Video size={16} color="#0D9488" />
+              {showConsultationHistory ? 'Hide Call History' : 'Consultation Call History'}
+            </button>
+          )}
           <button className="btn btn-primary" onClick={() => setShowRegisterModal(true)}>
             <UserPlus size={18} />
             {t.patient_register_btn}
@@ -328,27 +330,29 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user, onStartConsul
                     <td style={{ fontSize: '0.82rem', color: '#475569' }}>{p.phc_name || 'Kandukur PHC'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <button
-                          className="btn btn-primary"
-                          style={{
-                            minHeight: '32px',
-                            padding: '0.25rem 0.65rem',
-                            fontSize: '0.78rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)',
-                            borderColor: '#0D9488',
-                            color: '#ffffff',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap'
-                          }}
-                          onClick={() => setCallingPatient(p)}
-                          title="Initiate Live Video Call with Specialist Doctor"
-                        >
-                          <Video size={13} />
-                          Video Call
-                        </button>
+                        {user.role !== 'chw' && (
+                          <button
+                            className="btn btn-primary"
+                            style={{
+                              minHeight: '32px',
+                              padding: '0.25rem 0.65rem',
+                              fontSize: '0.78rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)',
+                              borderColor: '#0D9488',
+                              color: '#ffffff',
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap'
+                            }}
+                            onClick={() => setCallingPatient(p)}
+                            title="Initiate Live Video Call with Specialist Doctor"
+                          >
+                            <Video size={13} />
+                            Video Call
+                          </button>
+                        )}
                         <button
                           className="btn btn-secondary"
                           style={{ minHeight: '32px', padding: '0.25rem 0.65rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
@@ -598,26 +602,28 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user, onStartConsul
             </div>
           </div>
 
-          <button
-            className="btn btn-primary"
-            style={{
-              width: '100%',
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.65rem',
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)'
-            }}
-            onClick={() => {
-              setCallingPatient(selectedPatient);
-            }}
-          >
-            <Video size={18} />
-            Connect Live Video Call with Doctor
-          </button>
+          {user.role !== 'chw' && (
+            <button
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.65rem',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)'
+              }}
+              onClick={() => {
+                setCallingPatient(selectedPatient);
+              }}
+            >
+              <Video size={18} />
+              Connect Live Video Call with Doctor
+            </button>
+          )}
 
           {/* Screenings Timeline */}
           <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

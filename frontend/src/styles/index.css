@@ -433,7 +433,13 @@ body {
 }
 
 .grid-cards-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+}
+
+@media (min-width: 1280px) {
+  .grid-cards-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 1050px) {
@@ -547,12 +553,15 @@ body {
 }
 
 .metric-label {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
   font-weight: 600;
   margin-top: 0.2rem;
-  white-space: normal;
-  word-break: break-word;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
   line-height: 1.35;
   max-width: 100%;
 }

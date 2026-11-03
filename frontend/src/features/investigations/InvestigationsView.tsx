@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Investigation, User, LanguageCode } from '../../types';
+import { Investigation, User, LanguageCode, Patient } from '../../types';
+import { Plus, X, Search, Building2, User as UserIcon, FileText, FlaskConical, CheckCircle2, AlertTriangle, Stethoscope } from 'lucide-react';
 
 interface InvestigationsViewProps {
   currentUser: User;
@@ -22,6 +23,63 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
   const [filterState, setFilterState] = useState<string>('all');
   const [selectedInvestigation, setSelectedInvestigation] = useState<Investigation | null>(null);
   const [updating, setUpdating] = useState<boolean>(false);
+
+  // Add Biopsy Report Modal State
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [patientList, setPatientList] = useState<Patient[]>([]);
+  const [patientSearch, setPatientSearch] = useState<string>('');
+  const [createPatientId, setCreatePatientId] = useState<number | ''>('');
+  const [createKind, setCreateKind] = useState<string>('punch_biopsy');
+  const [createSite, setCreateSite] = useState<string>('Right Buccal Mucosa');
+  const [createState, setCreateState] = useState<string>('advised');
+  const [createDiagnosis, setCreateDiagnosis] = useState<string>('precancer_leukoplakia');
+  const [createFinding, setCreateFinding] = useState<string>('');
+  const [createSummary, setCreateSummary] = useState<string>('');
+  const [creating, setCreating] = useState<boolean>(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const handleOpenCreate = async () => {
+    setShowCreateModal(true);
+    setCreateError(null);
+    try {
+      const pts = await api.searchPatients('');
+      setPatientList(pts);
+      if (pts.length > 0 && !createPatientId) {
+        setCreatePatientId(pts[0].id);
+      }
+    } catch (err: any) {
+      console.warn('Could not load patient list for biopsy modal:', err);
+    }
+  };
+
+  const handleCreateBiopsy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createPatientId) {
+      setCreateError(tr('దయచేసి రోగిని ఎంచుకోండి', 'Please select a patient', 'कृपया एक रोगी चुनें'));
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await api.createInvestigation({
+        patient_id: Number(createPatientId),
+        kind: createKind,
+        biopsy_site: createSite,
+        state: createState,
+        diagnosis_category: createDiagnosis,
+        pathology_finding: createFinding || undefined,
+        histopathology_summary: createSummary || undefined
+      });
+      setShowCreateModal(false);
+      setCreateFinding('');
+      setCreateSummary('');
+      await loadData();
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to create biopsy investigation report');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // Modal edit state
   const [newState, setNewState] = useState<string>('clinician_reviewed');
@@ -148,20 +206,49 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
                 : 'Standardized pathway from specialist-directed biopsy order to definitive histopathology report review.'}
             </p>
           </div>
-          <button
-            onClick={loadData}
-            style={{
-              background: '#334155',
-              border: 'none',
-              color: '#fff',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600
-            }}
-          >
-            {tr('🔄 రిఫ్రెష్', '🔄 Refresh', '🔄 रीफ्रेश')}
-          </button>
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {currentUser.role !== 'chw' && (
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                style={{
+                  background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.88rem',
+                  boxShadow: '0 4px 12px rgba(13, 148, 136, 0.35)'
+                }}
+              >
+                <Plus size={18} />
+                {tr('+ బయాప్సీ రిపోర్ట్ జోడించండి', '+ Add Biopsy Report', '+ बायोप्सी रिपोर्ट जोड़ें')}
+              </button>
+            )}
+            <button
+              onClick={loadData}
+              style={{
+                background: '#334155',
+                border: 'none',
+                color: '#fff',
+                padding: '0.55rem 1rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.88rem'
+              }}
+            >
+              {tr('🔄 రిఫ్రెష్', '🔄 Refresh', '🔄 रीफ्रेश')}
+            </button>
+          </div>
         </div>
 
         {/* Regulatory & Safety Box */}
@@ -468,6 +555,259 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
           </div>
         </div>
       )}
+
+      {/* ADD BIOPSY REPORT MODAL */}
+      {showCreateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '620px',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            padding: '1.75rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            border: '1px solid #E2E8F0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{ background: '#CCFBF1', color: '#0F766E', padding: '0.5rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FlaskConical size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0F172A' }}>
+                    {tr('కొత్త బయాప్సీ రిపోర్ట్ జోడించండి', 'Add Biopsy & Investigation Report', 'नई बायोप्सी जांच रिपोर्ट जोड़ें')}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
+                    {tr('రోగికి సంబంధించిన కణజాల పరీక్ష వివరాలను నమోదు చేయండి', 'Record biopsy procedure, anatomical site, and laboratory findings', 'रोगी के बायोप्सी व लैब निष्कर्ष दर्ज करें')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {createError && (
+              <div style={{ background: '#FEE2E2', borderLeft: '4px solid #EF4444', color: '#991B1B', padding: '0.75rem 1rem', borderRadius: '6px', fontSize: '0.84rem', marginBottom: '1.25rem' }}>
+                {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateBiopsy}>
+              {/* 1. Patient Selector */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  {tr('రోగిని ఎంచుకోండి (Patient) *', 'Select Patient *', 'रोगी चुनें *')}
+                </label>
+                
+                {/* Search Filter for Patients */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder={tr('పేరు లేదా ఫోన్ నంబర్‌తో శోధించండి...', 'Filter by name or mobile...', 'नाम या मोबाइल से खोजें...')}
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '0.45rem 0.75rem',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '0.82rem'
+                    }}
+                  />
+                </div>
+
+                <select
+                  value={createPatientId}
+                  onChange={(e) => setCreatePatientId(Number(e.target.value))}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '0.88rem',
+                    background: '#FFFFFF'
+                  }}
+                >
+                  <option value="">{tr('-- రోగిని ఎంచుకోండి --', '-- Select Patient --', '-- रोगी का चयन करें --')}</option>
+                  {patientList
+                    .filter(p => !patientSearch || p.full_name.toLowerCase().includes(patientSearch.toLowerCase()) || ((p.phone || p.phone_masked) && (p.phone || p.phone_masked).includes(patientSearch)))
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name} ({p.age}y / {p.gender}) • {p.patient_id_display || p.id} • {p.mandal || p.habitation || p.village_town || 'ITDA'}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* 2. Grid: Kind & Anatomical Site */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    {tr('బయాప్సీ రకం (Procedure Kind)', 'Procedure Kind', 'बायोप्सी प्रकार')}
+                  </label>
+                  <select
+                    value={createKind}
+                    onChange={(e) => setCreateKind(e.target.value)}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  >
+                    <option value="punch_biopsy">Punch Biopsy (పంచ్ బయాప్సీ)</option>
+                    <option value="incisional_biopsy">Incisional Biopsy (ఇన్సిషనల్ బయాప్సీ)</option>
+                    <option value="excisional_biopsy">Excisional Biopsy (ఎక్సిషనల్ బయాప్సీ)</option>
+                    <option value="fnac">FNAC - Fine Needle Aspiration</option>
+                    <option value="brush_biopsy">Oral Brush Cytology</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    {tr('శరీర భాగం (Biopsy Site)', 'Anatomical Biopsy Site', 'बायोप्सी स्थान')}
+                  </label>
+                  <select
+                    value={createSite}
+                    onChange={(e) => setCreateSite(e.target.value)}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  >
+                    <option value="Right Buccal Mucosa">Right Buccal Mucosa (కుడి దవడ)</option>
+                    <option value="Left Buccal Mucosa">Left Buccal Mucosa (ఎడమ దవడ)</option>
+                    <option value="Lateral Border of Tongue (Right)">Lateral Tongue - Right (నాలుక కుడి)</option>
+                    <option value="Lateral Border of Tongue (Left)">Lateral Tongue - Left (నాలుక ఎడమ)</option>
+                    <option value="Gingiva / Retromolar Trigone">Gingiva / Retromolar (చిగుళ్ళు)</option>
+                    <option value="Hard / Soft Palate">Palate (తాలువు / అంగిలి)</option>
+                    <option value="Floor of Mouth">Floor of Mouth (నోటి అడుగు భాగం)</option>
+                    <option value="Lower Labial Mucosa / Lip">Lower Lip (కింది పెదవి)</option>
+                    <option value="Upper Labial Mucosa">Upper Lip (పై పెదవి)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. Grid: Initial Status & Diagnosis Category */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    {tr('రిపోర్ట్ స్థితి (Status)', 'Investigation Status', 'जांच स्थिति')}
+                  </label>
+                  <select
+                    value={createState}
+                    onChange={(e) => setCreateState(e.target.value)}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  >
+                    <option value="advised">📋 Biopsy Advised</option>
+                    <option value="scheduled">📅 Procedure Scheduled</option>
+                    <option value="sample_collected">🧪 Sample Collected</option>
+                    <option value="report_pending">⏳ Pathology Pending</option>
+                    <option value="report_received">📄 Report Received</option>
+                    <option value="clinician_reviewed">✅ Clinician Reviewed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    {tr('రోగనిర్ధారణ వర్గం (Diagnosis)', 'Diagnosis Category', 'निदान श्रेणी')}
+                  </label>
+                  <select
+                    value={createDiagnosis}
+                    onChange={(e) => setCreateDiagnosis(e.target.value)}
+                    style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                  >
+                    <option value="precancer_leukoplakia">⚠️ Precancerous Leukoplakia</option>
+                    <option value="osmf">⚠️ Oral Submucous Fibrosis (OSMF)</option>
+                    <option value="oscc_malignancy">🚨 Malignancy (OSCC)</option>
+                    <option value="benign">🟢 Benign / Inflammatory</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 4. Pathology Finding */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  {tr('మైక్రోస్కోపిక్ పరిశీలన / పాథాలజీ ఫలితం', 'Pathology / Microscopic Finding', 'माइक्रोस्कोपिक निष्कर्ष')}
+                </label>
+                <input
+                  type="text"
+                  value={createFinding}
+                  onChange={(e) => setCreateFinding(e.target.value)}
+                  placeholder={tr('ఉదా: Basal cell hyperplasia with mild epithelial dysplasia', 'e.g. Basal cell hyperplasia with mild epithelial dysplasia', 'उदा: Basal cell hyperplasia with mild epithelial dysplasia')}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* 5. Histopathology Summary & Lab Notes */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                  {tr('ల్యాబ్ సారాంశం & క్లినికల్ గమనికలు', 'Histopathology Summary & Lab Notes', 'हिस्टोपैथोलॉजी सारांश एवं लैब टिप्पणियां')}
+                </label>
+                <textarea
+                  value={createSummary}
+                  onChange={(e) => setCreateSummary(e.target.value)}
+                  rows={3}
+                  placeholder={tr('పరీక్షించిన ల్యాబ్ (ఉదా: KGH వైజాగ్ లేదా ITDA పాడేరు పాథాలజీ సెంటర్) మరియు ఇతర సూచనలు...', 'Examining pathology lab (e.g. KGH Visakhapatnam / ITDA Paderu Lab) and clinical recommendations...', 'जांच प्रयोगशाला एवं नैदानिक सिफारिशें...')}
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: '#475569'
+                  }}
+                >
+                  {tr('రద్దు', 'Cancel', 'रद्द करें')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  style={{
+                    padding: '0.6rem 1.5rem',
+                    background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 12px rgba(13, 148, 136, 0.35)'
+                  }}
+                >
+                  <Plus size={16} />
+                  {creating
+                    ? tr('నమోదవుతోంది...', 'Saving Report...', 'सहेज रहे हैं...')
+                    : tr('బయాప్సీ రిపోర్ట్ నమోదు చేయండి', 'Save Biopsy Report', 'बायोप्सी रिपोर्ट सहेजें')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

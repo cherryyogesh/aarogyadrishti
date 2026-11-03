@@ -166,6 +166,7 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
       </div>
 
       {/* Live WhatsApp-Style Telemedicine Video Calling Banner */}
+      {user.role !== 'chw' && (
       <div style={{
         background: 'linear-gradient(135deg, #064E3B 0%, #065F46 50%, #047857 100%)',
         borderRadius: '14px',
@@ -230,6 +231,7 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
           </span>
         </div>
       </div>
+      )}
 
       {/* Appointments List Card */}
       <div className="card">
@@ -294,7 +296,8 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         {apt.status !== 'cancelled' && apt.status !== 'completed' && (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <button
+                            {user.role !== 'chw' && (
+<button
                               className="btn"
                               style={{
                                 minHeight: '32px',
@@ -329,6 +332,7 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
                                 ? (currentLang === 'te' ? 'కనెక్ట్...' : 'Connecting...')
                                 : (currentLang === 'te' ? 'లైవ్ వీడియో కాల్' : 'Live Video Call')}</span>
                             </button>
+)}
 
                             <button
                               type="button"
@@ -602,7 +606,7 @@ export const AppointmentsView: React.FC<Props> = ({ currentLang, user, preSelect
       )}
 
       {/* Post-Booking Video Conference Connect Modal */}
-      {bookedAppointment && (
+      {bookedAppointment && user.role !== 'chw' && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
