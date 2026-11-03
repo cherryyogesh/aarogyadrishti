@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { translations } from '../../i18n/translations';
-import { LanguageCode, Patient, User } from '../../types';
+import { LanguageCode, Patient, User, ConsultationSession } from '../../types';
+import { DoctorSelectionModal } from '../consultation/DoctorSelectionModal';
+import { ConsultationHistoryView } from '../consultation/ConsultationHistoryView';
 import { ASR_DISTRICT_MANDALS } from '../../constants/mandals';
 import { networkStatus } from '../../services/networkStatus';
 import { offlineStorage } from '../../services/offlineStorage';
-import { Search, UserPlus, Phone, ShieldCheck, X, FileText, Calendar, WifiOff } from 'lucide-react';
+import { Search, UserPlus, Phone, ShieldCheck, X, FileText, Calendar, WifiOff, Video } from 'lucide-react';
 
 interface Props {
   currentLang: LanguageCode;
   user: User;
+  onStartConsultation?: (session: ConsultationSession) => void;
 }
 
-export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
+export const PatientsView: React.FC<Props> = ({ currentLang, user, onStartConsultation }) => {
   const t = translations[currentLang] || translations.en;
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +36,8 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
   const [submitting, setSubmitting] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [offlineNotice, setOfflineNotice] = useState<string | null>(null);
+  const [callingPatient, setCallingPatient] = useState<Patient | null>(null);
+  const [showConsultationHistory, setShowConsultationHistory] = useState<boolean>(false);
 
   const fetchPatients = async (q = '') => {
     setLoading(true);
@@ -215,11 +220,26 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
           <p style={{ fontSize: '0.85rem', color: '#64748B' }}>Search registered community members or enroll a new patient.</p>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setShowRegisterModal(true)}>
-          <UserPlus size={18} />
-          {t.patient_register_btn}
-        </button>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowConsultationHistory(prev => !prev)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
+          >
+            <Video size={16} color="#0D9488" />
+            {showConsultationHistory ? 'Hide Call History' : 'Consultation Call History'}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowRegisterModal(true)}>
+            <UserPlus size={18} />
+            {t.patient_register_btn}
+          </button>
+        </div>
       </div>
+
+      {/* Tele-Consultation Audit History Section */}
+      {showConsultationHistory && (
+        <ConsultationHistoryView user={user} onClose={() => setShowConsultationHistory(false)} />
+      )}
 
       {/* Search Input */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
@@ -307,13 +327,36 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
                     <td>{p.village_town || '—'}</td>
                     <td style={{ fontSize: '0.82rem', color: '#475569' }}>{p.phc_name || 'Kandukur PHC'}</td>
                     <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ minHeight: '32px', padding: '0.25rem 0.65rem', fontSize: '0.8rem' }}
-                        onClick={() => handleOpenDetail(p)}
-                      >
-                        View History
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button
+                          className="btn btn-primary"
+                          style={{
+                            minHeight: '32px',
+                            padding: '0.25rem 0.65rem',
+                            fontSize: '0.78rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)',
+                            borderColor: '#0D9488',
+                            color: '#ffffff',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap'
+                          }}
+                          onClick={() => setCallingPatient(p)}
+                          title="Initiate Live Video Call with Specialist Doctor"
+                        >
+                          <Video size={13} />
+                          Video Call
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ minHeight: '32px', padding: '0.25rem 0.65rem', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                          onClick={() => handleOpenDetail(p)}
+                        >
+                          View History
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -323,6 +366,21 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
           </div>
         )}
       </div>
+
+      {/* Doctor Selection & Live Outgoing Call Modal */}
+      {callingPatient && (
+        <DoctorSelectionModal
+          patient={callingPatient}
+          user={user}
+          onClose={() => setCallingPatient(null)}
+          onCallConnected={(session) => {
+            setCallingPatient(null);
+            if (onStartConsultation) {
+              onStartConsultation(session);
+            }
+          }}
+        />
+      )}
 
       {/* Register Patient Modal */}
       {showRegisterModal && (
@@ -539,6 +597,27 @@ export const PatientsView: React.FC<Props> = ({ currentLang, user }) => {
               <strong>PHC:</strong> {selectedPatient.phc_name} • Language: {selectedPatient.preferred_language.toUpperCase()}
             </div>
           </div>
+
+          <button
+            className="btn btn-primary"
+            style={{
+              width: '100%',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #0D9488 0%, #0891B2 100%)'
+            }}
+            onClick={() => {
+              setCallingPatient(selectedPatient);
+            }}
+          >
+            <Video size={18} />
+            Connect Live Video Call with Doctor
+          </button>
 
           {/* Screenings Timeline */}
           <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

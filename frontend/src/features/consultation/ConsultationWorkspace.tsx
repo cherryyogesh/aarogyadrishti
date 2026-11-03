@@ -271,6 +271,9 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
       setRemoteStream(stream);
       setIsCallConnected(true);
       setIsConnecting(false);
+      if (session.consultation_id) {
+        api.markConsultationConnected(session.consultation_id).catch(() => {});
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -474,15 +477,30 @@ export const ConsultationWorkspace: React.FC<Props> = ({ currentLang, user, sess
 
     setFinalizing(true);
     try {
-      await api.completeConsultation(session.appointment_id, {
-        clinical_findings: clinicalFindings,
-        prescription_notes: prescriptionNotes,
-        follow_up_instructions: followUpInstructions,
-        referral_needed: referralNeeded,
-        referral_specialty: referralNeeded ? referralSpecialty : undefined,
-        target_hospital: referralNeeded ? targetHospital : undefined,
-        referral_urgency: referralNeeded ? referralUrgency : undefined
-      });
+      if (session.consultation_id) {
+        await api.endConsultationSession(session.consultation_id, {
+          clinical_findings: clinicalFindings,
+          prescription_notes: prescriptionNotes,
+          follow_up_instructions: followUpInstructions,
+          referral_needed: referralNeeded,
+          referral_specialty: referralNeeded ? referralSpecialty : undefined,
+          target_hospital: referralNeeded ? targetHospital : undefined,
+          referral_urgency: referralNeeded ? referralUrgency : undefined,
+          biopsy_indicated: false,
+          termination_reason: 'completed_normally'
+        });
+      }
+      if (session.appointment_id) {
+        await api.completeConsultation(session.appointment_id, {
+          clinical_findings: clinicalFindings,
+          prescription_notes: prescriptionNotes,
+          follow_up_instructions: followUpInstructions,
+          referral_needed: referralNeeded,
+          referral_specialty: referralNeeded ? referralSpecialty : undefined,
+          target_hospital: referralNeeded ? targetHospital : undefined,
+          referral_urgency: referralNeeded ? referralUrgency : undefined
+        });
+      }
       setCompleted(true);
     } catch (err: any) {
       alert('Failed to complete consultation: ' + err.message);

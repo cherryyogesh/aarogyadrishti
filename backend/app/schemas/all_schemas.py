@@ -337,7 +337,7 @@ class ConsultationAcceptResponse(BaseModel):
     screening_details: Optional[Any] = None
 
 class ConsultationCompletePayload(BaseModel):
-    clinical_findings: str
+    clinical_findings: Optional[str] = "Consultation concluded."
     prescription_notes: Optional[str] = None
     follow_up_instructions: Optional[str] = None
     biopsy_indicated: bool = False
@@ -345,6 +345,75 @@ class ConsultationCompletePayload(BaseModel):
     referral_specialty: Optional[str] = None
     target_hospital: Optional[str] = None
     referral_urgency: Optional[str] = "routine"
+    termination_reason: Optional[str] = "completed_normally"
+
+class DoctorDirectoryItem(BaseModel):
+    id: int
+    full_name: str
+    email: str
+    role: str
+    phone: Optional[str] = None
+    department_or_specialty: Optional[str] = "General / Oral Oncology"
+    phc_id: Optional[int] = None
+    phc_name: Optional[str] = None
+    mandal: Optional[str] = None
+    availability_status: str = "online"  # online, in_consultation, offline
+    current_call_id: Optional[int] = None
+
+class InitiateConsultationRequest(BaseModel):
+    patient_id: int
+    doctor_id: int
+    case_id: Optional[int] = None
+    appointment_id: Optional[int] = None
+    consultation_type: Optional[str] = "VIDEO"
+
+class InitiateConsultationResponse(BaseModel):
+    consultation_id: int
+    session_token: str
+    webrtc_room_id: str
+    status: str
+    doctor_id: int
+    doctor_name: str
+    patient_id: int
+    patient_name: str
+    patient_id_display: Optional[str] = None
+    ringing_at: str
+
+class ConsultationActionResponse(BaseModel):
+    success: bool
+    message: str
+    consultation_id: int
+    status: str
+    webrtc_room_id: Optional[str] = None
+    session_token: Optional[str] = None
+
+class ConsultationHistoryItem(BaseModel):
+    id: int
+    appointment_id: Optional[int] = None
+    case_id: Optional[int] = None
+    patient_id: int
+    patient_name: str
+    patient_id_display: Optional[str] = None
+    patient_age: Optional[int] = None
+    patient_gender: Optional[str] = None
+    doctor_id: int
+    doctor_name: str
+    staff_id: Optional[int] = None
+    staff_name: Optional[str] = None
+    phc_name: Optional[str] = None
+    webrtc_room_id: str
+    consultation_type: str
+    status: str
+    ringing_at: Optional[str] = None
+    accepted_at: Optional[str] = None
+    connected_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    connected_duration_seconds: int = 0
+    termination_reason: Optional[str] = None
+    clinical_findings: Optional[str] = None
+    prescription_notes: Optional[str] = None
+    referral_specialty: Optional[str] = None
+    created_at: str
 
 # ----------------- MODULE G: BIOPSY & INVESTIGATION SCHEMAS -----------------
 class InvestigationCreate(BaseModel):

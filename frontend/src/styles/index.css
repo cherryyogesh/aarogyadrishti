@@ -432,16 +432,23 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.grid-cards-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
 @media (max-width: 1050px) {
   .grid-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.85rem;
   }
+  .grid-cards-3 {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  }
 }
 
 @media (max-width: 600px) {
-  .grid-cards {
-    grid-template-columns: 1fr;
+  .grid-cards, .grid-cards-3 {
+    grid-template-columns: 1fr !important;
     gap: 0.75rem;
   }
 }
@@ -534,14 +541,19 @@ body {
   line-height: 1.1;
 }
 
+.metric-card > div:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .metric-label {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   font-weight: 600;
-  margin-top: 0.15rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-top: 0.2rem;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
   max-width: 100%;
 }
 

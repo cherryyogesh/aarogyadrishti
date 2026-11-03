@@ -114,7 +114,7 @@ export const DistrictReportsView: React.FC<Props> = ({ currentLang, user }) => {
         </h3>
       </div>
 
-      <div className="grid-cards" style={{ marginBottom: '1.75rem' }}>
+      <div className="grid-cards grid-cards-3" style={{ marginBottom: '1.75rem' }}>
         {/* Total ASHA Workers */}
         <div className="metric-card" style={{ borderLeft: '4px solid #0D9488' }}>
           <div className="metric-icon-wrap" style={{ backgroundColor: '#CCFBF1', color: '#0F766E' }}>

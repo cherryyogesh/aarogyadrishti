@@ -1,6 +1,8 @@
 import {
   User, Patient, Screening, Appointment, DoctorQueueItem,
   ConsultationSession, ChatMessage, DistrictAnalytics, AuditEvent,
+  DoctorDirectoryItem, InitiateConsultationRequest, InitiateConsultationResponse,
+  ConsultationActionResponse, ConsultationHistoryItem,
   ConfigStatus, ImageUploadResponse, Investigation, NavigationTask, ReferralSlip,
   StaffMember, EmployeeRegisterPayload,
   MytraAnalysisRequest, MytraAnalysisResponse, ClinicianReviewAmendPayload,
@@ -295,6 +297,69 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  // --- Real-time Tele-Consultation System ---
+  async getAvailableDoctors(): Promise<DoctorDirectoryItem[]> {
+    return this.request<DoctorDirectoryItem[]>('/consultations/doctors');
+  }
+
+  async initiateConsultation(payload: InitiateConsultationRequest): Promise<InitiateConsultationResponse> {
+    return this.request<InitiateConsultationResponse>('/consultations/initiate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async acceptConsultationCall(consultation_id: number): Promise<ConsultationActionResponse> {
+    return this.request<ConsultationActionResponse>(`/consultations/${consultation_id}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async declineConsultationCall(consultation_id: number, reason?: string): Promise<ConsultationActionResponse> {
+    const url = reason ? `/consultations/${consultation_id}/decline?reason=${encodeURIComponent(reason)}` : `/consultations/${consultation_id}/decline`;
+    return this.request<ConsultationActionResponse>(url, {
+      method: 'POST',
+    });
+  }
+
+  async cancelConsultationCall(consultation_id: number): Promise<ConsultationActionResponse> {
+    return this.request<ConsultationActionResponse>(`/consultations/${consultation_id}/cancel`, {
+      method: 'POST',
+    });
+  }
+
+  async markConsultationMissed(consultation_id: number): Promise<ConsultationActionResponse> {
+    return this.request<ConsultationActionResponse>(`/consultations/${consultation_id}/missed`, {
+      method: 'POST',
+    });
+  }
+
+  async markConsultationConnected(consultation_id: number): Promise<ConsultationActionResponse> {
+    return this.request<ConsultationActionResponse>(`/consultations/${consultation_id}/connect`, {
+      method: 'POST',
+    });
+  }
+
+  async endConsultationSession(consultation_id: number, payload: any): Promise<ConsultationActionResponse> {
+    return this.request<ConsultationActionResponse>(`/consultations/${consultation_id}/end`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getConsultationHistory(params?: { doctor_id?: number; patient_id?: number; status_filter?: string }): Promise<ConsultationHistoryItem[]> {
+    const query = new URLSearchParams();
+    if (params?.doctor_id) query.append('doctor_id', String(params.doctor_id));
+    if (params?.patient_id) query.append('patient_id', String(params.patient_id));
+    if (params?.status_filter) query.append('status_filter', params.status_filter);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return this.request<ConsultationHistoryItem[]>(`/consultations/history${qs}`);
+  }
+
+  async getConsultationDetails(consultation_id: number): Promise<any> {
+    return this.request<any>(`/consultations/${consultation_id}`);
   }
 
   // --- Chatbot ---

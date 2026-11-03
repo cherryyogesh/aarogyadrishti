@@ -516,21 +516,56 @@ class Consultation(Base):
     __tablename__ = "consultations"
 
     id = Column(Integer, primary_key=True, index=True)
-    appointment_id = Column(Integer, ForeignKey("appointments.id", ondelete="CASCADE"), nullable=False, unique=True)
+    appointment_id = Column(Integer, ForeignKey("appointments.id", ondelete="SET NULL"), nullable=True)
+    case_id = Column(Integer, ForeignKey("screenings.id", ondelete="SET NULL"), nullable=True)
+    initiated_by_staff_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    facility_id = Column(Integer, ForeignKey("phcs.id", ondelete="SET NULL"), nullable=True)
     doctor_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    
     session_token = Column(String(100), nullable=False)
-    webrtc_room_id = Column(String(100), nullable=False)
+    webrtc_room_id = Column(String(100), nullable=False, index=True)
+    consultation_type = Column(String(50), default="VIDEO")
+    status = Column(String(50), default="initiated")
+    
+    ringing_at = Column(DateTime, nullable=True)
+    accepted_at = Column(DateTime, nullable=True)
+    connected_at = Column(DateTime, nullable=True)
     started_at = Column(DateTime, nullable=True)
     ended_at = Column(DateTime, nullable=True)
+    connected_duration_seconds = Column(Integer, default=0)
+    termination_reason = Column(String(100), nullable=True)
+    
     clinical_findings = Column(Text, nullable=True)
     prescription_notes = Column(Text, nullable=True)
     follow_up_instructions = Column(Text, nullable=True)
     referral_specialty = Column(String(100), nullable=True)
     biopsy_indicated = Column(Boolean, default=False)
-    status = Column(String(50), default="in_progress")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     appointment = relationship("Appointment", back_populates="consultation")
+    patient = relationship("Patient")
+    doctor = relationship("User", foreign_keys=[doctor_id])
+    staff = relationship("User", foreign_keys=[initiated_by_staff_id])
+    facility = relationship("PHC", foreign_keys=[facility_id])
+    case = relationship("Screening", foreign_keys=[case_id])
+    events = relationship("ConsultationEvent", back_populates="consultation", cascade="all, delete-orphan", order_by="ConsultationEvent.timestamp")
+
+class ConsultationEvent(Base):
+    __tablename__ = "consultation_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    consultation_id = Column(Integer, ForeignKey("consultations.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type = Column(String(50), nullable=False)
+    previous_status = Column(String(50), nullable=True)
+    new_status = Column(String(50), nullable=True)
+    triggered_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    details = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    consultation = relationship("Consultation", back_populates="events")
+    user = relationship("User", foreign_keys=[triggered_by_user_id])
 
 class Referral(Base):
     __tablename__ = "referrals"

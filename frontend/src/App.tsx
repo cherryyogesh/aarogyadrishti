@@ -12,6 +12,7 @@ import { AppointmentsView } from './features/appointments/AppointmentsView';
 import { OTPCheckinView } from './features/otp/OTPCheckinView';
 import { DoctorQueueView } from './features/doctor/DoctorQueueView';
 import { ConsultationWorkspace } from './features/consultation/ConsultationWorkspace';
+import { IncomingCallModal, IncomingCallData } from './features/consultation/IncomingCallModal';
 import { MobileCallJoinView } from './features/consultation/MobileCallJoinView';
 import { ChatbotView } from './features/chatbot/ChatbotView';
 import { DistrictReportsView } from './features/reports/DistrictReportsView';
@@ -47,6 +48,49 @@ export const App: React.FC = () => {
 
   // Active Telemedicine Consultation Session
   const [activeConsultation, setActiveConsultation] = useState<any | null>(null);
+  const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(null);
+
+  // Real-time WebSocket connection to receive incoming calls for Doctors & Staff
+  useEffect(() => {
+    if (!currentUser) return;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/v1/webrtc/user-ws/${currentUser.id}`;
+    let ws: WebSocket | null = null;
+    let pingTimer: any = null;
+
+    const connectWs = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          pingTimer = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 25000);
+        };
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'incoming_call') {
+              setIncomingCall(data);
+            } else if (data.type === 'call_cancelled' || data.type === 'call_missed') {
+              setIncomingCall(null);
+            }
+          } catch (e) {}
+        };
+        ws.onclose = () => {
+          clearInterval(pingTimer);
+          setTimeout(connectWs, 5000);
+        };
+      } catch (err) {}
+    };
+
+    connectWs();
+    return () => {
+      clearInterval(pingTimer);
+      if (ws) ws.close();
+    };
+  }, [currentUser]);
 
   // Check if URL has join_call parameter (from mobile scan or invite link)
   const [guestRoomId, setGuestRoomId] = useState<string | null>(() => {
@@ -668,6 +712,9 @@ export const App: React.FC = () => {
             <PatientsView
               currentLang={currentLang}
               user={currentUser}
+              onStartConsultation={(session) => {
+                setActiveConsultation(session);
+              }}
             />
           )}
 

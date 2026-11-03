@@ -311,7 +311,7 @@ export interface DoctorQueueItem {
 
 export interface ConsultationSession {
   consultation_id: number;
-  appointment_id: number;
+  appointment_id?: number;
   session_token: string;
   webrtc_room_id: string;
   stun_server: string;
@@ -323,6 +323,79 @@ export interface ConsultationSession {
   doctor_name?: string;
   mandal?: string;
   screening_details?: any;
+}
+
+export interface DoctorDirectoryItem {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  phone?: string;
+  department_or_specialty?: string;
+  phc_id?: number;
+  phc_name?: string;
+  mandal?: string;
+  availability_status: 'online' | 'in_consultation' | 'offline';
+  current_call_id?: number;
+}
+
+export interface InitiateConsultationRequest {
+  patient_id: number;
+  doctor_id: number;
+  case_id?: number;
+  appointment_id?: number;
+  consultation_type?: string;
+}
+
+export interface InitiateConsultationResponse {
+  consultation_id: number;
+  session_token: string;
+  webrtc_room_id: string;
+  status: string;
+  doctor_id: number;
+  doctor_name: string;
+  patient_id: number;
+  patient_name: string;
+  patient_id_display?: string;
+  ringing_at: string;
+}
+
+export interface ConsultationActionResponse {
+  success: boolean;
+  message: string;
+  consultation_id: number;
+  status: string;
+  webrtc_room_id?: string;
+  session_token?: string;
+}
+
+export interface ConsultationHistoryItem {
+  id: number;
+  appointment_id?: number;
+  case_id?: number;
+  patient_id: number;
+  patient_name: string;
+  patient_id_display?: string;
+  patient_age?: number;
+  patient_gender?: string;
+  doctor_id: number;
+  doctor_name: string;
+  staff_id?: number;
+  staff_name?: string;
+  phc_name?: string;
+  webrtc_room_id: string;
+  consultation_type: string;
+  status: string;
+  ringing_at?: string;
+  accepted_at?: string;
+  connected_at?: string;
+  ended_at?: string;
+  connected_duration_seconds: number;
+  termination_reason?: string;
+  clinical_findings?: string;
+  prescription_notes?: string;
+  referral_specialty?: string;
+  created_at: string;
 }
 
 export interface ChatMessage {
