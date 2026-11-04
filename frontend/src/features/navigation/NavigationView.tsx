@@ -363,7 +363,7 @@ export const NavigationView: React.FC<NavigationViewProps> = ({ currentUser, cur
         </div>
       )}
 
-      {error && (
+      {error && !error.toLowerCase().includes('token') && !error.toLowerCase().includes('expired') && !error.toLowerCase().includes('401') && (
         <div style={{ padding: '1rem', background: '#FEE2E2', color: '#B91C1C', borderRadius: '8px', marginBottom: '1rem' }}>
           {error}
         </div>

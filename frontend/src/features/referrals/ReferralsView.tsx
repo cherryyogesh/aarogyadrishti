@@ -180,7 +180,7 @@ export const ReferralsView: React.FC<ReferralsViewProps> = ({ currentUser, curre
         </div>
       )}
 
-      {error && (
+      {error && !error.toLowerCase().includes('token') && !error.toLowerCase().includes('expired') && !error.toLowerCase().includes('401') && (
         <div style={{ padding: '1rem', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', marginBottom: '1rem' }}>
           {error}
         </div>

@@ -51,6 +51,13 @@ class ApiService {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        this.setToken(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('ad_cached_user');
+          window.dispatchEvent(new CustomEvent('ad_auth_expired'));
+        }
+      }
       let errDetail = 'Request failed';
       try {
         const errJson = await res.json();
