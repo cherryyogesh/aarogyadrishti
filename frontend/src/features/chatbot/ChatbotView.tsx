@@ -624,8 +624,8 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             );
           }
 
-          // Disease Stage Section Header (突出显示)
-          if (trimmed.includes('వ్యాధి దశ అంచనా') || trimmed.includes('Predicted Clinical Stage') || trimmed.includes('Predicted Disease Stage') || trimmed.includes('रोग की अवस्था का अनुमान')) {
+          // Disease Stage Section Header
+          if (trimmed.includes('వ్యాధి దశ అంచనా') || trimmed.includes('నిర్ధారిత వ్యాధి దశ') || trimmed.includes('Predicted Clinical Stage') || trimmed.includes('Predicted Disease Stage') || trimmed.includes('Predicted Stage') || trimmed.includes('रोग की अवस्था का अनुमान')) {
             return (
               <div key={lIdx} style={{
                 background: 'linear-gradient(135deg, #F0FDFA 0%, #E6FFFA 100%)',
@@ -647,13 +647,14 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             );
           }
 
-          // Specific Stage Prediction Callouts (Stage 1 / Stage 2 / Stage 3 highlight cards)
+          // Specific Single Stage Prediction (e.g. 👉 స్టేజ్ 2 (మధ్యస్థ దశ) or • **స్టేజ్ 2**)
           const isStage1 = trimmed.includes('స్టేజ్ 1') || trimmed.includes('Stage 1') || trimmed.includes('స్టేజ్ I') || trimmed.includes('Stage I ');
           const isStage2 = trimmed.includes('స్టేజ్ 2') || trimmed.includes('Stage 2') || trimmed.includes('స్టేజ్ II') || trimmed.includes('Stage II ');
           const isStage3 = trimmed.includes('స్టేజ్ 3') || trimmed.includes('Stage 3') || trimmed.includes('స్టేజ్ 4') || trimmed.includes('Stage 4') || trimmed.includes('స్టేజ్ III') || trimmed.includes('Stage III');
+          const isStageTrigger = trimmed.startsWith('👉') || trimmed.startsWith('• **స్టేజ్') || trimmed.startsWith('• **Stage') || trimmed.startsWith('**స్టేజ్') || trimmed.startsWith('**Stage') || trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ');
 
-          if ((trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) && (isStage1 || isStage2 || isStage3)) {
-            const bulletText = trimmed.replace(/^[•*-]\s*/, '');
+          if (isStageTrigger && (isStage1 || isStage2 || isStage3)) {
+            const bulletText = trimmed.replace(/^[👉•*-]\s*/, '');
             const borderColor = isStage3 ? '#EF4444' : isStage2 ? '#F59E0B' : '#10B981';
             const bgColor = isStage3 ? '#FEF2F2' : isStage2 ? '#FFFBEB' : '#ECFDF5';
             const textColor = isStage3 ? '#991B1B' : isStage2 ? '#92400E' : '#065F46';
@@ -661,19 +662,21 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
             return (
               <div key={lIdx} style={{
                 background: bgColor,
-                borderLeft: `4px solid ${borderColor}`,
-                borderRadius: '6px',
-                padding: '0.45rem 0.75rem',
-                margin: '0.25rem 0',
-                fontSize: '0.84rem',
+                borderLeft: `5px solid ${borderColor}`,
+                borderRadius: '8px',
+                padding: '0.65rem 0.95rem',
+                margin: '0.35rem 0',
+                fontSize: '0.94rem',
+                fontWeight: 700,
                 color: textColor,
                 lineHeight: 1.55,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.55rem'
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
-                  <BarChart2 size={15} color={borderColor} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <span style={{ flex: 1 }}>{renderInlineStyles(bulletText)}</span>
-                </div>
+                <BarChart2 size={18} color={borderColor} style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{renderInlineStyles(bulletText)}</span>
               </div>
             );
           }
