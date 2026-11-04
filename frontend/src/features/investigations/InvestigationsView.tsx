@@ -94,7 +94,13 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
       const data = await api.listInvestigations();
       setInvestigations(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to load investigation records');
+      const msg = err?.message || '';
+      const isAuthErr = msg.toLowerCase().includes('auth') || msg.toLowerCase().includes('token') || msg.toLowerCase().includes('sign in') || msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('401');
+      if (isAuthErr) {
+        setError(null);
+      } else {
+        setError(msg || 'Failed to load investigation records');
+      }
     } finally {
       setLoading(false);
     }
@@ -312,7 +318,7 @@ export const InvestigationsView: React.FC<InvestigationsViewProps> = ({ currentU
         </div>
       )}
 
-      {error && !error.toLowerCase().includes('token') && !error.toLowerCase().includes('expired') && !error.toLowerCase().includes('401') && (
+      {error && !error.toLowerCase().includes('auth') && !error.toLowerCase().includes('token') && !error.toLowerCase().includes('sign in') && !error.toLowerCase().includes('expired') && !error.toLowerCase().includes('401') && (
         <div style={{ padding: '1rem', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', marginBottom: '1rem' }}>
           {error}
         </div>

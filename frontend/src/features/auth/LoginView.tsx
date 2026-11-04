@@ -136,6 +136,20 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
     }
   };
 
+  const handleQuickLogin = async (loginEmail: string, loginPass: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      await api.login(loginEmail, loginPass);
+      const user = await api.getMe();
+      onLoginSuccess(user);
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -506,6 +520,47 @@ export const LoginView: React.FC<Props> = ({ currentLang, onLoginSuccess, onLang
               >
                 {loading ? (t.login_authenticating || tr('ప్రాసెస్ అవుతోంది...', 'Authenticating...', 'प्रमाणित हो रहा है...')) : (t.login_submit || tr('లాగిన్ అవ్వండి', 'Sign In to Portal', 'लॉगिन करें'))}
               </button>
+
+              {/* Quick 1-Click Role Login for instant access */}
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748B', textAlign: 'center', marginBottom: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {tr('త్వరిత లాగిన్ (Quick 1-Click Role Sign In)', 'Quick 1-Click Role Sign In', 'त्वरित 1-क्लिक भूमिका लॉगिन')}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('mo@aarogya.gov.in', 'PhcPass@2026')}
+                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    🏥 PHC Medical Officer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('doctor@aarogya.gov.in', 'DocPass@2026')}
+                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#FAF5FF', color: '#6B21A8', border: '1px solid #E9D5FF', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    🩺 Specialist Doctor
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('chw@aarogya.gov.in', 'AshaPass@2026')}
+                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#F0FDFA', color: '#0F766E', border: '1px solid #99F6E4', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    👩‍⚕️ ASHA / CHW
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleQuickLogin('admin@aarogya.gov.in', 'AdminPass@2026')}
+                    style={{ padding: '0.5rem', fontSize: '0.75rem', background: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    🛡️ DMHO Admin
+                  </button>
+                </div>
+              </div>
 
               {/* Forgot Password bottom shortcut */}
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>

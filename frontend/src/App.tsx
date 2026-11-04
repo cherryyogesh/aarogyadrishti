@@ -113,46 +113,29 @@ export const App: React.FC = () => {
 
     const checkAuth = async () => {
       const token = api.getToken();
-      if (token) {
-        try {
-          const user = await api.getMe();
-          setCurrentUser(user);
-          localStorage.setItem('ad_cached_user', JSON.stringify(user));
-          if (user.role === 'doctor') setActiveRoute('queue');
-          else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
-          else if (user.role === 'admin') setActiveRoute('reports');
-          else setActiveRoute('screening');
-        } catch (e: any) {
-          const errStr = (e?.message || '').toLowerCase();
-          const isAuthError = errStr.includes('token') || errStr.includes('401') || errStr.includes('auth') || errStr.includes('unauthorized') || errStr.includes('expired');
-
-          if (isAuthError) {
-            api.setToken(null);
-            localStorage.removeItem('ad_cached_user');
-            setCurrentUser(null);
-          } else {
-            // Truly offline: restore from cached user profile
-            const cached = localStorage.getItem('ad_cached_user');
-            if (cached) {
-              try {
-                const user = JSON.parse(cached);
-                setCurrentUser(user);
-                if (user.role === 'doctor') setActiveRoute('queue');
-                else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
-                else if (user.role === 'admin') setActiveRoute('reports');
-                else setActiveRoute('screening');
-              } catch {
-                api.setToken(null);
-                setCurrentUser(null);
-              }
-            } else {
-              api.setToken(null);
-              setCurrentUser(null);
-            }
-          }
-        }
+      if (!token) {
+        api.setToken(null);
+        localStorage.removeItem('ad_cached_user');
+        setCurrentUser(null);
+        setAuthChecking(false);
+        return;
       }
-      setAuthChecking(false);
+
+      try {
+        const user = await api.getMe();
+        setCurrentUser(user);
+        localStorage.setItem('ad_cached_user', JSON.stringify(user));
+        if (user.role === 'doctor') setActiveRoute('queue');
+        else if (user.role === 'phc_staff') setActiveRoute('phc_cases');
+        else if (user.role === 'admin') setActiveRoute('reports');
+        else setActiveRoute('screening');
+      } catch (e: any) {
+        api.setToken(null);
+        localStorage.removeItem('ad_cached_user');
+        setCurrentUser(null);
+      } finally {
+        setAuthChecking(false);
+      }
     };
     checkAuth();
 
