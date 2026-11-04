@@ -39,6 +39,8 @@ class GeminiStructuredMedicalAssessment(BaseModel):
     image_category: str = "mouth_oral"
     visible_observations: List[str] = []
     possible_explanations: List[GeminiMedicalObservation] = []
+    predicted_stage: Optional[str] = "Stage 1 - Early Suspicion"
+    stage_criteria: Optional[str] = "Preliminary morphological visual assessment"
     missing_information: List[str] = []
     warning_signs: List[str] = []
     recommended_next_step: str = ""
@@ -417,6 +419,8 @@ You MUST respond strictly with a valid JSON object matching the following schema
             "image_category": data.get("image_category", "mouth_oral"),
             "visible_observations": data.get("visible_observations", []),
             "possible_explanations": formatted_explanations,
+            "predicted_stage": data.get("predicted_stage") or "Stage 1 - Early Suspicion",
+            "stage_criteria": data.get("stage_criteria") or "Preliminary morphological visual assessment",
             "missing_information": data.get("missing_information", []),
             "warning_signs": data.get("warning_signs", []),
             "recommended_next_step": data.get("recommended_next_step", "Consult PHC Medical Officer for clinical examination."),

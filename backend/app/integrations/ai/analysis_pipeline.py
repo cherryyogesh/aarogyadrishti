@@ -299,6 +299,8 @@ class MedicalImageAnalysisPipeline:
             },
             "visible_observations": clean_observations,
             "possible_explanations": evidence_explanations,
+            "predicted_stage": inference_result.get("predicted_stage") or "Stage 1 - Early Suspicion",
+            "stage_criteria": inference_result.get("stage_criteria") or "Preliminary morphological photographic assessment.",
             "missing_information": missing_info or ["Complete clinical tobacco/habit history and physical palpation."],
             "red_flags": red_flags,
             "recommended_next_step": rec_next_step,

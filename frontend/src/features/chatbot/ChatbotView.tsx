@@ -7,7 +7,7 @@ import {
   Plus, Send, Camera, Image as ImageIcon, X, AlertTriangle,
   Copy, RefreshCw, Sparkles, Check, HelpCircle,
   Mic, MicOff, Volume2, VolumeX, Radio,
-  Key, Zap, ExternalLink
+  Key, Zap, ExternalLink, Activity, BarChart2
 } from 'lucide-react';
 
 interface Props {
@@ -620,6 +620,78 @@ export const ChatbotView: React.FC<Props> = ({ currentLang }) => {
                 lineHeight: 1.55
               }}>
                 {renderInlineStyles(trimmed.replace(/^>\s*/, ''))}
+              </div>
+            );
+          }
+
+          // Disease Stage Section Header (突出显示)
+          if (trimmed.includes('వ్యాధి దశ అంచనా') || trimmed.includes('Predicted Clinical Stage') || trimmed.includes('Predicted Disease Stage') || trimmed.includes('रोग की अवस्था का अनुमान')) {
+            return (
+              <div key={lIdx} style={{
+                background: 'linear-gradient(135deg, #F0FDFA 0%, #E6FFFA 100%)',
+                border: '1.5px solid #0D9488',
+                borderRadius: '8px',
+                padding: '0.55rem 0.85rem',
+                margin: '0.55rem 0 0.35rem',
+                color: '#0F766E',
+                fontWeight: 800,
+                fontSize: '0.92rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 1px 3px rgba(13, 148, 136, 0.12)'
+              }}>
+                <Activity size={17} color="#0D9488" style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1 }}>{renderInlineStyles(trimmed)}</span>
+              </div>
+            );
+          }
+
+          // Specific Stage Prediction Callouts (Stage 1 / Stage 2 / Stage 3 highlight cards)
+          const isStage1 = trimmed.includes('స్టేజ్ 1') || trimmed.includes('Stage 1') || trimmed.includes('స్టేజ్ I') || trimmed.includes('Stage I ');
+          const isStage2 = trimmed.includes('స్టేజ్ 2') || trimmed.includes('Stage 2') || trimmed.includes('స్టేజ్ II') || trimmed.includes('Stage II ');
+          const isStage3 = trimmed.includes('స్టేజ్ 3') || trimmed.includes('Stage 3') || trimmed.includes('స్టేజ్ 4') || trimmed.includes('Stage 4') || trimmed.includes('స్టేజ్ III') || trimmed.includes('Stage III');
+
+          if ((trimmed.startsWith('• ') || trimmed.startsWith('* ') || trimmed.startsWith('- ')) && (isStage1 || isStage2 || isStage3)) {
+            const bulletText = trimmed.replace(/^[•*-]\s*/, '');
+            const borderColor = isStage3 ? '#EF4444' : isStage2 ? '#F59E0B' : '#10B981';
+            const bgColor = isStage3 ? '#FEF2F2' : isStage2 ? '#FFFBEB' : '#ECFDF5';
+            const textColor = isStage3 ? '#991B1B' : isStage2 ? '#92400E' : '#065F46';
+
+            return (
+              <div key={lIdx} style={{
+                background: bgColor,
+                borderLeft: `4px solid ${borderColor}`,
+                borderRadius: '6px',
+                padding: '0.45rem 0.75rem',
+                margin: '0.25rem 0',
+                fontSize: '0.84rem',
+                color: textColor,
+                lineHeight: 1.55,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                  <BarChart2 size={15} color={borderColor} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span style={{ flex: 1 }}>{renderInlineStyles(bulletText)}</span>
+                </div>
+              </div>
+            );
+          }
+
+          // Disease Identification header card
+          if (trimmed.startsWith('🩺 **') || trimmed.includes('గుర్తించిన వ్యాధి') || trimmed.includes('Identified Condition') || trimmed.includes('पहचाना गया रोग')) {
+            return (
+              <div key={lIdx} style={{
+                background: '#F0F9FF',
+                borderLeft: '4px solid #0284C7',
+                borderRadius: '6px',
+                padding: '0.5rem 0.8rem',
+                margin: '0.4rem 0 0.2rem',
+                fontSize: '0.87rem',
+                color: '#0369A1',
+                lineHeight: 1.55
+              }}>
+                {renderInlineStyles(trimmed)}
               </div>
             );
           }

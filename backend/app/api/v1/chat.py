@@ -95,9 +95,9 @@ async def send_chat_message(
                 "attached photograph for review.", "photo", "photograph", "image", "review this photo",
                 "దయచేసి ఈ ఫొటోను సమీక్షించండి", "ఫోటో సమీక్ష", "ఫొటో", "photo review"
             ] else (
-                "దయచేసి నేను పంపిన ఈ ఫొటోను క్షుణ్ణంగా పరిశీలించి, ఇది ఏ వ్యాధి లేదా సమస్య, దీనికి గల కారణాలు, జాగ్రత్తలు మరియు తదుపరి చర్యలను మానవీయంగా మరియు వివరంగా తెలియజేయండి."
+                "దయచేసి నేను పంపిన ఈ ఫొటోను క్షుణ్ణంగా పరిశీలించి, ఇది ఏ వ్యాధి లేదా సమస్య, ఇది ఏ దశలో ఉందో (Clinical Stage Prediction: Stage 1, 2, or 3), దీనికి గల కారణాలు, జాగ్రత్తలు మరియు తదుపరి చర్యలను మానవీయంగా మరియు వివరంగా తెలియజేయండి."
                 if is_te else
-                "Please analyze this medical photograph carefully. Identify what condition or disease this appears to be, explain its causes, what reliable care to take, and what next steps are needed."
+                "Please analyze this medical photograph carefully. Identify what condition or disease this appears to be, predict what clinical stage it is in (Stage 1, Stage 2, or Stage 3 with criteria), explain its causes, what reliable care to take, and what next steps are needed."
             )
 
             ai_resp = await gemini_chat_engine.generate_chat_response_async(

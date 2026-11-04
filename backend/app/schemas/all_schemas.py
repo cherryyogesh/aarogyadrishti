@@ -636,6 +636,8 @@ class MytraAnalysisResponse(BaseModel):
     image_quality: ImageQualityDetail
     visible_observations: List[str] = []
     possible_explanations: List[ObservationExplanation] = []
+    predicted_stage: Optional[str] = None
+    stage_criteria: Optional[str] = None
     missing_information: List[str] = []
     red_flags: List[str] = []
     recommended_next_step: str
